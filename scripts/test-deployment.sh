@@ -56,8 +56,28 @@ log_info "Checking Python dependencies..."
 if python3 -c "import fastapi, uvicorn, jinja2" 2>/dev/null; then
     log_success "Core dependencies available"
 else
-    log_warning "Installing dependencies..."
-    pip3 install -r requirements.txt
+    log_info "Setting up virtual environment for dependencies..."
+    
+    # Create virtual environment if it doesn't exist
+    if [ ! -d "venv" ]; then
+        python3 -m venv venv
+        log_success "Virtual environment created"
+    fi
+    
+    # Activate virtual environment and install dependencies
+    source venv/bin/activate
+    if pip install -r requirements.txt > /dev/null 2>&1; then
+        log_success "Dependencies installed in virtual environment"
+    else
+        log_warning "Some dependencies failed to install"
+    fi
+    
+    # Test imports again
+    if python -c "import fastapi, uvicorn, jinja2" 2>/dev/null; then
+        log_success "Core dependencies now available"
+    else
+        log_warning "Dependencies still missing - may need manual installation"
+    fi
 fi
 
 # Test 3: Configuration validation
@@ -97,8 +117,16 @@ fi
 echo
 log_info "Testing application startup..."
 
+# Use virtual environment if it exists
+if [ -d "venv" ]; then
+    source venv/bin/activate
+    PYTHON_CMD="python"
+else
+    PYTHON_CMD="python3"
+fi
+
 # Start the application in background
-timeout 30s python3 main.py &
+timeout 30s $PYTHON_CMD main.py &
 APP_PID=$!
 
 # Wait for startup

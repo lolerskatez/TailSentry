@@ -103,10 +103,36 @@ setup_test_environment() {
     
     # Install test dependencies if needed
     if [ -f "test-requirements.txt" ]; then
-        log_info "Installing test dependencies..."
-        pip3 install -r test-requirements.txt > "$TEST_DIR/pip-install.log" 2>&1 || {
-            log_warning "Some test dependencies failed to install (see $TEST_DIR/pip-install.log)"
-        }
+        log_info "Setting up testing environment..."
+        
+        # Check if we're in an externally managed environment
+        if python3 -c "import sys; exit(0 if hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix else 1)" 2>/dev/null; then
+            log_info "Using existing virtual environment"
+            pip install -r test-requirements.txt > "$TEST_DIR/pip-install.log" 2>&1 || {
+                log_warning "Some test dependencies failed to install (see $TEST_DIR/pip-install.log)"
+            }
+        else
+            # Try system install first, fall back to venv
+            if pip3 install -r test-requirements.txt > "$TEST_DIR/pip-install.log" 2>&1; then
+                log_success "Test dependencies installed system-wide"
+            else
+                log_info "System install failed, creating virtual environment..."
+                
+                # Create and use virtual environment
+                if [ ! -d "test-venv" ]; then
+                    python3 -m venv test-venv
+                fi
+                
+                source test-venv/bin/activate
+                pip install -r requirements.txt > "$TEST_DIR/pip-install.log" 2>&1
+                pip install -r test-requirements.txt >> "$TEST_DIR/pip-install.log" 2>&1
+                
+                log_success "Test dependencies installed in virtual environment"
+                
+                # Export venv info for other scripts
+                export TESTING_VENV="test-venv"
+            fi
+        fi
     fi
     
     # Make scripts executable

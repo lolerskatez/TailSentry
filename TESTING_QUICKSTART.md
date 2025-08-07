@@ -7,24 +7,28 @@
 ```bash
 # Fresh Ubuntu/Debian setup
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y git python3 python3-pip curl
+sudo apt install -y git python3 python3-pip python3-venv curl
 
 # Install Tailscale
 curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up --authkey=YOUR_AUTH_KEY
 
-# Clone and test TailSentry
+# Clone and setup TailSentry
 git clone https://github.com/lolerskatez/TailSentry.git
 cd TailSentry
 
-# Quick validation
+# Setup test environment (handles virtual environment automatically)
 chmod +x scripts/*.sh
+./scripts/setup-test-env.sh
+
+# Activate test environment
+source activate-test-env.sh
+
+# Run comprehensive tests
 ./scripts/run-all-tests.sh
 
 # If all passes, deploy normally
-make install
-make setup
-make dev
+python main.py
 ```
 
 ### **Option 2: Windows**
@@ -139,9 +143,15 @@ sudo tailscale up
 
 **"Python import errors"**
 ```bash
-# Install dependencies
-pip3 install -r requirements.txt
-pip3 install -r test-requirements.txt
+# Modern Linux (externally managed environment)
+./scripts/setup-test-env.sh
+source activate-test-env.sh
+
+# Or manually create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+pip install -r test-requirements.txt
 ```
 
 **"Permission denied"**
