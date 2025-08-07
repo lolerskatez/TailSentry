@@ -41,7 +41,8 @@ else
 fi
 
 if command -v tailscale &> /dev/null; then
-    TAILSCALE_VERSION=$(tailscale version --short)
+    # Try different version formats for compatibility
+    TAILSCALE_VERSION=$(tailscale version 2>/dev/null | head -n1 | awk '{print $1}' || echo "unknown")
     log_success "Tailscale found: $TAILSCALE_VERSION"
 else
     log_error "Tailscale not found"

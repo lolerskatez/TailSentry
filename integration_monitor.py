@@ -112,11 +112,6 @@ class TailscaleIntegrationMonitor:
                 
         except Exception:
             return False
-                )
-                return response.status_code == 200
-                
-        except Exception:
-            return False
     
     async def _check_service(self) -> bool:
         """Check tailscaled service status"""
@@ -132,24 +127,35 @@ class TailscaleIntegrationMonitor:
         except Exception:
             return False
     
+    async def _attempt_recovery(self):
+        """Attempt to recover from integration failures"""
+        logger.warning(f"Attempting recovery after {self.health.error_count} errors")
+        
         if not self.health.service_running:
             import os
-            if os.geteuid() != 0:
-                logger.error("Insufficient privileges to restart tailscaled. Please run as root.")
+            import platform
+            
+            # Check if we're on Windows or Unix-like system
+            if platform.system() == "Windows":
+                logger.info("Windows detected - manual service restart may be required")
             else:
+                # Unix-like systems (Linux, macOS)
                 try:
-                    proc = await asyncio.create_subprocess_exec(
-                        "systemctl", "restart", "tailscaled"
-                    )
-                    await asyncio.wait_for(proc.wait(), timeout=30.0)
-                    logger.info("Restarted tailscaled service")
+                    # Check if running as root (Unix/Linux only)
+                    user_id = getattr(os, 'geteuid', lambda: 1)()
+                    if user_id != 0:
+                        logger.error("Insufficient privileges to restart tailscaled. Please run as root.")
+                    else:
+                        try:
+                            proc = await asyncio.create_subprocess_exec(
+                                "systemctl", "restart", "tailscaled"
+                            )
+                            await asyncio.wait_for(proc.wait(), timeout=30.0)
+                            logger.info("Restarted tailscaled service")
+                        except Exception as e:
+                            logger.error(f"Failed to restart tailscaled: {e}")
                 except Exception as e:
-                    logger.error(f"Failed to restart tailscaled: {e}")
-        
-        # Reset error count after recovery attempt
-        self.health.error_count = 0
-            except Exception as e:
-                logger.error(f"Failed to restart tailscaled: {e}")
+                    logger.warning(f"Cannot check privileges on this platform: {e}")
         
         # Reset error count after recovery attempt
         self.health.error_count = 0

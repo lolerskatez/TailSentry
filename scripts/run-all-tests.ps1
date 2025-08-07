@@ -76,7 +76,8 @@ function Setup-TestEnvironment {
     
     # Check if Tailscale is available
     try {
-        $tailscaleVersion = tailscale version --short 2>&1
+        $tailscaleOutput = tailscale version 2>&1
+        $tailscaleVersion = ($tailscaleOutput | Select-Object -First 1) -replace '\s+', ' '
         Write-Success "Tailscale found: $tailscaleVersion"
     }
     catch {
@@ -358,7 +359,7 @@ function Generate-Report {
 - **OS:** $(Get-WmiObject -Class Win32_OperatingSystem | Select-Object -ExpandProperty Caption)
 - **PowerShell:** $($PSVersionTable.PSVersion)
 - **Python:** $(python --version 2>&1)
-- **Tailscale:** $(tailscale version --short 2>&1)
+- **Tailscale:** $(try { (tailscale version 2>&1 | Select-Object -First 1) -replace '\s+', ' ' } catch { "Not available" })
 
 ## Recommendations
 
