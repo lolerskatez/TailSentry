@@ -1,0 +1,95 @@
+# TailSentry - Docker Compose configuration
+# This file provides an easy way to deploy TailSentry with proper networking and persistence
+
+version: '3.8'
+
+services:
+  tailsentry:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: tailsentry
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount tailscale socket for CLI access
+      - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock:ro
+      # Mount systemd socket for service management (read-only)
+      - /run/systemd:/run/systemd:ro
+      # Mount config directory
+      - tailsentry_data:/app/data
+      # Mount logs
+      - tailsentry_logs:/app/logs
+    environment:
+      # Set production environment variables here
+      - SESSION_SECRET=${SESSION_SECRET:-changeme}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
+      - TAILSCALE_PAT=${TAILSCALE_PAT}
+      - SESSION_TIMEOUT_MINUTES=30
+      - TZ=UTC
+      - PYTHONUNBUFFERED=1
+    networks:
+      - tailnet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined  # Optional: use custom AppArmor profile
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=100m
+      - /var/tmp:rw,noexec,nosuid,size=50m
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    user: "1000:1000"  # Use specific UID/GID instead of name
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
+
+  # Optional: Add monitoring with Prometheus/Grafana
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: tailsentry-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - tailnet
+    profiles:
+      - monitoring
+
+networks:
+  tailnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  tailsentry_data:
+    driver: local
+  tailsentry_logs:
+    driver: local
+  prometheus_data:
+    driver: local

@@ -1,0 +1,17 @@
+# Crontab entries for TailSentry automation
+# Add these to your system crontab with: sudo crontab -e
+
+# Health check every 5 minutes
+*/5 * * * * /opt/tailsentry/scripts/health-check.sh >/dev/null 2>&1
+
+# Daily backup at 2 AM
+0 2 * * * /opt/tailsentry/scripts/backup.sh >/dev/null 2>&1
+
+# Weekly log rotation at 3 AM on Sundays
+0 3 * * 0 /usr/sbin/logrotate /opt/tailsentry/logrotate.conf >/dev/null 2>&1
+
+# Monthly cleanup of old logs and temporary files at 4 AM on 1st of month
+0 4 1 * * find /opt/tailsentry/logs -name "*.log" -mtime +30 -delete >/dev/null 2>&1
+
+# Check for updates weekly at 5 AM on Mondays (if auto-update is enabled)
+0 5 * * 1 /opt/tailsentry/scripts/auto-update.sh >/dev/null 2>&1

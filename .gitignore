@@ -1,0 +1,95 @@
+# TailSentry .gitignore
+
+# Environment variables
+.env
+.env.local
+.env.prod
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Data directories
+data/
+backup_*/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+
+# TailSentry specific
+acl_backups/
+metrics_history.json
+policy.json
+
+# Security & Secrets
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+audit.db
+sessions.db
+.env.production
+.env.local.*
+vault/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+migrations/versions/
+
+# Backup files
+backups/
+*.backup
+*.bak

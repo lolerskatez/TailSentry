@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Auth Keys - TailSentry{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Tailscale Auth Keys</h1>
+<div class="bg-white dark:bg-gray-800 p-6 rounded shadow mb-6">
+  <h2 class="font-semibold mb-2">Create New Key</h2>
+  <form method="post" action="/keys/create" class="flex flex-wrap gap-2 items-end">
+    <div>
+      <label>Expiration</label>
+      <select name="expiry" class="p-2 border rounded">
+        <option value="86400">1 day</option>
+        <option value="604800">7 days</option>
+        <option value="7776000">90 days</option>
+      </select>
+    </div>
+    <div>
+      <label>Reusable</label>
+      <input type="checkbox" name="reusable" value="1" class="ml-2">
+    </div>
+    <div>
+      <label>Ephemeral</label>
+      <input type="checkbox" name="ephemeral" value="1" class="ml-2">
+    </div>
+    <div>
+      <label>Description</label>
+      <input name="description" type="text" class="p-2 border rounded">
+    </div>
+    <button class="px-4 py-2 bg-blue-600 text-white rounded">Create</button>
+  </form>
+</div>
+<div class="bg-white dark:bg-gray-800 p-6 rounded shadow">
+  <h2 class="font-semibold mb-2">Existing Keys</h2>
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead>
+        <tr class="bg-gray-200 dark:bg-gray-700">
+          <th class="p-2">Key ID</th>
+          <th class="p-2">Description</th>
+          <th class="p-2">Expiration</th>
+          <th class="p-2">Reusable</th>
+          <th class="p-2">Ephemeral</th>
+          <th class="p-2">Last Used</th>
+          <th class="p-2">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for key in keys.get('keys', []) %}
+        <tr class="border-b border-gray-300 dark:border-gray-700">
+          <td class="p-2">{{ key['id'] }}</td>
+          <td class="p-2">{{ key['description']|default('') }}</td>
+          <td class="p-2">{{ key['expires']|default('') }}</td>
+          <td class="p-2">{{ 'Yes' if key['reusable'] else 'No' }}</td>
+          <td class="p-2">{{ 'Yes' if key['ephemeral'] else 'No' }}</td>
+          <td class="p-2">{{ key['lastUsed']|default('Never') }}</td>
+          <td class="p-2">
+            <form method="post" action="/keys/revoke" onsubmit="return confirm('Revoke this key?');">
+              <input type="hidden" name="key_id" value="{{ key['id'] }}">
+              <button class="px-2 py-1 bg-red-600 text-white rounded">Revoke</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="p-2 text-center">No keys found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
