@@ -8,6 +8,8 @@ import logging
 import time
 import json
 import subprocess
+import httpx
+import os
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 from dataclasses import dataclass
@@ -97,9 +99,6 @@ class TailscaleIntegrationMonitor:
     async def _check_api(self) -> bool:
         """Check Tailscale API availability"""
         try:
-            import httpx
-            import os
-            
             pat = os.getenv("TAILSCALE_PAT")
             if not pat:
                 return True  # API not configured, consider healthy
@@ -108,6 +107,11 @@ class TailscaleIntegrationMonitor:
                 response = await client.get(
                     "https://api.tailscale.com/api/v2/tailnet/-/devices",
                     headers={"Authorization": f"Bearer {pat}"}
+                )
+                return response.status_code == 200
+                
+        except Exception:
+            return False
                 )
                 return response.status_code == 200
                 
@@ -128,18 +132,22 @@ class TailscaleIntegrationMonitor:
         except Exception:
             return False
     
-    async def _attempt_recovery(self):
-        """Attempt automatic recovery"""
-        logger.warning("Attempting integration recovery...")
-        
-        # Try to restart tailscaled if it's not running
         if not self.health.service_running:
-            try:
-                proc = await asyncio.create_subprocess_exec(
-                    "systemctl", "restart", "tailscaled"
-                )
-                await asyncio.wait_for(proc.wait(), timeout=30.0)
-                logger.info("Restarted tailscaled service")
+            import os
+            if os.geteuid() != 0:
+                logger.error("Insufficient privileges to restart tailscaled. Please run as root.")
+            else:
+                try:
+                    proc = await asyncio.create_subprocess_exec(
+                        "systemctl", "restart", "tailscaled"
+                    )
+                    await asyncio.wait_for(proc.wait(), timeout=30.0)
+                    logger.info("Restarted tailscaled service")
+                except Exception as e:
+                    logger.error(f"Failed to restart tailscaled: {e}")
+        
+        # Reset error count after recovery attempt
+        self.health.error_count = 0
             except Exception as e:
                 logger.error(f"Failed to restart tailscaled: {e}")
         

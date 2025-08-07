@@ -37,7 +37,18 @@ check_tailscale_installation() {
     fi
     
     # Check version
-    local version=$(tailscale version 2>/dev/null | head -n1 || echo "unknown")
+    local version_output
+    version_output=$(tailscale version 2>/dev/null | head -n1 || echo "")
+    if [[ -z "$version_output" ]]; then
+        version="unknown"
+    else
+        # Try to extract version number using regex, fallback to full output
+        if [[ "$version_output" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            version="${BASH_REMATCH[1]}"
+        else
+            version="$version_output"
+        fi
+    fi
     success "Tailscale CLI found: $version"
     
     return 0
@@ -99,11 +110,25 @@ check_json_output() {
     
     # Test JSON parsing
     local json_output=$(tailscale status --json 2>/dev/null || echo "{}")
-    if ! echo "$json_output" | python3 -m json.tool >/dev/null 2>&1; then
-        error "Tailscale JSON output is invalid"
-        return 1
+    if command -v jq >/dev/null 2>&1; then
+        if ! echo "$json_output" | jq empty >/dev/null 2>&1; then
+            error "Tailscale JSON output is invalid (jq)"
+            return 1
+        fi
+    elif command -v python3 >/dev/null 2>&1; then
+        if ! echo "$json_output" | python3 -m json.tool >/dev/null 2>&1; then
+            error "Tailscale JSON output is invalid (python3)"
+            return 1
+        fi
+    else
+        # Fallback: check for basic JSON structure
+        if [[ ! "$json_output" =~ ^\{.*\}$ ]]; then
+            error "Tailscale JSON output is invalid (basic check)"
+            return 1
+        fi
+        warning "Neither jq nor python3 found; used basic JSON structure check"
     fi
-    
+
     success "Tailscale JSON output is valid"
     return 0
 }
@@ -231,7 +256,7 @@ create_test_config() {
     
     # Generate test secrets if needed
     if ! grep -q "^SESSION_SECRET=" .env || [[ -z "$(grep '^SESSION_SECRET=' .env | cut -d'=' -f2)" ]]; then
-        local secret=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
+        local secret=$(openssl rand -hex 32)
         sed -i "s/^SESSION_SECRET=.*/SESSION_SECRET=$secret/" .env
         echo "Generated SESSION_SECRET"
     fi
