@@ -33,6 +33,7 @@ venv/
 env/
 ENV/
 .venv/
+test-venv/
 
 # IDE
 .vscode/
@@ -65,6 +66,11 @@ docker-compose.override.yml
 .coverage
 .pytest_cache/
 htmlcov/
+test-results-*/
+**/test-results-*/
+performance-report.json
+security-report.txt
+stress-report.txt
 
 # TailSentry specific
 acl_backups/
@@ -93,3 +99,19 @@ migrations/versions/
 backups/
 *.backup
 *.bak
+
+# Windows specific
+*.exe
+*.msi
+*.bat
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+*.tmp
+
+# Runtime files
+*.pid
+*.sock
+*.lock
