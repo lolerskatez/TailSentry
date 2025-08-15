@@ -39,15 +39,31 @@ def setup_admin_account(username: str, password: str):
     # Generate a session secret if not already set
     secret = os.getenv("SESSION_SECRET") or secrets.token_hex(32)
     
-    # Update .env file
+    # Read existing .env file to preserve other values
     env_file = find_dotenv()
+    existing_content = {}
     
-    # Write values to .env file manually since python-dotenv set_key can be problematic
+    if os.path.exists(env_file):
+        with open(env_file, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    existing_content[key] = value
+    
+    # Update with auth values
+    existing_content["ADMIN_USERNAME"] = username
+    existing_content["ADMIN_PASSWORD_HASH"] = password_hash
+    existing_content["SESSION_SECRET"] = secret
+    existing_content["SESSION_TIMEOUT_MINUTES"] = "30"
+    
+    # Write back all values to preserve existing configuration
     with open(env_file, "w") as f:
-        f.write(f"ADMIN_USERNAME={username}\n")
-        f.write(f"ADMIN_PASSWORD_HASH={password_hash}\n")
-        f.write(f"SESSION_SECRET={secret}\n")
-        f.write(f"SESSION_TIMEOUT_MINUTES=30\n")
+        for key, value in existing_content.items():
+            f.write(f"{key}={value}\n")
+    
+    # Reload environment variables
+    load_dotenv(override=True)
     
     # Update global variables
     global ADMIN_USERNAME, ADMIN_PASSWORD_HASH, SESSION_SECRET
