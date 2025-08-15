@@ -49,24 +49,45 @@ pip install -r requirements.txt
 # Setup .env file
 if [ ! -f .env ]; then
   cp .env.example .env
-  # Generate secure random key
-  SESSION_SECRET=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
-  sed -i "s/SESSION_SECRET=/SESSION_SECRET=$SESSION_SECRET/" .env
   
   # Prompt for admin password
   read -s -p "Enter admin password: " ADMIN_PASS
   echo
   
-  # Hash password
-  ADMIN_HASH=$(python3 -c "import bcrypt; print(bcrypt.hashpw('$ADMIN_PASS'.encode(), bcrypt.gensalt()).decode())")
-  sed -i "s/ADMIN_PASSWORD_HASH=/ADMIN_PASSWORD_HASH=$ADMIN_HASH/" .env
-  
   # Prompt for Tailscale PAT
   read -s -p "Enter Tailscale Personal Access Token (optional): " TS_PAT
   echo
-  if [ ! -z "$TS_PAT" ]; then
-    sed -i "s/TAILSCALE_PAT=/TAILSCALE_PAT=$TS_PAT/" .env
-  fi
+  
+  # Use Python to safely update .env file with special characters
+  python3 << EOF
+import secrets
+import bcrypt
+import os
+
+# Generate secure session secret
+session_secret = secrets.token_hex(32)
+
+# Hash the admin password
+admin_hash = bcrypt.hashpw('$ADMIN_PASS'.encode(), bcrypt.gensalt()).decode()
+
+# Read .env file
+with open('.env', 'r') as f:
+    content = f.read()
+
+# Replace values safely
+content = content.replace('SESSION_SECRET=', f'SESSION_SECRET={session_secret}')
+content = content.replace('ADMIN_PASSWORD_HASH=', f'ADMIN_PASSWORD_HASH={admin_hash}')
+
+# Add Tailscale PAT if provided
+if '$TS_PAT':
+    content = content.replace('TAILSCALE_PAT=', f'TAILSCALE_PAT=$TS_PAT')
+
+# Write back to file
+with open('.env', 'w') as f:
+    f.write(content)
+
+print("Configuration file updated successfully")
+EOF
 fi
 
 # Install systemd service
