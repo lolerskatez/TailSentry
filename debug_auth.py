@@ -2,18 +2,28 @@
 """
 TailSentry Authentication Debug Script
 Use this to test and fix authentication issues
+
+Run with: /opt/tailsentry/venv/bin/python debug_auth.py
 """
 
 import os
 import sys
-import bcrypt
 from pathlib import Path
 
 # Add current directory to path to import auth module
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from dotenv import load_dotenv
-load_dotenv()
+# Import from virtual environment
+try:
+    import bcrypt
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError as e:
+    print("❌ Error importing required modules!")
+    print("Make sure you're running this with the TailSentry virtual environment:")
+    print("   /opt/tailsentry/venv/bin/python debug_auth.py")
+    print(f"Error: {e}")
+    sys.exit(1)
 
 def test_password_hash(password: str, hash_str: str):
     """Test if a password matches the stored hash"""
