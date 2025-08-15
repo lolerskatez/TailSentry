@@ -50,33 +50,23 @@ pip install -r requirements.txt
 if [ ! -f .env ]; then
   cp .env.example .env
   
-  # Prompt for admin password
-  read -s -p "Enter admin password: " ADMIN_PASS
+  # Prompt for Tailscale PAT (optional)
+  read -s -p "Enter Tailscale Personal Access Token (optional - you can set this later): " TS_PAT
   echo
   
-  # Prompt for Tailscale PAT
-  read -s -p "Enter Tailscale Personal Access Token (optional): " TS_PAT
-  echo
-  
-  # Use Python to safely update .env file with special characters
+  # Use Python to safely update .env file
   python3 << EOF
 import secrets
-import bcrypt
-import os
 
 # Generate secure session secret
 session_secret = secrets.token_hex(32)
-
-# Hash the admin password
-admin_hash = bcrypt.hashpw('$ADMIN_PASS'.encode(), bcrypt.gensalt()).decode()
 
 # Read .env file
 with open('.env', 'r') as f:
     content = f.read()
 
-# Replace values safely
+# Replace session secret
 content = content.replace('SESSION_SECRET=', f'SESSION_SECRET={session_secret}')
-content = content.replace('ADMIN_PASSWORD_HASH=', f'ADMIN_PASSWORD_HASH={admin_hash}')
 
 # Add Tailscale PAT if provided
 if '$TS_PAT':
@@ -150,7 +140,12 @@ else
 fi
 
 echo "👤 Username:         admin"
-echo "🔑 Password:         (the password you just set)"
+echo "🔑 Password:         (set during first-time setup)"
+echo ""
+echo "🎯 Next Steps:"
+echo "   1. Open TailSentry in your browser"
+echo "   2. Complete the first-time setup wizard"
+echo "   3. Set your admin password and configure Tailscale"
 echo ""
 echo "🔥 TailSentry is now managing your Tailscale network!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
