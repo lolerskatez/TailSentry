@@ -101,25 +101,29 @@ systemctl enable tailsentry.service
 systemctl start tailsentry.service
 
 # Configure firewall
-echo "Configuring firewall..."
-if command -v ufw &> /dev/null; then
-  # UFW is installed
-  if ufw status | grep -q "Status: active"; then
-    echo "UFW firewall is active, adding rule for port 8080..."
-    ufw allow 8080
-    echo "Port 8080 has been opened in UFW firewall"
+if [[ $ENABLE_NETWORK =~ ^[Yy]$ ]]; then
+  echo "Configuring firewall for network access..."
+  if command -v ufw &> /dev/null; then
+    # UFW is installed
+    if ufw status | grep -q "Status: active"; then
+      echo "UFW firewall is active, adding rule for port 8080..."
+      ufw allow 8080
+      echo "Port 8080 has been opened in UFW firewall"
+    else
+      echo "UFW firewall is installed but not active"
+    fi
+  elif command -v firewall-cmd &> /dev/null; then
+    # firewalld (CentOS/RHEL/Fedora)
+    echo "Configuring firewalld..."
+    firewall-cmd --permanent --add-port=8080/tcp
+    firewall-cmd --reload
+    echo "Port 8080 has been opened in firewalld"
   else
-    echo "UFW firewall is installed but not active"
+    echo "No supported firewall detected (UFW or firewalld)"
+    echo "You may need to manually open port 8080 if accessing remotely"
   fi
-elif command -v firewall-cmd &> /dev/null; then
-  # firewalld (CentOS/RHEL/Fedora)
-  echo "Configuring firewalld..."
-  firewall-cmd --permanent --add-port=8080/tcp
-  firewall-cmd --reload
-  echo "Port 8080 has been opened in firewalld"
 else
-  echo "No supported firewall detected (UFW or firewalld)"
-  echo "You may need to manually open port 8080 if accessing remotely"
+  echo "Skipping firewall configuration (localhost-only access)"
 fi
 
 echo "TailSentry has been installed!"
@@ -137,6 +141,7 @@ else
   echo "💡 To enable network access later:"
   echo "   sudo sed -i 's/127.0.0.1/0.0.0.0/' /etc/systemd/system/tailsentry.service"
   echo "   sudo systemctl daemon-reload && sudo systemctl restart tailsentry.service"
+  echo "   sudo ufw allow 8080  # Open firewall for network access"
 fi
 
 echo "👤 Username:         admin"
