@@ -68,9 +68,13 @@ if [ ! -f .env ]; then
   echo
   
   # Use Python to safely update .env file with default password
-  python3 << EOF
+  TS_PAT="$TS_PAT" python3 << EOF
 import secrets
 import bcrypt
+import os
+
+# Get the Tailscale PAT from environment if provided
+ts_pat = os.environ.get('TS_PAT', '')
 
 # Generate secure session secret
 session_secret = secrets.token_hex(32)
@@ -80,22 +84,32 @@ default_password = "admin123"
 password_hash = bcrypt.hashpw(default_password.encode(), bcrypt.gensalt()).decode()
 
 # Read .env file
-with open('.env', 'r') as f:
-    content = f.read()
+try:
+    with open('.env', 'r') as f:
+        content = f.read()
+    print(f"Read .env file successfully ({len(content)} bytes)")
+except Exception as e:
+    print(f"Error reading .env file: {e}")
+    exit(1)
 
 # Replace session secret and set default admin credentials
 content = content.replace('SESSION_SECRET=', f'SESSION_SECRET={session_secret}')
-content = content.replace('ADMIN_USERNAME=', f'ADMIN_USERNAME=admin')
+content = content.replace('ADMIN_USERNAME=admin', f'ADMIN_USERNAME=admin')
 content = content.replace('ADMIN_PASSWORD_HASH=', f'ADMIN_PASSWORD_HASH={password_hash}')
 content = content.replace('DEVELOPMENT=false', 'DEVELOPMENT=true')
 
 # Add Tailscale PAT if provided
-if '$TS_PAT':
-    content = content.replace('TAILSCALE_PAT=', f'TAILSCALE_PAT=$TS_PAT')
+if ts_pat:
+    content = content.replace('TAILSCALE_PAT=', f'TAILSCALE_PAT={ts_pat}')
 
 # Write back to file
-with open('.env', 'w') as f:
-    f.write(content)
+try:
+    with open('.env', 'w') as f:
+        f.write(content)
+    print(f"Wrote .env file successfully ({len(content)} bytes)")
+except Exception as e:
+    print(f"Error writing .env file: {e}")
+    exit(1)
 
 print("Configuration file updated successfully")
 print("Default admin credentials set: admin / admin123")
