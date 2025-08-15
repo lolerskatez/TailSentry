@@ -54,19 +54,26 @@ if [ ! -f .env ]; then
   read -s -p "Enter Tailscale Personal Access Token (optional - you can set this later): " TS_PAT
   echo
   
-  # Use Python to safely update .env file
+  # Use Python to safely update .env file with default password
   python3 << EOF
 import secrets
+import bcrypt
 
 # Generate secure session secret
 session_secret = secrets.token_hex(32)
+
+# Generate default password hash for "admin123"
+default_password = "admin123"
+password_hash = bcrypt.hashpw(default_password.encode(), bcrypt.gensalt()).decode()
 
 # Read .env file
 with open('.env', 'r') as f:
     content = f.read()
 
-# Replace session secret
+# Replace session secret and set default admin credentials
 content = content.replace('SESSION_SECRET=', f'SESSION_SECRET={session_secret}')
+content = content.replace('ADMIN_USERNAME=', f'ADMIN_USERNAME=admin')
+content = content.replace('ADMIN_PASSWORD_HASH=', f'ADMIN_PASSWORD_HASH={password_hash}')
 
 # Add Tailscale PAT if provided
 if '$TS_PAT':
@@ -77,6 +84,7 @@ with open('.env', 'w') as f:
     f.write(content)
 
 print("Configuration file updated successfully")
+print("Default admin credentials set: admin / admin123")
 EOF
 fi
 
@@ -148,12 +156,17 @@ else
 fi
 
 echo "👤 Username:         admin"
-echo "🔑 Password:         (set during first-time setup)"
+echo "🔑 Password:         admin123"
+echo "⚠️  IMPORTANT: Change the default password after first login!"
 echo ""
 echo "🎯 Next Steps:"
 echo "   1. Open TailSentry in your browser"
-echo "   2. Complete the first-time setup wizard"
-echo "   3. Set your admin password and configure Tailscale"
+echo "   2. Login with admin / admin123"
+echo "   3. Change your password in the settings"
+echo "   4. Configure your Tailscale PAT if not set during installation"
+echo ""
+echo "🔧 To change password later:"
+echo "   Visit the dashboard settings or run: python3 change_password.py"
 echo ""
 echo "🔥 TailSentry is now managing your Tailscale network!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
