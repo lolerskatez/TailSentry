@@ -74,6 +74,7 @@ with open('.env', 'r') as f:
 content = content.replace('SESSION_SECRET=', f'SESSION_SECRET={session_secret}')
 content = content.replace('ADMIN_USERNAME=', f'ADMIN_USERNAME=admin')
 content = content.replace('ADMIN_PASSWORD_HASH=', f'ADMIN_PASSWORD_HASH={password_hash}')
+content = content.replace('DEVELOPMENT=false', 'DEVELOPMENT=true')
 
 # Add Tailscale PAT if provided
 if '$TS_PAT':
@@ -85,6 +86,7 @@ with open('.env', 'w') as f:
 
 print("Configuration file updated successfully")
 print("Default admin credentials set: admin / admin123")
+print("DEVELOPMENT=true set (enables HTTP session cookies for local/Tailscale networks)")
 EOF
 fi
 

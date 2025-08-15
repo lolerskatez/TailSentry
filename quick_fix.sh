@@ -30,9 +30,10 @@ password_hash = bcrypt.hashpw("admin123".encode(), bcrypt.gensalt()).decode()
 with open('.env', 'r') as f:
     content = f.read()
 
-# Update credentials
+# Update credentials and development settings
 content = re.sub(r'ADMIN_USERNAME=.*', 'ADMIN_USERNAME=admin', content)
 content = re.sub(r'ADMIN_PASSWORD_HASH=.*', f'ADMIN_PASSWORD_HASH={password_hash}', content)
+content = re.sub(r'DEVELOPMENT=.*', 'DEVELOPMENT=true', content)
 
 # Write back
 with open('.env', 'w') as f:
@@ -41,6 +42,7 @@ with open('.env', 'w') as f:
 print("✅ Credentials updated in .env file")
 print("   Username: admin")
 print("   Password: admin123")
+print("✅ DEVELOPMENT=true set (enables HTTP session cookies)")
 EOF
 
 echo ""
