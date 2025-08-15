@@ -1,11 +1,10 @@
 import os
 import bcrypt
-import secrets
 from pathlib import Path
 from fastapi import Request, HTTPException
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
-from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv
 from itsdangerous import Signer
 from datetime import datetime, timedelta
 
@@ -21,57 +20,11 @@ ADMIN_PASSWORD_HASH = os.getenv("ADMIN_PASSWORD_HASH", "")
 SESSION_SECRET = os.getenv("SESSION_SECRET", "changeme")
 SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT_MINUTES", 30))
 
-def is_first_run():
-    """Check if this is the first run of the application"""
-    return not ADMIN_PASSWORD_HASH
-
 def hash_password(password: str) -> str:
     """Hash a password using bcrypt"""
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password.encode(), salt)
     return hashed.decode()
-
-def setup_admin_account(username: str, password: str):
-    """Create the admin account and save credentials to .env file"""
-    # Hash the password
-    password_hash = hash_password(password)
-    
-    # Generate a session secret if not already set
-    secret = os.getenv("SESSION_SECRET") or secrets.token_hex(32)
-    
-    # Read existing .env file to preserve other values
-    env_file = find_dotenv()
-    existing_content = {}
-    
-    if os.path.exists(env_file):
-        with open(env_file, "r") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    key, value = line.split("=", 1)
-                    existing_content[key] = value
-    
-    # Update with auth values
-    existing_content["ADMIN_USERNAME"] = username
-    existing_content["ADMIN_PASSWORD_HASH"] = password_hash
-    existing_content["SESSION_SECRET"] = secret
-    existing_content["SESSION_TIMEOUT_MINUTES"] = "30"
-    
-    # Write back all values to preserve existing configuration
-    with open(env_file, "w") as f:
-        for key, value in existing_content.items():
-            f.write(f"{key}={value}\n")
-    
-    # Reload environment variables
-    load_dotenv(override=True)
-    
-    # Update global variables
-    global ADMIN_USERNAME, ADMIN_PASSWORD_HASH, SESSION_SECRET
-    ADMIN_USERNAME = username
-    ADMIN_PASSWORD_HASH = password_hash
-    SESSION_SECRET = secret
-    
-    return True
 
 signer = Signer(SESSION_SECRET)
 

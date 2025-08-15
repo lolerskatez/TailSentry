@@ -14,7 +14,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         csrf_cookie_name: str = "csrf_token",
         csrf_header_name: str = "X-CSRF-Token",
         safe_methods: set = {"GET", "HEAD", "OPTIONS"},
-        exempt_paths: set = {"/setup", "/login", "/"}  # Exempt setup and login from CSRF
+        exempt_paths: set = {"/login", "/"}  # Exempt login from CSRF
     ):
         super().__init__(app)
         self.csrf_cookie_name = csrf_cookie_name

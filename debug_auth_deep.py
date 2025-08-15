@@ -61,10 +61,10 @@ def main():
     print(f"   auth.ADMIN_PASSWORD_HASH: {'✅ Present' if auth.ADMIN_PASSWORD_HASH else '❌ Missing'} ({len(auth.ADMIN_PASSWORD_HASH)} chars)")
     print(f"   auth.SESSION_SECRET: {'✅ Present' if auth.SESSION_SECRET else '❌ Missing'} ({len(auth.SESSION_SECRET)} chars)")
     
-    # Step 4: Check first run status
-    print("\n4. Checking first run status...")
-    first_run = auth.is_first_run()
-    print(f"   is_first_run(): {first_run} ({'❌ Setup required' if first_run else '✅ Setup complete'})")
+    # Step 4: Check setup status based on password hash
+    print("\n4. Checking setup status...")
+    setup_complete = bool(auth.ADMIN_PASSWORD_HASH)
+    print(f"   Setup complete: {setup_complete} ({'✅ Ready' if setup_complete else '❌ Password hash missing'})")
     
     # Step 5: Test password verification
     if auth.ADMIN_PASSWORD_HASH:

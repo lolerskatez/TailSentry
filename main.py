@@ -223,13 +223,7 @@ async def favicon():
 # Root route
 @app.get("/", include_in_schema=False)
 async def root(request: Request):
-    """Root endpoint, serves index page or redirects to setup/login"""
-    from auth import is_first_run
-    
-    # Check if this is the first run (no admin account set up)
-    if is_first_run():
-        return RedirectResponse("/setup", status_code=302)
-    
+    """Root endpoint, serves index page or redirects to login"""
     # Check if user is logged in
     if not request.session.get("user"):
         return templates.TemplateResponse("login.html", {"request": request})
