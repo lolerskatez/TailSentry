@@ -25,20 +25,19 @@ echo "Installing TailSentry..."
 apt-get update
 apt-get install -y python3 python3-venv python3-pip
 
-# Create directory
-mkdir -p "$INSTALL_DIR"
-cd "$INSTALL_DIR"
-
-# Clone repo or copy files
-if [ -z "$REPO_URL" ]; then
-  # Copy from current directory if no repo specified
-  echo "Copying files..."
-  cp -r . "$INSTALL_DIR"
-else
-  echo "Cloning repository..."
-  apt-get install -y git
-  git clone "$REPO_URL" .
+# Create directory and handle existing installations
+if [ -d "$INSTALL_DIR" ]; then
+  echo "TailSentry directory already exists. Removing..."
+  rm -rf "$INSTALL_DIR"
 fi
+
+mkdir -p "$INSTALL_DIR"
+
+# Clone repo
+echo "Cloning repository..."
+apt-get install -y git
+git clone "$REPO_URL" "$INSTALL_DIR"
+cd "$INSTALL_DIR"
 
 # Create virtual environment
 python3 -m venv venv

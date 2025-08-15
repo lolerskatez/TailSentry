@@ -23,39 +23,41 @@ def sanitize_cmd_arg(arg: str) -> str:
 
 
 def get_local_subnets() -> List[str]:
-    """Detect available local subnets."""
+    """Detect available local subnets using modern Python libraries."""
     subnets = []
     try:
-        # This approach works on Linux systems
-        import netifaces
+        import psutil
+        import ipaddress
         
-        for interface in netifaces.interfaces():
-            # Skip loopback
-            if interface == 'lo':
+        # Get network interface stats
+        for interface_name, interface_addresses in psutil.net_if_addrs().items():
+            # Skip loopback interfaces
+            if interface_name.startswith('lo') or 'loopback' in interface_name.lower():
                 continue
                 
-            addrs = netifaces.ifaddresses(interface)
-            # Check for IPv4 addresses
-            if netifaces.AF_INET in addrs:
-                for addr in addrs[netifaces.AF_INET]:
-                    if 'addr' in addr and 'netmask' in addr:
-                        # Calculate CIDR from netmask
-                        ip = addr['addr']
-                        netmask = addr['netmask']
+            for addr in interface_addresses:
+                # Only process IPv4 addresses
+                if addr.family == socket.AF_INET and addr.address and addr.netmask:
+                    try:
+                        # Create network object from IP and netmask
+                        ip = ipaddress.IPv4Address(addr.address)
+                        netmask = ipaddress.IPv4Address(addr.netmask)
                         
-                        # Convert netmask to CIDR prefix length
-                        netmask_bits = bin(int.from_bytes(socket.inet_aton(netmask), 'big')).count('1')
+                        # Calculate network address
+                        network = ipaddress.IPv4Network(f"{addr.address}/{addr.netmask}", strict=False)
                         
-                        # Create network address
-                        ip_int = int.from_bytes(socket.inet_aton(ip), 'big')
-                        mask_int = int.from_bytes(socket.inet_aton(netmask), 'big')
-                        network_int = ip_int & mask_int
-                        network_ip = socket.inet_ntoa(network_int.to_bytes(4, 'big'))
+                        # Skip certain networks (localhost, link-local, etc.)
+                        if not (network.is_loopback or network.is_link_local or network.is_multicast):
+                            subnets.append(str(network))
+                            
+                    except (ipaddress.AddressValueError, ValueError) as e:
+                        # Skip invalid addresses
+                        continue
                         
-                        cidr = f"{network_ip}/{netmask_bits}"
-                        subnets.append(cidr)
     except (ImportError, Exception) as e:
         print(f"Error detecting local subnets: {e}")
+        # Fallback: try common private network ranges
+        subnets = ["192.168.1.0/24", "10.0.0.0/24", "172.16.0.0/24"]
     
     return subnets
 
