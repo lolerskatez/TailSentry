@@ -50,8 +50,21 @@ pip install -r requirements.txt
 if [ ! -f .env ]; then
   cp .env.example .env
   
-  # Prompt for Tailscale PAT (optional)
-  read -s -p "Enter Tailscale Personal Access Token (optional - you can set this later): " TS_PAT
+  # Clear screen and prompt for Tailscale PAT
+  clear
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "🔧 TailSentry Configuration"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "📝 TailSentry requires a Tailscale Personal Access Token (PAT) to manage"
+  echo "   your Tailscale network. You can:"
+  echo ""
+  echo "   • Enter it now for full functionality"
+  echo "   • Skip it and configure later in the dashboard"
+  echo ""
+  echo "🔗 Get your PAT at: https://login.tailscale.com/admin/settings/keys"
+  echo ""
+  read -s -p "🔑 Enter Tailscale Personal Access Token (or press Enter to skip): " TS_PAT
   echo
   
   # Use Python to safely update .env file with default password
@@ -139,10 +152,14 @@ else
   echo "Skipping firewall configuration (localhost-only access)"
 fi
 
-echo "TailSentry has been installed!"
-echo ""
+# Clear screen for final summary
+clear
+
 echo "🎉 Installation Complete!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "📡 TailSentry is now running and managing your Tailscale network!"
+echo ""
 
 if [[ ! $ENABLE_NETWORK =~ ^[Nn]$ ]]; then
   echo "📍 Local access:     http://localhost:8080"
