@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from pydantic import BaseModel
 from auth import login_required
 from tailscale_client import TailscaleClient
@@ -7,6 +7,14 @@ import logging
 router = APIRouter()
 logger = logging.getLogger("tailsentry.config")
 
+# FastAPI dependency for authentication
+async def require_auth(request: Request) -> str:
+    """FastAPI dependency that ensures user is authenticated"""
+    username = request.session.get('username')
+    if not username:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return username
+
 class AuthKeyRequest(BaseModel):
     auth_key: str
 
@@ -14,8 +22,7 @@ class ExitNodeRequest(BaseModel):
     enabled: bool
 
 @router.get("/api/config")
-@login_required
-async def get_config(request: Request):
+async def get_config(request: Request, user: str = Depends(require_auth)):
     """Get current Tailscale configuration"""
     try:
         # Get device info and status
@@ -42,8 +49,7 @@ async def get_config(request: Request):
         raise HTTPException(status_code=500, detail=f"Failed to get configuration: {str(e)}")
 
 @router.post("/api/config/reauth")
-@login_required 
-async def reauthenticate(request: Request, auth_request: AuthKeyRequest):
+async def reauthenticate(request: Request, auth_request: AuthKeyRequest, user: str = Depends(require_auth)):
     """Re-authenticate device with new auth key"""
     try:
         auth_key = auth_request.auth_key.strip()
@@ -73,8 +79,7 @@ async def reauthenticate(request: Request, auth_request: AuthKeyRequest):
         raise HTTPException(status_code=500, detail=f"Re-authentication error: {str(e)}")
 
 @router.post("/api/config/exit-node")
-@login_required
-async def configure_exit_node(request: Request, exit_request: ExitNodeRequest):
+async def configure_exit_node(request: Request, exit_request: ExitNodeRequest, user: str = Depends(require_auth)):
     """Enable or disable exit node functionality"""
     try:
         enabled = exit_request.enabled
@@ -99,8 +104,7 @@ async def configure_exit_node(request: Request, exit_request: ExitNodeRequest):
         raise HTTPException(status_code=500, detail=f"Exit node configuration error: {str(e)}")
 
 @router.get("/api/traffic")
-@login_required
-async def get_traffic_stats(request: Request):
+async def get_traffic_stats(request: Request, user: str = Depends(require_auth)):
     """Get current traffic statistics"""
     try:
         # Get traffic stats from TailscaleClient
