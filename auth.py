@@ -71,6 +71,9 @@ def record_login_attempt(ip: str, success: bool):
             login_attempts[ip]["count"] += 1
 
 def login_required(func):
+    import functools
+    
+    @functools.wraps(func)
     async def wrapper(request: Request, *args, **kwargs):
         session = request.session
         if not session.get("user"):
@@ -91,12 +94,9 @@ def login_required(func):
         # Refresh session timeout on activity
         create_session(request, session["user"])
         
-        # Call the original function, handling both sync and async
-        import inspect
-        if inspect.iscoroutinefunction(func):
-            return await func(request, *args, **kwargs)
-        else:
-            return func(request, *args, **kwargs)
+        # Call the original function
+        return await func(request, *args, **kwargs)
+    
     return wrapper
 
 def create_session(request: Request, username: str):
