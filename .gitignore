@@ -4,6 +4,10 @@
 .env
 .env.local
 .env.prod
+.env.production
+.env.staging
+.env.development
+.env.test
 
 # Python
 __pycache__/
@@ -34,6 +38,7 @@ env/
 ENV/
 .venv/
 test-venv/
+tailsentry-env/
 
 # IDE
 .vscode/
@@ -41,14 +46,29 @@ test-venv/
 *.swp
 *.swo
 *~
+.code-workspace
 
 # Logs
 logs/
 *.log
+tailsentry.log
+audit.log
+access.log
+error.log
 
 # Data directories
 data/
 backup_*/
+acl_backups/
+metrics_history.json
+policy.json
+
+# Tailscale/TailSentry specific files
+tailscale_config/
+tailnet_data/
+session_cache/
+api_tokens/
+device_cache.json
 
 # OS
 .DS_Store
@@ -61,6 +81,8 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+.dockerignore
+docker-data/
 
 # Testing
 .coverage
@@ -71,11 +93,9 @@ test-results-*/
 performance-report.json
 security-report.txt
 stress-report.txt
-
-# TailSentry specific
-acl_backups/
-metrics_history.json
-policy.json
+.tox/
+coverage.xml
+nosetests.xml
 
 # Security & Secrets
 secrets/
@@ -88,6 +108,15 @@ sessions.db
 .env.production
 .env.local.*
 vault/
+certificates/
+ssl/
+tls/
+
+# Authentication & Session files
+.session_*
+session_secret
+auth_tokens/
+jwt_keys/
 
 # Database files
 *.db
@@ -99,19 +128,69 @@ migrations/versions/
 backups/
 *.backup
 *.bak
+*.tar.gz
+*.zip
+data_backup_*
+
+# Deployment artifacts
+deploy/
+staging/
+production/
+kubernetes/*.yaml
+!kubernetes/*.example.yaml
+
+# CI/CD
+.github/workflows/secrets/
+deploy_keys/
+service-account.json
+kubeconfig
+terraform.tfstate*
+ansible-vault-pass
+
+# Monitoring & Metrics
+prometheus_data/
+grafana_data/
+monitoring/
+alerting/
 
 # Windows specific
 *.exe
 *.msi
 *.bat
 
+# Linux/Unix specific
+*.deb
+*.rpm
+*.appimage
+
 # Temporary files
 tmp/
 temp/
 .tmp/
 *.tmp
+.cache/
 
 # Runtime files
 *.pid
 *.sock
 *.lock
+run/
+
+# Node.js (if you ever add frontend tooling)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Static file builds (if using webpack/vite for assets)
+static/dist/
+static/build/
+public/build/
+
+# Local development overrides
+docker-compose.local.yml
+local_config/
+dev_scripts/
+local_*.py

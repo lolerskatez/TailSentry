@@ -15,11 +15,15 @@ if not os.path.exists(log_dir):
 
 # Enhanced logging configuration
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
-log_format = os.getenv("LOG_FORMAT", "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+log_format = os.getenv(
+    "LOG_FORMAT",
+    "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+)
 
 logging.basicConfig(
     level=getattr(logging, log_level),
     format=log_format,
+    datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[
         logging.FileHandler(os.path.join(log_dir, "tailsentry.log")),
         logging.StreamHandler()

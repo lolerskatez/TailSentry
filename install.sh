@@ -5,7 +5,7 @@ set -e  # Exit on any error
 
 # Config
 INSTALL_DIR="/opt/tailsentry"
-REPO_URL="https://github.com/yourusername/tailsentry"  # Replace with your repo URL
+REPO_URL="https://github.com/lolerskatez/TailSentry.git"
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then

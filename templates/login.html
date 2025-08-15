@@ -1,21 +1,108 @@
-{% extends 'base.html' %}
-{% block title %}Login - TailSentry{% endblock %}
-{% block content %}
-<div class="max-w-sm mx-auto mt-24 bg-white dark:bg-gray-800 p-8 rounded shadow">
-  <h2 class="text-2xl font-bold mb-6">Login</h2>
-  {% if error %}
-    <div class="bg-red-100 text-red-700 p-2 rounded mb-4">{{ error }}</div>
-  {% endif %}
-  <form method="post" action="/login" class="space-y-4">
-    <div>
-      <label class="block mb-1">Username</label>
-      <input name="username" type="text" class="w-full p-2 border rounded" required>
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50 dark:bg-gray-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TailSentry Login</title>
+    <link rel="stylesheet" href="/static/tailwind.min.css">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <script src="/static/alpine.min.js" defer></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+        /* Fallback styling in case Alpine.js fails to load */
+        body { 
+            opacity: 1; 
+            visibility: visible; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .loading-fallback { display: none; }
+    </style>
+</head>
+<body class="h-full flex flex-col bg-gray-50 dark:bg-gray-900" 
+      x-data="{ dark: localStorage.getItem('darkMode') === 'true' }" 
+      x-init="if(dark) document.documentElement.classList.add('dark'); console.log('Alpine.js initialized on login page');"
+      style="opacity: 1; visibility: visible;">
+    
+    <!-- Loading fallback in case Alpine.js doesn't load -->
+    <noscript>
+        <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+            JavaScript is disabled. Some features may not work properly.
+        </div>
+    </noscript>
+
+    <div class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            <div>
+                <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
+                    Sign in to TailSentry
+                </h2>
+                <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+                    Manage your Tailscale network securely
+                </p>
+            </div>
+            
+            {% if error %}
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {{ error }}
+            </div>
+            {% endif %}
+            
+            <form method="post" action="/login" class="mt-8 space-y-6">
+                <div class="rounded-md shadow-sm -space-y-px">
+                    <div>
+                        <label for="username" class="sr-only">Username</label>
+                        <input 
+                            id="username" 
+                            name="username" 
+                            type="text" 
+                            autocomplete="username"
+                            required 
+                            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm dark:bg-gray-700" 
+                            placeholder="Username"
+                        >
+                    </div>
+                    <div>
+                        <label for="password" class="sr-only">Password</label>
+                        <input 
+                            id="password" 
+                            name="password" 
+                            type="password" 
+                            autocomplete="current-password"
+                            required 
+                            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm dark:bg-gray-700" 
+                            placeholder="Password"
+                        >
+                    </div>
+                </div>
+
+                <div>
+                    <button 
+                        type="submit" 
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                    >
+                        Sign in
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-    <div>
-      <label class="block mb-1">Password</label>
-      <input name="password" type="password" class="w-full p-2 border rounded" required>
-    </div>
-    <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded">Login</button>
-  </form>
-</div>
-{% endblock %}
+
+    <script>
+        // Debug Alpine.js loading
+        document.addEventListener('alpine:init', () => {
+            console.log('Alpine.js is ready');
+        });
+        
+        // Fallback if Alpine.js doesn't load
+        window.addEventListener('DOMContentLoaded', (event) => {
+            setTimeout(() => {
+                if (typeof Alpine === 'undefined') {
+                    console.warn('Alpine.js did not load, page should still be functional');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

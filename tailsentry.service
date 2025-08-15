@@ -3,15 +3,25 @@
 
 [Unit]
 Description=TailSentry Dashboard
-After=network.target
+After=network.target tailscaled.service
+Requires=tailscaled.service
 
 [Service]
-User=root  # May want to use a dedicated user in production
+User=root  # Required for Tailscale CLI access
+Group=root
 WorkingDirectory=/opt/tailsentry
-ExecStart=/opt/tailsentry/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8080
+ExecStart=/opt/tailsentry/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8080
 Restart=always
 RestartSec=5
 Environment=PATH=/opt/tailsentry/venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONPATH=/opt/tailsentry
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/tailsentry/logs /opt/tailsentry/data
+PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target

@@ -12,25 +12,32 @@ A secure, minimal FastAPI + TailwindCSS dashboard for managing a Tailscale subne
 - Modular, production-ready code
 
 ## Quick Start
-1. Copy `.env.example` to `.env` and fill in secrets.
-2. Hash your admin password (see below).
-3. Install dependencies:
+1. **Install Tailscale** (if not already installed):
    ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
-4. Run the app:
-   ```bash
-   uvicorn main:app --host 0.0.0.0 --port 8080
+   curl -fsSL https://tailscale.com/install.sh | sh
+   sudo tailscale up
    ```
 
-## Hashing Password
-Use bcrypt or argon2 to hash your password:
+2. **Install TailSentry**:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/install.sh | sudo bash
+   ```
+
+3. **Access the dashboard**:
+   - Open http://localhost:8080 in your browser
+   - Complete the onboarding wizard to set up your admin account
+
+For manual installation or development setup:
 ```bash
-python -c "import bcrypt; print(bcrypt.hashpw(b'YOURPASS', bcrypt.gensalt()).decode())"
+git clone https://github.com/lolerskatez/TailSentry.git
+cd TailSentry
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8080
 ```
-Paste the hash into `.env` as `ADMIN_PASSWORD_HASH`.
+
+The first time you run TailSentry, you'll be prompted to create an admin account. This will automatically generate a secure session key and store your credentials safely.
 
 ## Deployment
 - Use NGINX or Caddy for HTTPS and IP restriction.

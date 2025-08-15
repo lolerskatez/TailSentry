@@ -1,18 +1,61 @@
 import os
 import bcrypt
+import secrets
+from pathlib import Path
 from fastapi import Request, HTTPException
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from itsdangerous import Signer
 from datetime import datetime, timedelta
 
+# Create .env file if it doesn't exist
+env_path = Path(".env")
+if not env_path.exists():
+    env_path.touch()
+
 load_dotenv()
 
-ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "")
 ADMIN_PASSWORD_HASH = os.getenv("ADMIN_PASSWORD_HASH", "")
 SESSION_SECRET = os.getenv("SESSION_SECRET", "changeme")
 SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT_MINUTES", 30))
+
+def is_first_run():
+    """Check if this is the first run of the application"""
+    return not ADMIN_PASSWORD_HASH
+
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt"""
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode(), salt)
+    return hashed.decode()
+
+def setup_admin_account(username: str, password: str):
+    """Create the admin account and save credentials to .env file"""
+    # Hash the password
+    password_hash = hash_password(password)
+    
+    # Generate a session secret if not already set
+    secret = os.getenv("SESSION_SECRET") or secrets.token_hex(32)
+    
+    # Update .env file
+    env_file = find_dotenv()
+    
+    # Write values to .env file manually since python-dotenv set_key can be problematic
+    with open(env_file, "w") as f:
+        f.write(f"ADMIN_USERNAME={username}\n")
+        f.write(f"ADMIN_PASSWORD_HASH={password_hash}\n")
+        f.write(f"SESSION_SECRET={secret}\n")
+        f.write(f"SESSION_TIMEOUT_MINUTES=30\n")
+    
+    # Update global variables
+    global ADMIN_USERNAME, ADMIN_PASSWORD_HASH, SESSION_SECRET
+    ADMIN_USERNAME = username
+    ADMIN_PASSWORD_HASH = password_hash
+    SESSION_SECRET = secret
+    
+    return True
 
 signer = Signer(SESSION_SECRET)
 
@@ -78,7 +121,13 @@ def login_required(func):
                 
         # Refresh session timeout on activity
         create_session(request, session["user"])
-        return await func(request, *args, **kwargs)
+        
+        # Call the original function, handling both sync and async
+        import inspect
+        if inspect.iscoroutinefunction(func):
+            return await func(request)
+        else:
+            return func(request)
     return wrapper
 
 def create_session(request: Request, username: str):

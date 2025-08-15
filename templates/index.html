@@ -1,11 +1,792 @@
-{% extends 'base.html' %}
-{% block title %}TailSentry{% endblock %}
-{% block content %}
-<div class="max-w-lg mx-auto mt-16 text-center">
-  <h1 class="text-3xl font-bold mb-6">Welcome to TailSentry</h1>
-  <p class="mb-6">Secure management dashboard for your Tailscale instance.</p>
-  <div class="flex justify-center">
-    <a href="/login" class="bg-blue-600 text-white px-6 py-3 rounded">Login</a>
+<!doctype html>
+<html lang="en" x-data="tailSentry()" :class="{ 'dark': dark }" x-init="init()">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TailSentry Dashboard</title>
+
+  <!-- Local CSS and JS for CSP compliance -->
+  <link rel="stylesheet" href="/static/tailwind.min.css">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <script src="/static/alpine.min.js" defer></script>
+
+  <style>
+    /* small tweak to make sidebar sticky on small screens */
+    .sidebar-scroll { max-height: calc(100vh - 64px); overflow-y: auto; }
+  </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <!-- Top bar -->
+  <header class="flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur sticky top-0 z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-indigo-600 text-white rounded flex items-center justify-center font-bold">
+        TS
+      </div>
+      <div>
+        <div class="font-semibold">TailSentry</div>
+        <div class="text-xs text-gray-500 dark:text-gray-400">Tailscale management (mockup)</div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <label class="inline-flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" x-model="dark" class="hidden" />
+        <span class="p-2 rounded-full bg-gray-200 dark:bg-gray-700">
+          <svg x-show="!dark" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m8.485-10.485l-1.414 1.414M6.93 17.07l-1.414 1.414M21 12h-2M5 12H3m15.071 6.07l-1.414-1.414M8.343 6.343L6.93 7.757" /></svg>
+          <svg x-show="dark" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-200" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8 8 0 1010.586 10.586z"/></svg>
+        </span>
+        <span class="text-sm text-gray-600 dark:text-gray-300">Dark</span>
+      </label>
+
+      <button class="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700" @click="logout()">
+        Logout ⎋
+      </button>
+    </div>
+  </header>
+
+  <div class="flex">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white/90 dark:bg-gray-800/90 sidebar-scroll border-r border-gray-200 dark:border-gray-700 p-4 hidden md:block">
+      <nav class="space-y-1">
+        <a href="#" @click.prevent="active='dashboard'" :class="{'bg-indigo-600 text-white': active==='dashboard'}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-300 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+          Dashboard
+        </a>
+
+        <a href="#" @click.prevent="active='subnets'" :class="{'bg-indigo-600 text-white': active==='subnets'}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-300 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+          Subnet Routing
+        </a>
+
+        <a href="#" @click.prevent="active='exitnode'" :class="{'bg-indigo-600 text-white': active==='exitnode'}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-300 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path></svg>
+          Exit Node
+        </a>
+
+        <a href="#" @click.prevent="active='devices'" :class="{'bg-indigo-600 text-white': active==='devices'}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-300 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+          Connected Devices
+        </a>
+
+        <a href="#" @click.prevent="active='service'" :class="{'bg-indigo-600 text-white': active==='service'}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-300 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          Service Controls
+        </a>
+
+        <a href="#" @click.prevent="active='manage-key'" :class="{'bg-indigo-600 text-white': active==='manage-key'}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-300 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-6 6c-3 0-6 1-6 4a6 6 0 01-6-6c0-3 1-6 4-6a6 6 0 016-6c2 0 4 1 4 4z"></path></svg>
+          Manage Key
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 p-6">
+      <!-- DASHBOARD -->
+      <section x-show="active === 'dashboard'">
+        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+          <!-- Current Configuration -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+            <div class="flex items-start justify-between mb-3">
+              <h3 class="font-semibold text-lg">Current Configuration</h3>
+              <span class="text-sm text-gray-500 dark:text-gray-400">Updated <span x-text="lastUpdated"></span></span>
+            </div>
+            <div class="space-y-3 text-sm">
+              <div class="flex items-center justify-between">
+                <span class="text-gray-600 dark:text-gray-300">Auth Status:</span>
+                <span class="px-2 py-1 rounded text-xs" :class="config.authStatus === 'authenticated' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'" x-text="config.authStatus"></span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-gray-600 dark:text-gray-300">Exit Node:</span>
+                <span class="px-2 py-1 rounded text-xs" :class="config.exitNodeEnabled ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'" x-text="config.exitNodeEnabled ? 'Enabled' : 'Disabled'"></span>
+              </div>
+              <div>
+                <span class="text-gray-600 dark:text-gray-300">Advertised Routes:</span>
+                <div class="mt-1">
+                  <template x-for="route in config.advertisedRoutes" :key="route">
+                    <span class="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs mr-1 mb-1" x-text="route"></span>
+                  </template>
+                  <span x-show="config.advertisedRoutes.length === 0" class="text-gray-500 dark:text-gray-400 text-xs">None</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-gray-600 dark:text-gray-300">Tailnet:</span>
+                <span class="font-mono text-xs" x-text="config.tailnet"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Traffic Details -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+            <h3 class="font-semibold text-lg mb-3">Traffic Details</h3>
+            <div class="space-y-3">
+              <!-- Real-time stats -->
+              <div class="grid grid-cols-2 gap-4">
+                <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                  <div class="text-sm text-gray-600 dark:text-gray-300">Upload</div>
+                  <div class="font-mono text-lg font-semibold text-green-600 dark:text-green-400" x-text="traffic.txRate"></div>
+                </div>
+                <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                  <div class="text-sm text-gray-600 dark:text-gray-300">Download</div>
+                  <div class="font-mono text-lg font-semibold text-blue-600 dark:text-blue-400" x-text="traffic.rxRate"></div>
+                </div>
+              </div>
+              
+              <!-- Total statistics -->
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-300">Total TX:</span>
+                  <span class="font-mono" x-text="traffic.totalTx"></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-300">Total RX:</span>
+                  <span class="font-mono" x-text="traffic.totalRx"></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-300">Active Peers:</span>
+                  <span x-text="traffic.activePeers"></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-300">Uptime:</span>
+                  <span x-text="traffic.uptime"></span>
+                </div>
+              </div>
+
+              <!-- Activity indicator -->
+              <div class="mt-3">
+                <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                  <span>Network Activity</span>
+                  <span x-text="'Last: ' + traffic.lastActivity"></span>
+                </div>
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                  <div class="h-1.5 bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-300" :style="'width: ' + traffic.activityLevel + '%'"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Device Info & Quick Actions -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+            <h3 class="font-semibold text-lg mb-3">Device Status</h3>
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-300">Hostname:</span>
+                <span class="font-medium" x-text="device.hostname"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-300">Tailscale IP:</span>
+                <span class="font-mono" x-text="device.ip"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-300">Node Key:</span>
+                <span class="font-mono text-xs truncate max-w-24" x-text="device.nodeKey" :title="device.nodeKey"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-300">Status:</span>
+                <span class="px-2 py-1 rounded text-xs" :class="device.online ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'" x-text="device.online ? 'Online' : 'Offline'"></span>
+              </div>
+            </div>
+            
+            <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <button class="w-full px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" @click="refresh()">
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Peers table -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold">Connected Peers</h3>
+            <div class="flex items-center gap-2">
+              <input type="text" placeholder="Search hostname/IP/tag" x-model="peerFilter" class="px-3 py-1 rounded border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm" />
+              <button class="px-3 py-1 bg-indigo-600 text-white rounded" @click="peerFilter=''">Clear</button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0">
+                <tr>
+                  <th class="text-left p-2">Hostname</th>
+                  <th class="text-left p-2">IP</th>
+                  <th class="text-left p-2">OS</th>
+                  <th class="text-left p-2">Last Seen</th>
+                  <th class="text-left p-2">Tags</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="p in filteredPeers()" :key="p.id">
+                  <tr class="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td class="p-2"><span class="font-medium" x-text="p.hostname"></span></td>
+                    <td class="p-2 font-mono" x-text="p.ip"></td>
+                    <td class="p-2" x-text="p.os"></td>
+                    <td class="p-2" x-text="p.lastSeen"></td>
+                    <td class="p-2">
+                      <template x-for="t in p.tags" :key="t">
+                        <span class="inline-block text-xs px-2 py-0.5 mr-1 rounded bg-gray-100 dark:bg-gray-700" x-text="t"></span>
+                      </template>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="filteredPeers().length === 0">
+                  <td colspan="5" class="p-4 text-center text-sm text-gray-500">No peers found.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- SUBNETS -->
+      <section x-show="active === 'subnets'">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+            <h3 class="font-semibold">Detected Local Subnets</h3>
+            <div class="mt-3 space-y-2">
+              <template x-for="(s, idx) in subnets" :key="s.cidr">
+                <div class="flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <div>
+                    <div class="font-medium" x-text="s.cidr"></div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400" x-text="s.iface"></div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button class="px-3 py-1 rounded" :class="s.enabled ? 'bg-red-600 text-white' : 'bg-green-600 text-white'" @click="toggleSubnet(idx)">
+                      <span x-text="s.enabled ? 'Disable' : 'Enable'"></span>
+                    </button>
+                  </div>
+                </div>
+              </template>
+
+              <div class="pt-4 border-t dark:border-gray-700">
+                <form @submit.prevent="addSubnet()">
+                  <div class="flex gap-2">
+                    <input x-model="newSubnet" placeholder="e.g. 192.168.1.0/24" class="flex-1 px-3 py-2 rounded border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm" />
+                    <button class="px-3 py-2 bg-indigo-600 text-white rounded">Add</button>
+                  </div>
+                </form>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+            <h3 class="font-semibold">Routing Preview</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">This simulates which subnets will be announced to Tailnet when enabled.</p>
+            <div class="mt-3 space-y-2">
+              <template x-for="s in subnets.filter(s => s.enabled)" :key="s.cidr">
+                <div class="p-2 rounded bg-gray-50 dark:bg-gray-700">
+                  <div class="font-medium" x-text="s.cidr"></div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Announced</div>
+                </div>
+              </template>
+              <div x-show="subnets.filter(s => s.enabled).length === 0" class="text-sm text-gray-500">No subnets enabled.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- EXIT NODE -->
+      <section x-show="active === 'exitnode'">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+          <h3 class="font-semibold">Exit Node</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Enable this device as an exit node so other Tailnet devices may route internet traffic through it.</p>
+          <div class="mt-3 flex items-center gap-3">
+            <div>
+              <div class="text-sm"><strong>Status:</strong> <span x-text="device.isExit ? 'Enabled' : 'Disabled'"></span></div>
+              <div class="text-xs text-gray-500" x-text="device.exitDetails"></div>
+            </div>
+            <div>
+              <button class="px-4 py-2 rounded" :class="device.isExit ? 'bg-red-600 text-white' : 'bg-green-600 text-white'" @click="toggleExitNode()">
+                <span x-text="device.isExit ? 'Disable Exit Node' : 'Enable Exit Node'"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- DEVICES -->
+      <section x-show="active === 'devices'">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+          <h3 class="font-semibold">Devices (Detailed)</h3>
+          <p class="text-sm text-gray-500">Full device list and quick actions.</p>
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <template x-for="p in peers" :key="p.id">
+              <div class="p-3 rounded border dark:border-gray-700 hover:shadow">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="font-medium" x-text="p.hostname"></div>
+                    <div class="text-xs text-gray-500" x-text="p.ip + ' • ' + p.os"></div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button class="px-2 py-1 text-sm rounded bg-indigo-600 text-white" @click="openPeerModal(p)">Details</button>
+                    <button class="px-2 py-1 text-sm rounded bg-gray-200 dark:bg-gray-700" @click="pingPeer(p)">Ping</button>
+                  </div>
+                </div>
+                <div class="mt-2 text-xs text-gray-500">Last seen: <span x-text="p.lastSeen"></span></div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </section>
+
+      <!-- SERVICE -->
+      <section x-show="active === 'service'">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+            <h3 class="font-semibold">tailscaled Service</h3>
+            <div class="mt-3">
+              <div class="text-sm"><strong>Uptime:</strong> <span x-text="service.uptime"></span></div>
+              <div class="text-sm"><strong>Status:</strong> <span x-text="service.status"></span></div>
+            </div>
+            <div class="mt-3 flex gap-2">
+              <button class="px-3 py-1 bg-green-600 text-white rounded" @click="serviceAction('start')">Start</button>
+              <button class="px-3 py-1 bg-yellow-500 text-white rounded" @click="serviceAction('restart')">Restart</button>
+              <button class="px-3 py-1 bg-red-600 text-white rounded" @click="serviceAction('stop')">Stop</button>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+            <h3 class="font-semibold">Recent Logs (tail)</h3>
+            <pre class="mt-3 text-xs bg-gray-50 dark:bg-gray-900 p-3 rounded h-52 overflow-auto" x-text="logs.join('\n')"></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- MANAGE KEY -->
+      <section x-show="active === 'manage-key'">
+        <div class="mb-6">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Manage Authentication Key</h2>
+          <p class="text-gray-600 dark:text-gray-400 mt-1">Re-authenticate your device with a new Tailscale auth key</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Current Status -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">Current Authentication Status</h3>
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg mb-6">
+              <div>
+                <div class="font-medium">Device Authentication</div>
+                <div class="text-sm text-gray-600 dark:text-gray-300">Current status of device authentication with Tailscale</div>
+              </div>
+              <span class="px-3 py-1 rounded-full text-sm" :class="config.authStatus === 'authenticated' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'" x-text="config.authStatus"></span>
+            </div>
+
+            <!-- Help Section -->
+            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4">
+              <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div>
+                  <h4 class="font-medium text-blue-900 dark:text-blue-100 mb-1">Need help getting an auth key?</h4>
+                  <p class="text-sm text-blue-700 dark:text-blue-300">
+                    1. Go to the <a href="https://login.tailscale.com/admin/settings/keys" target="_blank" class="underline">Tailscale admin console</a><br>
+                    2. Generate a new auth key (one-time use recommended)<br>
+                    3. Copy the key and paste it in the form to re-authenticate this device
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Re-authentication Form -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">Re-authenticate Device</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">Enter a new Tailscale authentication key to re-authenticate this device. This will not affect your current network configuration or connected peers.</p>
+            
+            <form @submit.prevent="reauthenticateDevice()">
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium mb-2">Tailscale Auth Key</label>
+                  <input 
+                    type="password" 
+                    x-model="configForm.authKey" 
+                    placeholder="tskey-auth-xxxxxxxxxxxxxxxxxxxxx" 
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    :disabled="configForm.submitting"
+                  />
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    • Auth key must start with 'tskey-auth-'<br>
+                    • Get your auth key from the Tailscale admin console<br>
+                    • This will re-authenticate without disconnecting current sessions
+                  </p>
+                </div>
+                
+                <div class="flex gap-3">
+                  <button 
+                    type="submit" 
+                    class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+                    :disabled="!configForm.authKey.trim() || configForm.submitting"
+                  >
+                    <span x-show="!configForm.submitting">Re-authenticate Device</span>
+                    <span x-show="configForm.submitting" class="flex items-center">
+                      <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                    @click="configForm.authKey = ''"
+                    :disabled="configForm.submitting"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="mt-6 flex gap-4">
+          <button 
+            class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            @click="refresh()"
+          >
+            <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Refresh Status
+          </button>
+          <button 
+            class="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            @click="active = 'dashboard'"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </section>
+
+    </main>
   </div>
-</div>
-{% endblock %}
+
+  <!-- Small dialogs / toast -->
+  <div x-show="toast" x-transition class="fixed bottom-6 right-6 bg-black/80 text-white px-4 py-2 rounded">
+    <span x-text="toast"></span>
+  </div>
+
+  <script>
+    function tailSentry(){
+      return {
+        dark: false,
+        active: 'dashboard',
+        lastUpdated: new Date().toLocaleTimeString(),
+        
+        // Enhanced configuration data
+        config: {
+          authStatus: 'authenticated',
+          exitNodeEnabled: false,
+          advertisedRoutes: ['192.168.1.0/24', '10.0.0.0/24'],
+          tailnet: 'your-tailnet.ts.net',
+          nodeKey: 'nodekey:1234567890abcdef...',
+          lastAuthTime: '2024-12-15 14:30:22'
+        },
+        
+        // Enhanced traffic data
+        traffic: {
+          txRate: '1.2 MB/s',
+          rxRate: '0.8 MB/s',
+          totalTx: '45.2 GB',
+          totalRx: '128.7 GB',
+          activePeers: 4,
+          uptime: '5d 4h 23m',
+          lastActivity: '2s ago',
+          activityLevel: 75
+        },
+        
+        // Device information
+        device: {
+          hostname: 'tailsentry-01',
+          ip: '100.64.0.42',
+          nodeKey: 'nodekey:1234567890abcdef1234567890abcdef12345678',
+          online: true,
+          role: 'Exit Node + Subnet Router',
+          uptime: '5d 4h',
+          isExit: false,
+          exitDetails: 'Not advertising exit route'
+        },
+        
+        // Legacy network data (for compatibility)
+        net: { tx: '1.2 MB/s', rx: '0.8 MB/s' },
+        
+        // Peer data
+        peers: [
+          { id:1, hostname:'laptop-jane', ip:'100.101.1.12', os:'macOS', lastSeen:'2m', tags:['dev'] },
+          { id:2, hostname:'raspi-nas', ip:'100.101.1.20', os:'Linux', lastSeen:'5m', tags:['srv','nas'] },
+          { id:3, hostname:'office-ws-01', ip:'100.101.1.32', os:'Windows', lastSeen:'15m', tags:['work'] },
+          { id:4, hostname:'phone-andy', ip:'100.101.1.45', os:'Android', lastSeen:'1h', tags:['mobile'] }
+        ],
+        
+        peerFilter: '',
+        subnets: [
+          { cidr: '192.168.1.0/24', iface: 'eth0', enabled: true },
+          { cidr: '10.0.0.0/24', iface: 'eth1', enabled: false }
+        ],
+        newSubnet: '',
+        service: { status: 'active', uptime: '5d 3h' },
+        logs: [
+          'Jul 31 10:12:01 tailscaled[123]: starting',
+          'Jul 31 10:12:05 tailscaled[123]: authenticated',
+          'Jul 31 12:20:11 tailscaled[123]: route added: 192.168.1.0/24'
+        ],
+        
+        // Modal states
+        toast: '',
+        
+        // Configuration form
+        configForm: {
+          authKey: '',
+          submitting: false
+        },
+        
+        toast: '',
+        
+        init(){
+          // restore dark pref from localStorage or system preference
+          const savedDark = localStorage.getItem('darkMode');
+          if (savedDark !== null) {
+            this.dark = savedDark === 'true';
+          } else {
+            this.dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          }
+          
+          // Watch for dark mode changes
+          this.$watch('dark', (value) => {
+            localStorage.setItem('darkMode', value);
+          });
+          
+          // Watch for active tab changes to load data
+          this.$watch('active', (value) => {
+            if (value === 'manage-key') {
+              this.loadConfig();
+            }
+          });
+          
+          // Load initial data
+          this.loadConfig();
+          this.loadTraffic();
+          
+          // Sync legacy device data with config
+          this.device.isExit = this.config.exitNodeEnabled;
+          
+          // fake live update
+          setInterval(()=> this.fakeUpdate(), 4000);
+          
+          // Real data refresh every 30 seconds
+          setInterval(()=> {
+            this.loadConfig();
+            this.loadTraffic();
+          }, 30000);
+        },
+        
+        refresh(){
+          this.lastUpdated = new Date().toLocaleTimeString();
+          this.loadConfig();
+          this.loadTraffic();
+          this.toastMsg('Refreshed');
+        },
+        
+        async loadConfig(){
+          try {
+            const response = await fetch('/api/config');
+            if (response.ok) {
+              const data = await response.json();
+              this.config = data.config;
+              
+              // Update device info from config
+              this.device.hostname = this.config.hostname || this.device.hostname;
+              this.device.ip = this.config.tailscale_ip || this.device.ip;
+              this.device.online = this.config.online !== undefined ? this.config.online : this.device.online;
+              this.device.isExit = this.config.exit_node_enabled !== undefined ? this.config.exit_node_enabled : this.device.isExit;
+            } else if (response.status === 401 || response.status === 403) {
+              // Authentication error - redirect to login
+              window.location.href = '/login';
+            } else {
+              console.log('Config API returned:', response.status);
+              // Keep using mock data
+            }
+          } catch (error) {
+            console.log('Config API error (using mock data):', error.message);
+            // Keep using mock data
+          }
+        },
+        
+        async loadTraffic(){
+          try {
+            const response = await fetch('/api/traffic');
+            if (response.ok) {
+              const data = await response.json();
+              this.traffic = data.traffic;
+              
+              // Update legacy net data for compatibility
+              this.net.tx = this.traffic.txRate;
+              this.net.rx = this.traffic.rxRate;
+            } else if (response.status === 401 || response.status === 403) {
+              // Authentication error - redirect to login
+              window.location.href = '/login';
+            } else {
+              console.log('Traffic API returned:', response.status);
+              // Keep using mock data
+            }
+          } catch (error) {
+            console.log('Traffic API error (using mock data):', error.message);
+            // Keep using mock data
+          }
+        },
+        
+        fakeUpdate(){
+          // simulate rx/tx updates and last seen
+          const rnd = (n)=> (Math.random()*n).toFixed(2);
+          
+          // Update traffic data
+          this.traffic.txRate = (0.1 + parseFloat(rnd(3))).toFixed(1) + ' MB/s';
+          this.traffic.rxRate = (0.05 + parseFloat(rnd(2))).toFixed(1) + ' MB/s';
+          this.net.tx = this.traffic.txRate;
+          this.net.rx = this.traffic.rxRate;
+          
+          // Update activity level based on traffic
+          const txVal = parseFloat(this.traffic.txRate);
+          const rxVal = parseFloat(this.traffic.rxRate);
+          this.traffic.activityLevel = Math.min(Math.max((txVal + rxVal) * 20, 10), 100);
+          this.traffic.lastActivity = Math.random() > 0.7 ? 'now' : Math.floor(Math.random() * 60) + 's ago';
+          
+          // Update peers
+          this.peers.forEach(p => {
+            let m = Math.floor(Math.random()*60);
+            p.lastSeen = (m < 2 ? 'now' : (m + 'm'));
+          });
+          
+          this.lastUpdated = new Date().toLocaleTimeString();
+        },
+        
+        filteredPeers(){
+          if(!this.peerFilter) return this.peers;
+          const q = this.peerFilter.toLowerCase();
+          return this.peers.filter(p => p.hostname.toLowerCase().includes(q) || p.ip.includes(q) || (p.tags.join(' ').includes(q)));
+        },
+        
+        toggleSubnet(idx){
+          let s = this.subnets[idx];
+          s.enabled = !s.enabled;
+          this.toastMsg((s.enabled ? 'Enabled ' : 'Disabled ') + s.cidr);
+        },
+        
+        addSubnet(){
+          const cidr = this.newSubnet.trim();
+          if(!cidr) return this.toastMsg('Enter a CIDR');
+          this.subnets.push({cidr, iface:'manual', enabled:true});
+          this.newSubnet = '';
+          this.toastMsg('Added ' + cidr);
+        },
+        
+        async toggleExitNode(){
+          const newState = !this.config.exitNodeEnabled;
+          
+          try {
+            const response = await fetch('/api/config/exit-node', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                enabled: newState
+              })
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              this.config.exitNodeEnabled = data.enabled;
+              this.device.isExit = data.enabled;
+              this.device.exitDetails = data.enabled ? 'Advertising as exit node' : 'Not advertising exit route';
+              this.toastMsg(data.message);
+            } else {
+              const error = await response.json();
+              this.toastMsg('Exit node configuration failed: ' + error.detail);
+            }
+          } catch (error) {
+            this.toastMsg('Exit node error: ' + error.message);
+          }
+        },
+        
+        toggleExitNodeConfig(){
+          this.toggleExitNode();
+        },
+        
+        async reauthenticateDevice(){
+          if (!this.configForm.authKey.trim()) {
+            this.toastMsg('Please enter an auth key');
+            return;
+          }
+          
+          this.configForm.submitting = true;
+          
+          try {
+            const response = await fetch('/api/config/reauth', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                auth_key: this.configForm.authKey
+              })
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              this.configForm.authKey = '';
+              this.toastMsg(data.message);
+              // Refresh config after successful re-auth
+              this.loadConfig();
+            } else {
+              const error = await response.json();
+              this.toastMsg('Re-authentication failed: ' + error.detail);
+            }
+          } catch (error) {
+            this.toastMsg('Re-authentication error: ' + error.message);
+          } finally {
+            this.configForm.submitting = false;
+          }
+        },
+        
+        openReauthModal(){
+          // This function can be removed since we no longer have the auth key modal
+          this.toastMsg('Use the Configuration tab to manage authentication');
+        },
+        
+        serviceAction(action){
+          // mock actions
+          this.service.status = (action === 'stop' ? 'inactive' : 'active');
+          this.toastMsg('Service ' + action + ' (mock)');
+          // update logs
+          this.logs.unshift(new Date().toLocaleString() + ' - tailscaled: ' + action);
+          if(this.logs.length>60) this.logs.pop();
+        },
+        
+        pingPeer(p){
+          this.toastMsg('Ping to ' + p.hostname + ' -> 12ms (mock)');
+        },
+        
+        openPeerModal(p){
+          alert('Peer details (mock)\\n\\n' + JSON.stringify(p, null, 2));
+        },
+        
+        logout(){
+          // Call the logout endpoint
+          window.location.href = '/logout';
+        },
+        
+        toastMsg(msg){
+          this.toast = msg;
+          setTimeout(()=> this.toast = '', 3500);
+        }
+      }
+    }
+  </script>
+</body>
+</html>

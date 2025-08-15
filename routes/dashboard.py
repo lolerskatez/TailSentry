@@ -8,7 +8,7 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/dashboard")
 @login_required
-def dashboard(request: Request):
+async def dashboard(request: Request):
     status = TailscaleClient.status_json()
     hostname = TailscaleClient.get_hostname()
     ip = TailscaleClient.get_ip()

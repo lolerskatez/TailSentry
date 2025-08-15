@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50 dark:bg-gray-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - TailSentry</title>
+    <link rel="stylesheet" href="/static/tailwind.min.css">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <script src="/static/alpine.min.js" defer></script>
+    <style>
+        body { 
+            opacity: 1; 
+            visibility: visible; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col bg-gray-50 dark:bg-gray-900" 
+      x-data="{ dark: localStorage.getItem('darkMode') === 'true' }" 
+      x-init="if(dark) document.documentElement.classList.add('dark');"
+      style="opacity: 1; visibility: visible;">
+
+    <div class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8 text-center">
+            <!-- TailSentry Logo/Icon -->
+            <div class="flex justify-center">
+                <div class="w-16 h-16 bg-gray-600 text-white rounded-lg flex items-center justify-center font-bold text-2xl">
+                    ❗
+                </div>
+            </div>
+            
+            <!-- Error Content -->
+            <div>
+                <h1 class="text-6xl font-bold text-gray-900 dark:text-white">{{ status_code or 'Error' }}</h1>
+                <h2 class="mt-4 text-2xl font-semibold text-gray-900 dark:text-white">
+                    {{ title or 'Something went wrong' }}
+                </h2>
+                <p class="mt-2 text-gray-600 dark:text-gray-400">
+                    {{ message or 'An unexpected error occurred. Please try again.' }}
+                </p>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="space-y-4">
+                <button 
+                    onclick="window.location.reload()" 
+                    class="w-full inline-flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                >
+                    Try Again
+                </button>
+                
+                <a 
+                    href="/" 
+                    class="w-full inline-flex justify-center py-3 px-4 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                >
+                    Go Home
+                </a>
+            </div>
+            
+            <!-- Additional Info -->
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+                <p>If this problem persists, please contact support.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
