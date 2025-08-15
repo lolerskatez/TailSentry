@@ -94,9 +94,9 @@ def login_required(func):
         # Call the original function, handling both sync and async
         import inspect
         if inspect.iscoroutinefunction(func):
-            return await func(request)
+            return await func(request, *args, **kwargs)
         else:
-            return func(request)
+            return func(request, *args, **kwargs)
     return wrapper
 
 def create_session(request: Request, username: str):
