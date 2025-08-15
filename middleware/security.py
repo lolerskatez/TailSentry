@@ -30,16 +30,27 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         try:
             response = await call_next(request)
             
+            # Check if we're on HTTP and not localhost/127.0.0.1
+            is_http = request.url.scheme == "http"
+            is_localhost = request.url.hostname in ["localhost", "127.0.0.1"]
+            
             # Standard security headers
-            response.headers.update({
+            headers = {
                 "X-Content-Type-Options": "nosniff",
                 "X-Frame-Options": "DENY",
                 "X-XSS-Protection": "1; mode=block",
                 "Referrer-Policy": "strict-origin-when-cross-origin",
-                "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
-                "Cross-Origin-Opener-Policy": "same-origin",
-                "Cross-Origin-Embedder-Policy": "require-corp"
-            })
+                "Permissions-Policy": "geolocation=(), microphone=(), camera=()"
+            }
+            
+            # Only add COOP/COEP headers for HTTPS or localhost
+            if not is_http or is_localhost:
+                headers.update({
+                    "Cross-Origin-Opener-Policy": "same-origin",
+                    "Cross-Origin-Embedder-Policy": "require-corp"
+                })
+            
+            response.headers.update(headers)
             
             # Log potentially suspicious requests
             if request.headers.get("User-Agent", "").lower().startswith(("curl", "postman", "insomnia")):
