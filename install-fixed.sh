@@ -132,7 +132,7 @@ echo ""
 echo "🎉 Installation Complete!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-if [[ $ENABLE_NETWORK =~ ^[Yy]$ ]]; then
+if [[ ! $ENABLE_NETWORK =~ ^[Nn]$ ]]; then
   echo "📍 Local access:     http://localhost:8080"
   echo "📍 Network access:   http://$(hostname -I | awk '{print $1}'):8080"
   echo "🌐 External access:  http://$(curl -s ifconfig.me 2>/dev/null || echo "your-public-ip"):8080"
