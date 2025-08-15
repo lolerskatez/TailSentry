@@ -11,6 +11,7 @@ import asyncio
 import ipaddress
 import base64
 import shutil
+import sys
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Union, Optional, Tuple, Set
@@ -36,6 +37,14 @@ DEFAULT_STATUS_CACHE_SECONDS = 5
 METRICS_HISTORY_FILE = os.path.join(DATA_DIR, "metrics_history.json")
 ACL_POLICY_FILE = os.path.join(DATA_DIR, "policy.json")
 ACL_BACKUP_DIR = os.path.join(DATA_DIR, "acl_backups")
+STATUS_CACHE_FILE = os.path.join(DATA_DIR, "tailscale_status_cache.json")
+
+# Common Tailscale binary paths by platform
+TAILSCALE_PATHS = {
+    "Linux": ["/usr/bin/tailscale", "/usr/sbin/tailscale", "/usr/local/bin/tailscale"],
+    "Darwin": ["/Applications/Tailscale.app/Contents/MacOS/Tailscale", "/usr/local/bin/tailscale"],
+    "Windows": ["C:\\Program Files\\Tailscale\\tailscale.exe", "tailscale.exe"]
+}
 
 # Create ACL backup directory if it doesn't exist
 os.makedirs(ACL_BACKUP_DIR, exist_ok=True)
@@ -266,6 +275,38 @@ class TailscaleACL:
 
 
 class TailscaleClient:
+    @staticmethod
+    def get_tailscale_path():
+        """Find the tailscale binary path for the current platform"""
+        # Get the system platform
+        system = platform.system()
+        
+        # Look in common locations based on platform
+        possible_paths = TAILSCALE_PATHS.get(system, ["tailscale"])
+        
+        # Add the system PATH to our search locations
+        if os.environ.get("PATH"):
+            path_dirs = os.environ["PATH"].split(os.pathsep)
+            for path_dir in path_dirs:
+                if system == "Windows":
+                    possible_paths.append(os.path.join(path_dir, "tailscale.exe"))
+                else:
+                    possible_paths.append(os.path.join(path_dir, "tailscale"))
+        
+        # Try each path
+        for path in possible_paths:
+            try:
+                if os.path.isfile(path) and os.access(path, os.X_OK):
+                    return path
+                # On Windows, shutil.which can help find executables
+                if system == "Windows" and shutil.which(path):
+                    return shutil.which(path)
+            except:
+                continue
+                
+        # Fall back to just the binary name (rely on PATH)
+        return "tailscale" if system != "Windows" else "tailscale.exe"
+    
     # Cache status result for 5 seconds to prevent hammering the CLI
     @staticmethod
     @lru_cache(maxsize=1)
@@ -274,10 +315,28 @@ class TailscaleClient:
         # Add timestamp to control cache invalidation
         timestamp = int(time.time() / DEFAULT_STATUS_CACHE_SECONDS)  # Changes every N seconds
         try:
-            out = subprocess.check_output(["tailscale", "status", "--json"], 
-                                         stderr=subprocess.PIPE, timeout=10)
+            # Get the Tailscale binary path
+            tailscale_path = TailscaleClient.get_tailscale_path()
+            logger.debug(f"Using Tailscale binary at: {tailscale_path}")
+            
+            # Validate path exists
+            if not os.path.exists(tailscale_path) and '/' in tailscale_path:
+                logger.error(f"Tailscale binary not found at {tailscale_path}")
+                return {"error": f"Tailscale binary not found at {tailscale_path}"}, timestamp
+            
+            # Run the status command with full path
+            cmd = [tailscale_path, "status", "--json"]
+            logger.debug(f"Running command: {' '.join(cmd)}")
+            
+            # Run the command
+            out = subprocess.run(cmd, capture_output=True, check=True, timeout=10)
+            
             # Properly handle the output as bytes
-            data = json.loads(out.decode('utf-8'))
+            output_text = out.stdout.decode('utf-8')
+            logger.debug(f"Command output length: {len(output_text)} bytes")
+            
+            # Parse the JSON
+            data = json.loads(output_text)
             
             # Save metrics if this is real data (not an error)
             if "Self" in data and "TXBytes" in data["Self"]:
@@ -309,11 +368,28 @@ class TailscaleClient:
     def status_json():
         """Get Tailscale status as JSON (cached for 5 seconds)"""
         result, _ = TailscaleClient._status_json_cached()
+        
+        # Add debug logging to see what data we're getting
+        if isinstance(result, dict) and "error" not in result:
+            # Check if this is real data
+            if "Self" in result:
+                hostname = result.get("Self", {}).get("HostName", "unknown")
+                ip = result.get("Self", {}).get("TailscaleIPs", ["none"])[0]
+                peer_count = len(result.get("Peer", {}))
+                logger.info(f"Got real Tailscale data: {hostname} ({ip}) with {peer_count} peers")
+            else:
+                logger.warning("Tailscale data missing 'Self' information")
+                logger.debug(f"Keys in result: {list(result.keys())}")
+        else:
+            error = result.get("error", "unknown error") if isinstance(result, dict) else "not a dict"
+            logger.error(f"Error in Tailscale status: {error}")
+            
         return result
 
     @staticmethod
     def up(authkey=None, extra_args=None):
-        cmd = ["tailscale", "up"]
+        tailscale_path = TailscaleClient.get_tailscale_path()
+        cmd = [tailscale_path, "up"]
         if authkey:
             # Validate authkey format to prevent injection
             if not isinstance(authkey, str) or not all(c.isalnum() or c in "-_" for c in authkey):
@@ -329,9 +405,11 @@ class TailscaleClient:
                     return f"Invalid argument format: {arg}"
             cmd += extra_args
         try:
+            logger.info(f"Running Tailscale command: {' '.join(cmd)}")
             subprocess.check_call(cmd)
             return True
         except Exception as e:
+            logger.error(f"Tailscale command failed: {str(e)}")
             return str(e)
 
     @staticmethod
