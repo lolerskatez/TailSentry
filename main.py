@@ -13,6 +13,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from dotenv import load_dotenv
 from middleware.security import SecurityHeadersMiddleware
 from helpers import start_scheduler, shutdown_scheduler
+from version import VERSION
 
 # Setup base directory
 BASE_DIR = Path(__file__).resolve().parent
@@ -67,7 +68,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="TailSentry",
     description="Secure Tailscale Management Dashboard",
-    version="1.0.0",
+    version=VERSION,
     lifespan=lifespan,
     # Comment these out to enable OpenAPI docs in development
     docs_url=None if not os.getenv("DEVELOPMENT", "false").lower() == "true" else "/docs",
@@ -186,19 +187,20 @@ async def general_exception_handler(request: Request, exc: Exception):
     }, status_code=500)
 
 # Import routes
-from routes import auth, tailscale, keys, api, config  # monitoring temporarily disabled
+from routes import auth, tailscale, keys, api, config, version  # monitoring temporarily disabled
 app.include_router(auth.router)
 app.include_router(tailscale.router)
 app.include_router(keys.router)
 app.include_router(api.router, prefix="/api")
 app.include_router(config.router)
+app.include_router(version.router)
 # app.include_router(monitoring.router, prefix="/system", tags=["monitoring"])  # temporarily disabled
 
 # Global context processor for all templates
 @app.middleware("http")
 async def add_global_template_vars(request: Request, call_next):
     """Add global variables to all templates"""
-    request.state.app_version = "1.0.0"
+    request.state.app_version = VERSION
     request.state.app_name = "TailSentry"
     response = await call_next(request)
     return response
@@ -210,7 +212,7 @@ async def health_check():
     uptime = time.time() - app.state.start_time
     return {
         "status": "ok", 
-        "version": "1.0.0",
+        "version": VERSION,
         "uptime": f"{uptime:.2f} seconds"
     }
 
