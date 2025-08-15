@@ -92,6 +92,20 @@ fi
 
 # Install systemd service
 cp tailsentry.service /etc/systemd/system/
+
+# Ask user about network access
+echo ""
+read -p "Enable network access? (y/n) [y]: " ENABLE_NETWORK
+ENABLE_NETWORK=${ENABLE_NETWORK:-y}
+
+if [[ $ENABLE_NETWORK =~ ^[Yy]$ ]]; then
+  echo "Configuring for network access (0.0.0.0:8080)..."
+  # Service file already has 0.0.0.0 binding
+else
+  echo "Configuring for localhost-only access (127.0.0.1:8080)..."
+  sed -i 's/--host 0.0.0.0/--host 127.0.0.1/' /etc/systemd/system/tailsentry.service
+fi
+
 systemctl daemon-reload
 systemctl enable tailsentry.service
 systemctl start tailsentry.service
@@ -122,8 +136,19 @@ echo "TailSentry has been installed!"
 echo ""
 echo "🎉 Installation Complete!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📍 Local access:     http://localhost:8080"
-echo "📍 Network access:   http://$(hostname -I | awk '{print $1}'):8080"
+
+if [[ $ENABLE_NETWORK =~ ^[Yy]$ ]]; then
+  echo "📍 Local access:     http://localhost:8080"
+  echo "📍 Network access:   http://$(hostname -I | awk '{print $1}'):8080"
+  echo "🌐 External access:  http://$(curl -s ifconfig.me 2>/dev/null || echo "your-public-ip"):8080"
+else
+  echo "📍 Local access:     http://localhost:8080"
+  echo "🔒 Network access:   Disabled (localhost-only)"
+  echo "💡 To enable network access later:"
+  echo "   sudo sed -i 's/127.0.0.1/0.0.0.0/' /etc/systemd/system/tailsentry.service"
+  echo "   sudo systemctl daemon-reload && sudo systemctl restart tailsentry.service"
+fi
+
 echo "👤 Username:         admin"
 echo "🔑 Password:         (the password you just set)"
 echo ""
