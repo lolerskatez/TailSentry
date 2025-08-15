@@ -23,19 +23,21 @@ echo "Installing TailSentry..."
 
 # Install dependencies
 apt-get update
-apt-get install -y python3 python3-venv python3-pip
+apt-get install -y python3 python3-venv python3-pip git
 
-# Create directory and handle existing installations
+# Handle existing installation
 if [ -d "$INSTALL_DIR" ]; then
-  echo "TailSentry directory already exists. Removing..."
+  echo "Existing TailSentry installation found. Stopping service..."
+  systemctl stop tailsentry.service 2>/dev/null || true
+  echo "Removing existing installation..."
   rm -rf "$INSTALL_DIR"
 fi
 
+# Create fresh installation directory
 mkdir -p "$INSTALL_DIR"
 
-# Clone repo
-echo "Cloning repository..."
-apt-get install -y git
+# Clone repository
+echo "Downloading TailSentry..."
 git clone "$REPO_URL" "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
