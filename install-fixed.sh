@@ -75,6 +75,36 @@ systemctl daemon-reload
 systemctl enable tailsentry.service
 systemctl start tailsentry.service
 
+# Configure firewall
+echo "Configuring firewall..."
+if command -v ufw &> /dev/null; then
+  # UFW is installed
+  if ufw status | grep -q "Status: active"; then
+    echo "UFW firewall is active, adding rule for port 8080..."
+    ufw allow 8080
+    echo "Port 8080 has been opened in UFW firewall"
+  else
+    echo "UFW firewall is installed but not active"
+  fi
+elif command -v firewall-cmd &> /dev/null; then
+  # firewalld (CentOS/RHEL/Fedora)
+  echo "Configuring firewalld..."
+  firewall-cmd --permanent --add-port=8080/tcp
+  firewall-cmd --reload
+  echo "Port 8080 has been opened in firewalld"
+else
+  echo "No supported firewall detected (UFW or firewalld)"
+  echo "You may need to manually open port 8080 if accessing remotely"
+fi
+
 echo "TailSentry has been installed!"
-echo "Open http://localhost:8080 in your browser"
-echo "Log in with username: admin and the password you provided"
+echo ""
+echo "🎉 Installation Complete!"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📍 Local access:     http://localhost:8080"
+echo "📍 Network access:   http://$(hostname -I | awk '{print $1}'):8080"
+echo "👤 Username:         admin"
+echo "🔑 Password:         (the password you just set)"
+echo ""
+echo "🔥 TailSentry is now managing your Tailscale network!"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
