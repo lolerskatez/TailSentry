@@ -85,15 +85,18 @@ cp tailsentry.service /etc/systemd/system/
 
 # Ask user about network access
 echo ""
-read -p "Enable network access? (y/n) [y]: " ENABLE_NETWORK
-ENABLE_NETWORK=${ENABLE_NETWORK:-y}
+echo "TailSentry is designed to be accessed from your local and Tailscale networks."
+read -p "Enable network access for local/Tailscale networks? (Y/n) [Y]: " ENABLE_NETWORK
+ENABLE_NETWORK=${ENABLE_NETWORK:-Y}
 
-if [[ $ENABLE_NETWORK =~ ^[Yy]$ ]]; then
-  echo "Configuring for network access (0.0.0.0:8080)..."
-  # Service file already has 0.0.0.0 binding
-else
+if [[ $ENABLE_NETWORK =~ ^[Nn]$ ]]; then
   echo "Configuring for localhost-only access (127.0.0.1:8080)..."
+  echo "⚠️  Note: You'll only be able to access TailSentry from this server directly."
   sed -i 's/--host 0.0.0.0/--host 127.0.0.1/' /etc/systemd/system/tailsentry.service
+else
+  echo "Configuring for network access (0.0.0.0:8080)..."
+  echo "✅ TailSentry will be accessible from local and Tailscale networks"
+  # Service file already has 0.0.0.0 binding
 fi
 
 systemctl daemon-reload
@@ -101,7 +104,7 @@ systemctl enable tailsentry.service
 systemctl start tailsentry.service
 
 # Configure firewall
-if [[ $ENABLE_NETWORK =~ ^[Yy]$ ]]; then
+if [[ ! $ENABLE_NETWORK =~ ^[Nn]$ ]]; then
   echo "Configuring firewall for network access..."
   if command -v ufw &> /dev/null; then
     # UFW is installed
