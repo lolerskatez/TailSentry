@@ -397,6 +397,9 @@
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">Enter a new Tailscale authentication key to re-authenticate this device. This will not affect your current network configuration or connected peers.</p>
             
             <form @submit.prevent="reauthenticateDevice()">
+              <!-- Hidden username field for accessibility and password managers -->
+              <input type="text" name="username" autocomplete="username" style="display: none;" value="admin" readonly>
+              
               <div class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium mb-2">Tailscale Auth Key</label>
@@ -404,7 +407,7 @@
                     type="password" 
                     x-model="configForm.authKey" 
                     placeholder="tskey-auth-xxxxxxxxxxxxxxxxxxxxx" 
-                    autocomplete="new-password"
+                    autocomplete="one-time-code"
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     :disabled="configForm.submitting"
                   />
