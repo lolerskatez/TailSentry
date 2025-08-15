@@ -16,12 +16,9 @@ RestartSec=5
 Environment=PATH=/opt/tailsentry/venv/bin:/usr/local/bin:/usr/bin:/bin
 Environment=PYTHONPATH=/opt/tailsentry
 
-# Security hardening
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/opt/tailsentry/logs /opt/tailsentry/data
-PrivateTmp=true
+# Ensure proper permissions for log and data directories
+ExecStartPre=/bin/mkdir -p /opt/tailsentry/logs /opt/tailsentry/data
+ExecStartPre=/bin/chown -R root:root /opt/tailsentry
 
 [Install]
 WantedBy=multi-user.target
