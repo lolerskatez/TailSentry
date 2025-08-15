@@ -5,7 +5,7 @@ import logging
 from audit import log_audit_event
 from auth import (
     verify_password, create_session, logout, 
-    ADMIN_USERNAME, ADMIN_PASSWORD_HASH,
+    ADMIN_USERNAME, ADMIN_PASSWORD_HASH, SESSION_SECRET,
     is_rate_limited, record_login_attempt,
     is_first_run, setup_admin_account
 )
@@ -108,7 +108,16 @@ async def login_post(request: Request, username: str = Form(...), password: str 
         })
     
     # Attempt login
-    success = username == ADMIN_USERNAME and verify_password(password, ADMIN_PASSWORD_HASH)
+    logger.info(f"Login attempt - Username received: '{username}', Expected: '{ADMIN_USERNAME}'")
+    logger.info(f"Username match: {username == ADMIN_USERNAME}")
+    logger.info(f"Password hash available: {'Yes' if ADMIN_PASSWORD_HASH else 'No'}")
+    
+    password_match = verify_password(password, ADMIN_PASSWORD_HASH)
+    logger.info(f"Password verification result: {password_match}")
+    
+    success = username == ADMIN_USERNAME and password_match
+    logger.info(f"Overall login success: {success}")
+    
     record_login_attempt(client_host, success)
     
     if success:
@@ -121,3 +130,14 @@ async def login_post(request: Request, username: str = Form(...), password: str 
 def logout_route(request: Request):
     logout(request)
     return RedirectResponse("/login", status_code=302)
+
+@router.get("/debug-auth")
+def debug_auth(request: Request):
+    """Debug endpoint to check auth state - REMOVE IN PRODUCTION!"""
+    return {
+        "admin_username": ADMIN_USERNAME,
+        "password_hash_set": bool(ADMIN_PASSWORD_HASH),
+        "password_hash_length": len(ADMIN_PASSWORD_HASH) if ADMIN_PASSWORD_HASH else 0,
+        "session_secret_set": bool(SESSION_SECRET),
+        "is_first_run": is_first_run()
+    }
