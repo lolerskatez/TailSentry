@@ -10,9 +10,29 @@ logger = logging.getLogger("tailsentry.config")
 # FastAPI dependency for authentication
 async def require_auth(request: Request) -> str:
     """FastAPI dependency that ensures user is authenticated"""
-    username = request.session.get('username')
+    from datetime import datetime
+    
+    session = request.session
+    username = session.get('user')
     if not username:
         raise HTTPException(status_code=401, detail="Authentication required")
+    
+    # Check session expiry
+    if session.get("expires_at"):
+        try:
+            expiry = datetime.fromisoformat(session["expires_at"])
+            if datetime.utcnow() > expiry:
+                request.session.clear()
+                raise HTTPException(status_code=401, detail="Session expired")
+        except (ValueError, TypeError):
+            # Invalid expiry format, clear session
+            request.session.clear()
+            raise HTTPException(status_code=401, detail="Invalid session")
+    
+    # Refresh session timeout on activity (import create_session from auth)
+    from auth import create_session
+    create_session(request, username)
+    
     return username
 
 class AuthKeyRequest(BaseModel):
