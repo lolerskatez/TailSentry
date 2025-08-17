@@ -29,6 +29,9 @@ TAILNET = os.getenv("TAILSCALE_TAILNET", "-")  # Default to "-" for personal tai
 API_TIMEOUT = int(os.getenv("TAILSCALE_API_TIMEOUT", "10"))  # API timeout in seconds
 DATA_DIR = os.getenv("TAILSENTRY_DATA_DIR", os.path.join(os.path.dirname(__file__), "data"))
 
+# Set this to True to always use live data
+FORCE_LIVE_DATA = os.getenv("TAILSENTRY_FORCE_LIVE_DATA", "false").lower() == "true"
+
 # Create data directory if it doesn't exist
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -367,6 +370,12 @@ class TailscaleClient:
     @staticmethod
     def status_json():
         """Get Tailscale status as JSON (cached for 5 seconds)"""
+        # If FORCE_LIVE_DATA is enabled, bypass the cache
+        if FORCE_LIVE_DATA:
+            logger.info("FORCE_LIVE_DATA is enabled, bypassing cache")
+            # Clear the cache by invalidating it (only keep fresh data)
+            TailscaleClient._status_json_cached.cache_clear()
+            
         result, _ = TailscaleClient._status_json_cached()
         
         # Add debug logging to see what data we're getting
@@ -385,6 +394,21 @@ class TailscaleClient:
             logger.error(f"Error in Tailscale status: {error}")
             
         return result
+        
+    @staticmethod
+    def clear_cache():
+        """Clear the status cache to force fresh data on next query"""
+        TailscaleClient._status_json_cached.cache_clear()
+        logger.info("Tailscale status cache cleared")
+        
+        # Also remove any cached file if it exists
+        if os.path.exists(STATUS_CACHE_FILE):
+            try:
+                os.remove(STATUS_CACHE_FILE)
+                logger.info(f"Removed cache file: {STATUS_CACHE_FILE}")
+            except Exception as e:
+                logger.error(f"Failed to remove cache file: {str(e)}")
+        return True
 
     @staticmethod
     def up(authkey=None, extra_args=None):
