@@ -187,13 +187,14 @@ async def general_exception_handler(request: Request, exc: Exception):
     }, status_code=500)
 
 # Import routes
-from routes import auth, tailscale, keys, api, config, version  # monitoring temporarily disabled
+from routes import auth, tailscale, keys, api, config, version, dashboard  # monitoring temporarily disabled
 app.include_router(auth.router)
 app.include_router(tailscale.router)
 app.include_router(keys.router)
 app.include_router(api.router, prefix="/api")
 app.include_router(config.router)
 app.include_router(version.router)
+app.include_router(dashboard.router)
 # app.include_router(monitoring.router, prefix="/system", tags=["monitoring"])  # temporarily disabled
 
 # Global context processor for all templates
