@@ -103,18 +103,18 @@ function tailSentry(){
         },
 
         updatePeers(statusData) {
-          if (statusData && statusData.Peer) {
-            this.peers = Object.entries(statusData.Peer).map(([id, peer]) => ({
-              id: id,
-              hostname: peer.HostName || 'unknown',
-              ip: peer.TailscaleIPs?.[0] || '0.0.0.0',
-              os: peer.OS || 'Unknown',
-              lastSeen: this.formatLastSeen(peer.LastSeen),
-              tags: peer.Tags || [],
-              online: peer.Online || false
-            }));
-            console.log(`Updated ${this.peers.length} peers from real data`);
-          }
+          // Accepts either the /api/status or /api/peers response
+          let peersObj = statusData.Peer || statusData.peers || {};
+          this.peers = Object.values(peersObj).map(peer => ({
+            id: peer.ID || peer.HostName,
+            hostname: peer.HostName || 'unknown',
+            ip: (peer.TailscaleIPs && peer.TailscaleIPs[0]) || '0.0.0.0',
+            os: peer.OS || 'Unknown',
+            lastSeen: this.formatLastSeen(peer.LastSeen),
+            tags: peer.Tags || [],
+            online: peer.Online || false
+          }));
+          console.log(`Updated ${this.peers.length} peers from real data`);
         },
 
         updateSubnets(subnetData) {
