@@ -209,7 +209,20 @@ install_tailsentry() {
     pip install -r requirements.txt
     
     # Install bcrypt for password hashing (required for setup)
-    pip install bcrypt
+    # Try in the virtual environment first (this should work)
+    pip install bcrypt || {
+        echo -e "${YELLOW}Failed to install bcrypt in virtual environment.${NC}"
+        echo -e "${YELLOW}This might be due to Debian's externally-managed-environment restriction.${NC}"
+        echo -e "${YELLOW}Trying alternative methods...${NC}"
+        
+        # Try system package installation
+        if command_exists apt; then
+            echo -e "${YELLOW}Attempting to install bcrypt via apt...${NC}"
+            apt-get update
+            apt-get install -y python3-bcrypt
+            echo -e "${GREEN}Installed system-wide bcrypt package.${NC}"
+        fi
+    }
     deactivate
     
     # Set appropriate permissions
@@ -278,13 +291,30 @@ import os
 import sys
 
 # Try to import bcrypt, install if missing
+import platform
+debian_system = False
+if platform.system() == "Linux" and os.path.exists("/etc/debian_version"):
+    debian_system = True
+    
 try:
     import bcrypt
+    print("bcrypt module found, using it directly")
 except ImportError:
-    print("bcrypt module not found. Installing...")
+    print("bcrypt module not found. Attempting installation...")
     import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "bcrypt"])
-    import bcrypt
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "bcrypt"])
+        import bcrypt
+        print("bcrypt installed successfully")
+    except subprocess.CalledProcessError:
+        print("Failed to install bcrypt via pip")
+        if debian_system:
+            print("Detected Debian system. Will use alternate method for password generation.")
+            # We'll use the debian_bcrypt_fix.sh script later
+            bcrypt = None
+        else:
+            print("Could not install bcrypt module. Please install it manually.")
+            bcrypt = None
 
 # Get the Tailscale PAT from environment if provided
 ts_pat = os.environ.get('TS_PAT', '')
@@ -301,9 +331,32 @@ except Exception as e:
 # Generate default password hash for "admin123"
 default_password = "admin123"
 try:
-    password_hash = bcrypt.hashpw(default_password.encode(), bcrypt.gensalt()).decode()
-    # Replace or set password hash
-    content = content.replace('ADMIN_PASSWORD_HASH=', f'ADMIN_PASSWORD_HASH={password_hash}')
+    if bcrypt:
+        # Use bcrypt directly if available
+        password_hash = bcrypt.hashpw(default_password.encode(), bcrypt.gensalt()).decode()
+        print("Generated password hash using Python bcrypt")
+        content = content.replace('ADMIN_PASSWORD_HASH=', f'ADMIN_PASSWORD_HASH={password_hash}')
+    elif debian_system and os.path.exists("./debian_bcrypt_fix.sh"):
+        # Use the Debian bcrypt fix script
+        print("Using debian_bcrypt_fix.sh to generate password hash")
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+            f.write(default_password)
+            temp_path = f.name
+        
+        try:
+            result = subprocess.run(['bash', './debian_bcrypt_fix.sh', temp_path], 
+                                   capture_output=True, text=True)
+            if result.returncode == 0:
+                password_hash = result.stdout.strip()
+                print("Successfully generated password hash using Debian workaround")
+                content = content.replace('ADMIN_PASSWORD_HASH=', f'ADMIN_PASSWORD_HASH={password_hash}')
+            else:
+                raise Exception(f"Script failed: {result.stderr}")
+        finally:
+            os.unlink(temp_path)
+    else:
+        raise Exception("No available method to generate password hash")
 except Exception as e:
     print(f"Warning: Could not generate password hash: {e}")
     print("Setting a placeholder hash, you'll need to reset your password later")
