@@ -1,4 +1,4 @@
-function altTailSentry() {
+window.altTailSentry = function() {
   return {
     darkMode: false,
     openSettings: false,
