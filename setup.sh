@@ -202,6 +202,71 @@ install_tailsentry() {
     
     cd "$INSTALL_DIR"
     
+    # Create debian_bcrypt_fix.sh script if it doesn't exist
+    if [ ! -f "./debian_bcrypt_fix.sh" ]; then
+        echo "Creating debian bcrypt fix script..."
+        cat > debian_bcrypt_fix.sh << 'EOF'
+#!/bin/bash
+# Fix for bcrypt installation on Debian systems with externally managed environment restrictions
+# 
+# Usage: ./debian_bcrypt_fix.sh [password_file]
+# If password_file is provided, reads password from the file
+# If not provided, uses default "admin123"
+
+# ANSI colors for output
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Get password from file or use default
+PASSWORD="admin123"  # Default password
+if [ -n "$1" ] && [ -f "$1" ]; then
+    PASSWORD=$(cat "$1")
+    echo >&2 "Using password from provided file"
+else
+    echo >&2 "Using default password: admin123"
+fi
+
+echo >&2 -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo >&2 -e "${BLUE}       TailSentry Debian Python Package Fix${NC}"
+echo >&2 -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo >&2 ""
+
+# Try to install bcrypt via apt (Debian's preferred way)
+echo >&2 -e "${YELLOW}Attempting to install bcrypt via apt...${NC}"
+apt-get update >/dev/null 2>&1 || sudo apt-get update >/dev/null 2>&1
+apt-get install -y python3-bcrypt >/dev/null 2>&1 || sudo apt-get install -y python3-bcrypt >/dev/null 2>&1
+apt-get install -y python3-venv >/dev/null 2>&1 || sudo apt-get install -y python3-venv >/dev/null 2>&1
+
+# Create a temporary virtual environment
+echo >&2 -e "${GREEN}Creating virtual environment for bcrypt...${NC}"
+TEMP_ENV="/tmp/bcrypt_env_$$"
+python3 -m venv $TEMP_ENV
+source $TEMP_ENV/bin/activate
+
+# Install bcrypt in the virtual environment
+echo >&2 -e "${YELLOW}Installing bcrypt in virtual environment...${NC}"
+pip install bcrypt >/dev/null 2>&1
+
+# Generate the password hash
+echo >&2 -e "${GREEN}Generating password hash...${NC}"
+HASH=$(python3 -c "import bcrypt; print(bcrypt.hashpw('${PASSWORD}'.encode(), bcrypt.gensalt()).decode())")
+
+# Output the hash to stdout (will be captured by the calling script)
+echo "$HASH"
+
+# Clean up
+echo >&2 "Cleaning up..."
+deactivate
+rm -rf $TEMP_ENV
+
+echo >&2 -e "${GREEN}bcrypt hash generation completed successfully!${NC}"
+EOF
+        chmod +x debian_bcrypt_fix.sh
+    fi
+
     # Create Python virtual environment
     echo "Setting up Python virtual environment..."
     python3 -m venv venv
@@ -219,7 +284,7 @@ install_tailsentry() {
         if command_exists apt; then
             echo -e "${YELLOW}Attempting to install bcrypt via apt...${NC}"
             apt-get update
-            apt-get install -y python3-bcrypt
+            apt-get install -y python3-bcrypt python3-venv
             echo -e "${GREEN}Installed system-wide bcrypt package.${NC}"
         fi
     }
@@ -297,24 +362,49 @@ if platform.system() == "Linux" and os.path.exists("/etc/debian_version"):
     debian_system = True
     
 try:
-    import bcrypt
-    print("bcrypt module found, using it directly")
-except ImportError:
-    print("bcrypt module not found. Attempting installation...")
-    import subprocess
+    # First try importing directly - system package might be available
     try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "bcrypt"])
         import bcrypt
-        print("bcrypt installed successfully")
-    except subprocess.CalledProcessError:
-        print("Failed to install bcrypt via pip")
+        print("bcrypt module found, using it directly")
+    except ImportError:
+        # Next try to use system python3-bcrypt if we're on Debian
         if debian_system:
-            print("Detected Debian system. Will use alternate method for password generation.")
-            # We'll use the debian_bcrypt_fix.sh script later
-            bcrypt = None
+            print("Checking for system bcrypt package on Debian...")
+            try:
+                # On Debian, we can try the system python3-bcrypt package
+                import bcrypt
+                print("Found system python3-bcrypt package")
+            except ImportError:
+                print("System bcrypt package not found, trying to install...")
+                # Use Debian way first
+                try:
+                    subprocess.run(["apt-get", "update"], check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    subprocess.run(["apt-get", "install", "-y", "python3-bcrypt"], check=True, 
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    import bcrypt
+                    print("Successfully installed and imported system bcrypt package")
+                except Exception as e:
+                    print(f"Failed to install system bcrypt package: {e}")
+                    # Will use debian_bcrypt_fix.sh script later
+                    bcrypt = None
         else:
-            print("Could not install bcrypt module. Please install it manually.")
-            bcrypt = None
+            # Non-Debian system, try pip install
+            print("Not on Debian, attempting pip installation...")
+            import subprocess
+            try:
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "bcrypt"], 
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                import bcrypt
+                print("bcrypt installed successfully via pip")
+            except subprocess.CalledProcessError:
+                print("Failed to install bcrypt via pip")
+                bcrypt = None
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                bcrypt = None
+except Exception as e:
+    print(f"Error in bcrypt handling: {e}")
+    bcrypt = None
 
 # Get the Tailscale PAT from environment if provided
 ts_pat = os.environ.get('TS_PAT', '')
