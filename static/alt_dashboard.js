@@ -1,4 +1,4 @@
-window.altTailSentry = function() {
+function altTailSentry() {
   return {
     darkMode: false,
     openSettings: false,
@@ -146,3 +146,4 @@ window.altTailSentry = function() {
     }
   }
 }
+window.altTailSentry = altTailSentry;
