@@ -118,7 +118,15 @@ install_dependencies() {
     
     if command_exists apt; then
         apt-get update
-        apt-get install -y python3 python3-venv python3-pip git curl jq net-tools lsof
+        
+        # Check if we're on Debian with externally-managed Python environment
+        if [ -f "/etc/debian_version" ] && python3 -m pip --version 2>&1 | grep -q "externally-managed-environment"; then
+            echo -e "${YELLOW}Detected Debian with externally-managed Python environment.${NC}"
+            echo -e "${YELLOW}Installing required Python packages via apt...${NC}"
+            apt-get install -y python3 python3-venv python3-pip python3-bcrypt git curl jq net-tools lsof
+        else
+            apt-get install -y python3 python3-venv python3-pip git curl jq net-tools lsof
+        fi
     else
         echo -e "${YELLOW}Non-Debian system detected. Installing minimal dependencies...${NC}"
         # For other systems, assume Python is available
@@ -274,20 +282,33 @@ EOF
     pip install -r requirements.txt
     
     # Install bcrypt for password hashing (required for setup)
-    # Try in the virtual environment first (this should work)
-    pip install bcrypt || {
-        echo -e "${YELLOW}Failed to install bcrypt in virtual environment.${NC}"
-        echo -e "${YELLOW}This might be due to Debian's externally-managed-environment restriction.${NC}"
-        echo -e "${YELLOW}Trying alternative methods...${NC}"
+    if [ -f "/etc/debian_version" ] && python3 -m pip --version 2>&1 | grep -q "externally-managed-environment"; then
+        # On Debian with restricted pip, we already installed python3-bcrypt via apt earlier
+        echo -e "${YELLOW}Using system-wide python3-bcrypt package for Debian...${NC}"
         
-        # Try system package installation
-        if command_exists apt; then
-            echo -e "${YELLOW}Attempting to install bcrypt via apt...${NC}"
+        # Verify it's installed
+        if ! dpkg -l | grep -q python3-bcrypt; then
+            echo -e "${YELLOW}python3-bcrypt not found, installing it now...${NC}"
             apt-get update
             apt-get install -y python3-bcrypt python3-venv
-            echo -e "${GREEN}Installed system-wide bcrypt package.${NC}"
         fi
-    }
+        
+        echo -e "${GREEN}Using system bcrypt package.${NC}"
+    else
+        # On non-Debian systems, install bcrypt in the virtual environment
+        pip install bcrypt || {
+            echo -e "${YELLOW}Failed to install bcrypt in virtual environment.${NC}"
+            echo -e "${YELLOW}Trying alternative methods...${NC}"
+            
+            # Try system package installation
+            if command_exists apt; then
+                echo -e "${YELLOW}Attempting to install bcrypt via apt...${NC}"
+                apt-get update
+                apt-get install -y python3-bcrypt
+                echo -e "${GREEN}Installed system-wide bcrypt package.${NC}"
+            fi
+        }
+    fi
     deactivate
     
     # Set appropriate permissions
@@ -355,56 +376,42 @@ import secrets
 import os
 import sys
 
-# Try to import bcrypt, install if missing
+# Check for Debian system
 import platform
 debian_system = False
 if platform.system() == "Linux" and os.path.exists("/etc/debian_version"):
     debian_system = True
-    
+    print("Detected Debian system")
+
+# Try to import bcrypt (should be available now from system or venv)
 try:
-    # First try importing directly - system package might be available
-    try:
-        import bcrypt
-        print("bcrypt module found, using it directly")
-    except ImportError:
-        # Next try to use system python3-bcrypt if we're on Debian
-        if debian_system:
-            print("Checking for system bcrypt package on Debian...")
-            try:
-                # On Debian, we can try the system python3-bcrypt package
-                import bcrypt
-                print("Found system python3-bcrypt package")
-            except ImportError:
-                print("System bcrypt package not found, trying to install...")
-                # Use Debian way first
-                try:
-                    subprocess.run(["apt-get", "update"], check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    subprocess.run(["apt-get", "install", "-y", "python3-bcrypt"], check=True, 
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    import bcrypt
-                    print("Successfully installed and imported system bcrypt package")
-                except Exception as e:
-                    print(f"Failed to install system bcrypt package: {e}")
-                    # Will use debian_bcrypt_fix.sh script later
-                    bcrypt = None
-        else:
-            # Non-Debian system, try pip install
-            print("Not on Debian, attempting pip installation...")
-            import subprocess
-            try:
-                subprocess.check_call([sys.executable, "-m", "pip", "install", "bcrypt"], 
-                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                import bcrypt
-                print("bcrypt installed successfully via pip")
-            except subprocess.CalledProcessError:
-                print("Failed to install bcrypt via pip")
-                bcrypt = None
-            except Exception as e:
-                print(f"Unexpected error: {e}")
-                bcrypt = None
-except Exception as e:
-    print(f"Error in bcrypt handling: {e}")
+    import bcrypt
+    print("Successfully imported bcrypt module")
+except ImportError:
+    print("bcrypt module not found, will try alternatives")
     bcrypt = None
+    
+    # For Debian systems, we should already have python3-bcrypt installed
+    if debian_system:
+        # Try import using system Python path
+        try:
+            import sys
+            sys.path.append('/usr/lib/python3/dist-packages')
+            import bcrypt
+            print("Successfully imported system bcrypt package")
+        except ImportError:
+            print("Could not import system bcrypt package, will use debian_bcrypt_fix.sh")
+    else:
+        # Last resort for non-Debian - try pip install one more time
+        try:
+            import subprocess
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "bcrypt"], 
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            import bcrypt
+            print("Successfully installed and imported bcrypt via pip")
+        except Exception as e:
+            print(f"Failed to install bcrypt: {e}")
+            print("Will use alternative method for password generation")
 
 # Get the Tailscale PAT from environment if provided
 ts_pat = os.environ.get('TS_PAT', '')
