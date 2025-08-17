@@ -13,10 +13,12 @@ async def dashboard(request: Request):
     hostname = TailscaleClient.get_hostname()
     ip = TailscaleClient.get_ip()
     role = []
-    if status.get("Self", {}).get("Capabilities", {}).get("ExitNode", False):
-        role.append("Exit Node")
-    if status.get("Self", {}).get("Capabilities", {}).get("SubnetRouter", False):
-        role.append("Subnet Router")
+    self_obj = status.get("Self", {})
+    if isinstance(self_obj, dict):
+        if self_obj.get("Capabilities", {}).get("ExitNode", False):
+            role.append("Exit Node")
+        if self_obj.get("Capabilities", {}).get("SubnetRouter", False):
+            role.append("Subnet Router")
     peers = status.get("Peer", {})
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
@@ -25,4 +27,11 @@ async def dashboard(request: Request):
         "role": ", ".join(role) if role else "None",
         "status": status,
         "peers": peers,
+    })
+
+# New alternative dashboard route
+@router.get("/alt-dashboard")
+async def alt_dashboard(request: Request):
+    return templates.TemplateResponse("alt_dashboard.html", {
+        "request": request,
     })
