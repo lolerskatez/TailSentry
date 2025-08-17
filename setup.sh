@@ -207,6 +207,9 @@ install_tailsentry() {
     python3 -m venv venv
     source venv/bin/activate
     pip install -r requirements.txt
+    
+    # Install bcrypt for password hashing (required for setup)
+    pip install bcrypt
     deactivate
     
     # Set appropriate permissions
@@ -271,8 +274,17 @@ EOF
         cd "$INSTALL_DIR"
         TS_PAT="$TS_PAT" TAILSCALE_PATH="$TAILSCALE_PATH" python3 << EOF
 import secrets
-import bcrypt
 import os
+import sys
+
+# Try to import bcrypt, install if missing
+try:
+    import bcrypt
+except ImportError:
+    print("bcrypt module not found. Installing...")
+    import subprocess
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "bcrypt"])
+    import bcrypt
 
 # Get the Tailscale PAT from environment if provided
 ts_pat = os.environ.get('TS_PAT', '')
@@ -288,10 +300,14 @@ except Exception as e:
 
 # Generate default password hash for "admin123"
 default_password = "admin123"
-password_hash = bcrypt.hashpw(default_password.encode(), bcrypt.gensalt()).decode()
-
-# Replace or set password hash
-content = content.replace('ADMIN_PASSWORD_HASH=', f'ADMIN_PASSWORD_HASH={password_hash}')
+try:
+    password_hash = bcrypt.hashpw(default_password.encode(), bcrypt.gensalt()).decode()
+    # Replace or set password hash
+    content = content.replace('ADMIN_PASSWORD_HASH=', f'ADMIN_PASSWORD_HASH={password_hash}')
+except Exception as e:
+    print(f"Warning: Could not generate password hash: {e}")
+    print("Setting a placeholder hash, you'll need to reset your password later")
+    content = content.replace('ADMIN_PASSWORD_HASH=', 'ADMIN_PASSWORD_HASH=$2b$12$9uwtFjMr81ELEW6zmjOnpuwitkRpKwjAcDKA1OzhnW7FqzXxK6s/C')
 
 # Add Tailscale PAT if provided
 if ts_pat:
@@ -329,6 +345,14 @@ EOF
         cd "$INSTALL_DIR"
         TAILSCALE_PATH="$TAILSCALE_PATH" python3 << EOF
 import os
+import sys
+
+# Try to import bcrypt if needed
+try:
+    import bcrypt
+except ImportError:
+    # Only needed if we're setting passwords
+    pass
 
 # Get the Tailscale path
 tailscale_path = os.environ.get('TAILSCALE_PATH', '/usr/bin/tailscale')
