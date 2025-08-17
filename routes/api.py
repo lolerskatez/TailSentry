@@ -46,40 +46,77 @@ async def websocket_endpoint(websocket: WebSocket):
             active_connections.remove(websocket)
 
 # API endpoints for status data
-@router.get("/api/status")
+@router.get("/status")
 @login_required
 async def get_status(request: Request):
     """Get current Tailscale status"""
-    status = TailscaleClient.status_json()
-    return status
+    try:
+        status = TailscaleClient.status_json()
+        
+        # Add debug logging
+        logger.info(f"API /status called, returning data type: {type(status)}")
+        
+        if isinstance(status, dict) and "error" not in status:
+            return status
+        else:
+            error_msg = status.get("error", "Unknown error") if isinstance(status, dict) else "Invalid data format"
+            logger.error(f"Status API error: {error_msg}")
+            return {"error": f"Failed to get Tailscale status: {error_msg}"}
+    except Exception as e:
+        logger.error(f"Status API exception: {str(e)}")
+        return {"error": f"Internal server error: {str(e)}"}
 
-@router.get("/api/device")
+@router.get("/device")
 @login_required
 async def get_device(request: Request):
     """Get information about this device"""
-    return TailscaleClient.get_device_info()
+    try:
+        device_info = TailscaleClient.get_device_info()
+        return device_info or {}
+    except Exception as e:
+        logger.error(f"Device API error: {str(e)}")
+        return {"error": str(e)}
 
-@router.get("/api/peers")
+@router.get("/peers")
 @login_required
 async def get_peers(request: Request):
     """Get list of peers"""
-    status = TailscaleClient.status_json()
-    return {"peers": status.get("Peer", {})}
+    try:
+        status = TailscaleClient.status_json()
+        if isinstance(status, dict) and "Peer" in status:
+            return {"peers": status["Peer"]}
+        else:
+            return {"peers": {}}
+    except Exception as e:
+        logger.error(f"Peers API error: {str(e)}")
+        return {"error": str(e)}
 
-@router.get("/api/exit-node")
+@router.get("/exit-node")
 @login_required
 async def get_exit_node(request: Request):
     """Get current exit node"""
-    return {"exit_node": TailscaleClient.get_active_exit_node()}
+    try:
+        return {"exit_node": TailscaleClient.get_active_exit_node()}
+    except Exception as e:
+        logger.error(f"Exit node API error: {str(e)}")
+        return {"error": str(e)}
 
-@router.get("/api/subnet-routes")
+@router.get("/subnet-routes")
 @login_required
 async def get_subnet_routes(request: Request):
     """Get advertised subnet routes"""
-    return {"routes": TailscaleClient.subnet_routes()}
+    try:
+        return {"routes": TailscaleClient.subnet_routes()}
+    except Exception as e:
+        logger.error(f"Subnet routes API error: {str(e)}")
+        return {"error": str(e)}
 
-@router.get("/api/local-subnets")
+@router.get("/local-subnets")
 @login_required
 async def get_local_subnets(request: Request):
     """Get detected local subnets"""
-    return {"subnets": TailscaleClient.detect_local_subnets()}
+    try:
+        return {"subnets": TailscaleClient.detect_local_subnets()}
+    except Exception as e:
+        logger.error(f"Local subnets API error: {str(e)}")
+        return {"error": str(e)}

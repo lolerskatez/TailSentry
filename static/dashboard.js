@@ -9,60 +9,153 @@ function tailSentry(){
         active: 'dashboard',
         lastUpdated: new Date().toLocaleTimeString(),
         device: {
-          hostname: 'tailsentry-01',
-          ip: '100.64.0.42',
-          role: 'Exit Node + Subnet Router',
-          uptime: '5d 4h',
+          hostname: 'Loading...',
+          ip: '0.0.0.0',
+          role: 'Loading...',
+          uptime: '0m',
           isExit: false,
-          exitDetails: 'Not advertising exit route'
+          exitDetails: 'Loading...'
         },
         net: { tx: '0.0 MB/s', rx: '0.0 MB/s' },
-        peers: [
-          { id:1, hostname:'laptop-jane', ip:'100.101.1.12', os:'macOS', lastSeen:'2m', tags:['dev'] },
-          { id:2, hostname:'raspi-nas', ip:'100.101.1.20', os:'Linux', lastSeen:'5m', tags:['srv','nas'] },
-          { id:3, hostname:'office-ws-01', ip:'100.101.1.32', os:'Windows', lastSeen:'15m', tags:['work'] },
-          { id:4, hostname:'phone-andy', ip:'100.101.1.45', os:'Android', lastSeen:'1h', tags:['mobile'] }
-        ],
+        peers: [],
         peerFilter: '',
-        subnets: [
-          { cidr: '192.168.1.0/24', iface: 'eth0', enabled: true },
-          { cidr: '10.0.0.0/24', iface: 'eth1', enabled: false }
-        ],
+        subnets: [],
         newSubnet: '',
-        service: { status: 'active', uptime: '5d 3h' },
-        logs: [
-          'Jul 31 10:12:01 tailscaled[123]: starting',
-          'Jul 31 10:12:05 tailscaled[123]: authenticated',
-          'Jul 31 12:20:11 tailscaled[123]: route added: 192.168.1.0/24'
-        ],
-        keys: [
-          { id: 'k1', label: 'm-pop-7d', expires: '2025-08-01', reusable: false },
-          { id: 'k2', label: 'admin-90d', expires: '2025-10-10', reusable: true },
-        ],
+        service: { status: 'unknown', uptime: '0m' },
+        logs: [],
+        keys: [],
         newKey: { label:'', exp:'7d', reusable:true },
         openAuthKeyModal: false,
         toast: '',
-        init(){
+        
+        async init(){
+          console.log('TailSentry initializing...');
           // restore dark pref
           this.dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-          // fake live update
-          setInterval(()=> this.fakeUpdate(), 4000);
+          
+          // Load real data immediately
+          await this.loadRealData();
+          
+          // Set up periodic updates every 30 seconds
+          setInterval(()=> this.loadRealData(), 30000);
+        },
+
+        async loadRealData() {
+          try {
+            console.log('Loading real Tailscale data...');
+            
+            // Load device info and status
+            const statusResponse = await fetch('/api/status');
+            if (statusResponse.ok) {
+              const statusData = await statusResponse.json();
+              console.log('Status data received:', statusData);
+              this.updateDeviceInfo(statusData);
+              this.updatePeers(statusData);
+            } else {
+              console.error('Failed to fetch status:', statusResponse.status);
+              this.device.hostname = 'Error loading data';
+              this.device.ip = 'Check connection';
+            }
+            
+            // Load subnet routes
+            try {
+              const subnetResponse = await fetch('/api/subnet-routes');
+              if (subnetResponse.ok) {
+                const subnetData = await subnetResponse.json();
+                this.updateSubnets(subnetData);
+              }
+            } catch (e) {
+              console.warn('Failed to load subnet routes:', e);
+            }
+            
+            this.lastUpdated = new Date().toLocaleTimeString();
+            console.log('Real data loaded successfully');
+            
+          } catch (error) {
+            console.error('Error loading real data:', error);
+            this.device.hostname = 'Error loading data';
+            this.device.ip = 'Check connection';
+            this.toastMsg('Failed to load data: ' + error.message);
+          }
+        },
+
+        updateDeviceInfo(statusData) {
+          if (statusData && statusData.Self) {
+            this.device.hostname = statusData.Self.HostName || 'unknown';
+            this.device.ip = statusData.Self.TailscaleIPs?.[0] || '0.0.0.0';
+            this.device.online = statusData.Self.Online || false;
+            
+            // Update service status
+            this.service.status = statusData.BackendState === 'Running' ? 'active' : 'inactive';
+            
+            // Check if this device is an exit node
+            this.device.isExit = statusData.Self.ExitNode || false;
+            this.device.exitDetails = this.device.isExit ? 'Advertising exit route' : 'Not advertising exit route';
+            
+            // Update network stats if available
+            if (statusData.Self.TXBytes !== undefined) {
+              this.net.tx = this.formatBytes(statusData.Self.TXBytes) + '/s';
+            }
+            if (statusData.Self.RXBytes !== undefined) {
+              this.net.rx = this.formatBytes(statusData.Self.RXBytes) + '/s';
+            }
+          }
+        },
+
+        updatePeers(statusData) {
+          if (statusData && statusData.Peer) {
+            this.peers = Object.entries(statusData.Peer).map(([id, peer]) => ({
+              id: id,
+              hostname: peer.HostName || 'unknown',
+              ip: peer.TailscaleIPs?.[0] || '0.0.0.0',
+              os: peer.OS || 'Unknown',
+              lastSeen: this.formatLastSeen(peer.LastSeen),
+              tags: peer.Tags || [],
+              online: peer.Online || false
+            }));
+            console.log(`Updated ${this.peers.length} peers from real data`);
+          }
+        },
+
+        updateSubnets(subnetData) {
+          if (subnetData && subnetData.routes) {
+            this.subnets = subnetData.routes.map(route => ({
+              cidr: route.cidr || route,
+              iface: route.interface || 'tailscale0',
+              enabled: route.enabled !== false
+            }));
+          }
+        },
+
+        formatLastSeen(lastSeenTime) {
+          if (!lastSeenTime) return 'unknown';
+          
+          const now = new Date();
+          const lastSeen = new Date(lastSeenTime);
+          const diffMs = now - lastSeen;
+          const diffMinutes = Math.floor(diffMs / (1000 * 60));
+          
+          if (diffMinutes < 1) return 'now';
+          if (diffMinutes < 60) return `${diffMinutes}m`;
+          
+          const diffHours = Math.floor(diffMinutes / 60);
+          if (diffHours < 24) return `${diffHours}h`;
+          
+          const diffDays = Math.floor(diffHours / 24);
+          return `${diffDays}d`;
+        },
+
+        formatBytes(bytes) {
+          if (bytes === 0) return '0 B';
+          const k = 1024;
+          const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+          return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         },
         refresh(){
           this.lastUpdated = new Date().toLocaleTimeString();
+          this.loadRealData();
           this.toastMsg('Refreshed');
-        },
-        fakeUpdate(){
-          // simulate rx/tx updates and last seen
-          const rnd = (n)=> (Math.random()*n).toFixed(2);
-          this.net.tx = (0.1 + parseFloat(rnd(3))).toFixed(2) + ' MB/s';
-          this.net.rx = (0.05 + parseFloat(rnd(2))).toFixed(2) + ' MB/s';
-          this.peers.forEach(p => {
-            // randomly increment last seen in minutes
-            let m = Math.floor(Math.random()*60);
-            p.lastSeen = (m < 2 ? 'now' : (m + 'm'));
-          });
-          this.lastUpdated = new Date().toLocaleTimeString();
         },
         filteredPeers(){
           if(!this.peerFilter) return this.peers;

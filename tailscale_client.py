@@ -30,7 +30,8 @@ API_TIMEOUT = int(os.getenv("TAILSCALE_API_TIMEOUT", "10"))  # API timeout in se
 DATA_DIR = os.getenv("TAILSENTRY_DATA_DIR", os.path.join(os.path.dirname(__file__), "data"))
 
 # Set this to True to always use live data
-FORCE_LIVE_DATA = os.getenv("TAILSENTRY_FORCE_LIVE_DATA", "false").lower() == "true"
+FORCE_LIVE_DATA = os.getenv("TAILSENTRY_FORCE_LIVE_DATA", "true").lower() == "true"
+USE_MOCK_DATA = os.getenv("TAILSENTRY_USE_MOCK_DATA", "false").lower() == "true"
 
 # Create data directory if it doesn't exist
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -370,22 +371,29 @@ class TailscaleClient:
     @staticmethod
     def status_json():
         """Get Tailscale status as JSON (cached for 5 seconds)"""
-        # If FORCE_LIVE_DATA is enabled, bypass the cache
+        # Force live data - disable mock data completely
+        if USE_MOCK_DATA and not FORCE_LIVE_DATA:
+            logger.warning("USE_MOCK_DATA is enabled but FORCE_LIVE_DATA overrides it")
+        
+        # Always bypass cache when forcing live data
         if FORCE_LIVE_DATA:
             logger.info("FORCE_LIVE_DATA is enabled, bypassing cache")
-            # Clear the cache by invalidating it (only keep fresh data)
             TailscaleClient._status_json_cached.cache_clear()
             
         result, _ = TailscaleClient._status_json_cached()
         
-        # Add debug logging to see what data we're getting
+        # Enhanced logging for debugging
         if isinstance(result, dict) and "error" not in result:
-            # Check if this is real data
             if "Self" in result:
                 hostname = result.get("Self", {}).get("HostName", "unknown")
                 ip = result.get("Self", {}).get("TailscaleIPs", ["none"])[0]
                 peer_count = len(result.get("Peer", {}))
-                logger.info(f"Got real Tailscale data: {hostname} ({ip}) with {peer_count} peers")
+                logger.info(f"Returning real Tailscale data: {hostname} ({ip}) with {peer_count} peers")
+                
+                # Verify this isn't mock data
+                if hostname == "tailscale-server" and peer_count == 3:
+                    logger.warning("This might be mock data - checking...")
+                    
             else:
                 logger.warning("Tailscale data missing 'Self' information")
                 logger.debug(f"Keys in result: {list(result.keys())}")
