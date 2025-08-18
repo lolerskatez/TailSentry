@@ -130,7 +130,38 @@
   <div x-show="peerModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="peer-details-title">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-lg">
       <div id="peer-details-title" class="text-lg font-semibold mb-4">Peer Details</div>
-      <pre class="bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs overflow-x-auto" x-text="JSON.stringify(selectedPeer, null, 2)"></pre>
+      <div class="bg-gray-100 dark:bg-gray-900 p-4 rounded mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <div class="font-semibold">ID:</div>
+            <div class="mb-2 text-sm text-gray-700 dark:text-gray-300" x-text="selectedPeer.id"></div>
+          </div>
+          <div>
+            <div class="font-semibold">Hostname:</div>
+            <div class="mb-2 text-sm text-gray-700 dark:text-gray-300" x-text="selectedPeer.hostname"></div>
+          </div>
+          <div>
+            <div class="font-semibold">IP Address:</div>
+            <div class="mb-2 text-sm text-gray-700 dark:text-gray-300" x-text="selectedPeer.ip"></div>
+          </div>
+          <div>
+            <div class="font-semibold">Operating System:</div>
+            <div class="mb-2 text-sm text-gray-700 dark:text-gray-300" x-text="selectedPeer.os"></div>
+          </div>
+          <div>
+            <div class="font-semibold">Last Seen:</div>
+            <div class="mb-2 text-sm text-gray-700 dark:text-gray-300" x-text="selectedPeer.lastSeen"></div>
+          </div>
+          <div>
+            <div class="font-semibold">Tags:</div>
+            <div class="mb-2 text-sm text-gray-700 dark:text-gray-300" x-text="selectedPeer.tags.length ? selectedPeer.tags.join(', ') : 'None'"></div>
+          </div>
+          <div>
+            <div class="font-semibold">Status:</div>
+            <div class="mb-2 text-sm" :class="selectedPeer.online ? 'text-green-600' : 'text-red-600'" x-text="selectedPeer.online ? 'Online' : 'Offline'"></div>
+          </div>
+        </div>
+      </div>
       <div class="flex justify-end mt-4">
         <button @click="peerModal = false" class="px-4 py-2 bg-gray-300 dark:bg-gray-700 rounded">Close</button>
       </div>
