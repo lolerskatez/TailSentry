@@ -99,14 +99,16 @@ window.altTailSentry = function altTailSentry() {
         if (res.ok) {
           const data = await res.json();
           console.log('Status API response:', data);
-          // Map fields directly from root of response
-          this.device.hostname = data.Hostname || 'Unknown';
-          this.device.ip = data.TailscaleIP || '0.0.0.0';
-          this.device.role = data.Role || 'Unknown';
-          this.device.uptime = this.formatUptime(data.Created || null);
-          this.device.isExit = data.ExitNode || false;
+          // Map fields from data.Self
+          const self = data.Self || {};
+          this.device.hostname = self.HostName || 'Unknown';
+          this.device.ip = (self.TailscaleIPs && self.TailscaleIPs[0]) || '0.0.0.0';
+          this.device.role = self.OS || 'Unknown';
+          this.device.uptime = this.formatUptime(self.Created || null);
+          this.device.isExit = !!self.ExitNode;
           this.device.online = data.BackendState === 'Running';
-          this.isExitNode = this.device.isExit;
+          this.isExitNode = !!self.ExitNode;
+          this.device.subnetRoutes = (self.AllowedIPs && self.AllowedIPs.length) || 0;
         }
       } catch (e) { this.toastMsg('Failed to load status'); }
     },
