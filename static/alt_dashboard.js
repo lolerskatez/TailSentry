@@ -1,5 +1,47 @@
 window.altTailSentry = function altTailSentry() {
   return {
+    // Alpine.js state and methods
+    darkMode: false,
+    openSettings: false,
+    peerModal: false,
+    selectedPeer: {},
+    refreshInterval: 30,
+    lastUpdated: '',
+    device: {
+      hostname: 'Loading...',
+      ip: '0.0.0.0',
+      role: 'Loading...',
+      uptime: '0m',
+      isExit: false,
+      online: false
+    },
+    net: { tx: '0.0 MB/s', rx: '0.0 MB/s', activity: 0 },
+    peers: [],
+    peerFilter: '',
+    subnets: [],
+    logs: [],
+    toast: '',
+    authKey: '',
+    isExitNode: false,
+    isSubnetRouting: false,
+    advertisedRoutes: [],
+    // Settings UI state
+    tailscaleStatus: 'unknown',
+    tailscaleIp: '',
+    authFeedback: '',
+    authSuccess: false,
+    // Alpine.js settings page state variables (must be defined for template)
+    tailscaleCtlFeedback: '',
+    exitNodeFeedback: '',
+    subnetModalOpen: false,
+    allSubnets: [
+      '10.0.0.0/8',
+      '172.16.0.0/12',
+      '192.168.0.0/16'
+    ],
+    subnetFeedback: '',
+
+    // Alpine.js methods
     saveHostname() {
       const payload = {
         hostname: this.device.hostname
@@ -23,7 +65,6 @@ window.altTailSentry = function altTailSentry() {
         this.tailscaleCtlFeedback = 'Network or server error.';
       });
     },
-  return {
     darkMode: false,
     openSettings: false,
     peerModal: false,
