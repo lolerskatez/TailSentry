@@ -1,3 +1,5 @@
+print('LOADING AUTHENTICATE ROUTER: e/TailSentry/routes/authenticate.py')
+
 
 import logging
 import os
