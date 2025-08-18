@@ -57,6 +57,15 @@
     <div id="settings-title" class="text-2xl font-bold mb-6 text-indigo-700">Settings</div>
     <!-- Appearance Section -->
     <div class="mb-8">
+    <!-- Tailscale Up/Down Controls -->
+    <div class="mb-8 p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      <div class="font-semibold mb-2 text-indigo-700">Tailscale Controls</div>
+      <div class="flex gap-4 items-center">
+        <button @click="tailscaleUp()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Tailscale Up</button>
+        <button @click="tailscaleDown()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Tailscale Down</button>
+        <span class="text-sm font-semibold" x-text="tailscaleCtlFeedback"></span>
+      </div>
+    </div>
       <div class="font-semibold mb-2 text-indigo-700">Appearance</div>
       <div class="flex items-center justify-between mb-2">
         <span>Dark Mode</span>
@@ -108,13 +117,12 @@
           aria-pressed="isExitNode"
         ></button>
         <button
-            @click="$store.exitNode.applyExitNode(isExitNode, authKey)"
+          @click="applyExitNode()"
           class="w-16 h-9 bg-blue-500 text-white rounded text-sm font-semibold hover:bg-blue-600 focus:outline-none transition-colors duration-150"
-          :disabled="$store.exitNode.applying"
         >Apply</button>
       </div>
-      <template x-if="$store.exitNode.feedback">
-        <div class="mt-2 text-xs font-semibold" :class="$store.exitNode.feedback.includes('applied') ? 'text-green-600' : 'text-red-600'" x-text="$store.exitNode.feedback"></div>
+      <template x-if="exitNodeFeedback">
+        <div class="mt-2 text-xs font-semibold" :class="exitNodeFeedback.includes('applied') ? 'text-green-600' : 'text-red-600'" x-text="exitNodeFeedback"></div>
       </template>
     </div>
     <!-- Subnet Routing Card (moved outside settingsPage) -->
@@ -124,7 +132,7 @@
           <div class="font-semibold">Subnet Routing</div>
           <div class="text-xs text-gray-500 dark:text-gray-400">Advertise or remove subnets for this node.</div>
         </div>
-        <button @click="openSubnetModal()" class="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600" title="Manage Subnets">Manage</button>
+        <button @click="subnetModalOpen = true" class="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600" title="Manage Subnets">Manage</button>
       </div>
       <div class="flex items-center gap-2 mb-1">
         <span :class="isSubnetRouting ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'" class="px-2 py-1 rounded text-xs font-semibold" x-text="isSubnetRouting ? 'Enabled' : 'Disabled'"></span>
@@ -132,6 +140,126 @@
           <span class="text-xs text-gray-700 dark:text-gray-200">Routes: <span x-text="advertisedRoutes.join(', ')"></span></span>
         </template>
       </div>
+      <!-- Subnet Modal -->
+      <div x-show="subnetModalOpen" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 w-96">
+          <div class="font-semibold mb-2 text-indigo-700">Select Subnets to Advertise</div>
+          <template x-if="allSubnets && allSubnets.length">
+            <div class="flex flex-col gap-2 mb-4">
+              <template x-for="subnet in allSubnets" :key="subnet">
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" :value="subnet" :checked="advertisedRoutes.includes(subnet)" @change="toggleSubnet(subnet)">
+                  <span x-text="subnet"></span>
+                </label>
+              </template>
+            </div>
+          </template>
+          <div class="flex gap-2 justify-end">
+            <button @click="applySubnets()" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">Apply</button>
+            <button @click="subnetModalOpen = false" class="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500">Cancel</button>
+          </div>
+          <template x-if="subnetFeedback">
+            <div class="mt-2 text-xs font-semibold" :class="subnetFeedback.includes('applied') ? 'text-green-600' : 'text-red-600'" x-text="subnetFeedback"></div>
+          </template>
+        </div>
+      </div>
+    <script>
+  // Add Tailscale Up/Down methods to Alpine.js
+  window.altTailSentry.prototype.tailscaleCtlFeedback = '';
+  window.altTailSentry.prototype.tailscaleUp = function() {
+    const payload = {
+      auth_key: this.authKey,
+      hostname: this.device.hostname,
+      accept_routes: this.device.accept_routes ?? true,
+      advertise_exit_node: this.isExitNode,
+      advertise_routes: this.advertisedRoutes
+    };
+    this.tailscaleCtlFeedback = '';
+    fetch('/api/authenticate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        this.tailscaleCtlFeedback = 'Tailscale started!';
+        this.loadStatus();
+      } else {
+        this.tailscaleCtlFeedback = data.message || 'Failed to start Tailscale.';
+      }
+    })
+    .catch(() => {
+      this.tailscaleCtlFeedback = 'Network or server error.';
+    });
+  };
+
+  window.altTailSentry.prototype.tailscaleDown = function() {
+    this.tailscaleCtlFeedback = '';
+    fetch('/api/down', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        this.tailscaleCtlFeedback = 'Tailscale stopped!';
+        this.loadStatus();
+      } else {
+        this.tailscaleCtlFeedback = data.message || 'Failed to stop Tailscale.';
+      }
+    })
+    .catch(() => {
+      this.tailscaleCtlFeedback = 'Network or server error.';
+    });
+  };
+      // Alpine.js modal state and subnet logic
+      document.addEventListener('alpine:init', () => {
+        Alpine.data('altTailSentry', window.altTailSentry);
+      });
+      window.altTailSentry.prototype.subnetModalOpen = false;
+      window.altTailSentry.prototype.subnetFeedback = '';
+      window.altTailSentry.prototype.allSubnets = [
+        '10.0.0.0/8',
+        '172.16.0.0/12',
+        '192.168.0.0/16'
+      ];
+      window.altTailSentry.prototype.toggleSubnet = function(subnet) {
+        if (this.advertisedRoutes.includes(subnet)) {
+          this.advertisedRoutes = this.advertisedRoutes.filter(s => s !== subnet);
+        } else {
+          this.advertisedRoutes.push(subnet);
+        }
+      };
+      window.altTailSentry.prototype.applySubnets = function() {
+        const payload = {
+          auth_key: this.authKey,
+          hostname: this.device.hostname,
+          accept_routes: this.device.accept_routes ?? true,
+          advertise_exit_node: this.isExitNode,
+          advertise_routes: this.advertisedRoutes
+        };
+        this.subnetFeedback = '';
+        fetch('/api/authenticate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            this.subnetFeedback = 'Subnet routes applied!';
+            this.subnetModalOpen = false;
+            this.loadStatus();
+          } else {
+            this.subnetFeedback = data.message || 'Failed to apply subnet routes.';
+          }
+        })
+        .catch(() => {
+          this.subnetFeedback = 'Network or server error.';
+        });
+      };
+    </script>
     </div>
     </div>
     <!-- Logs & Diagnostics Section -->
@@ -142,6 +270,34 @@
     </div>
   </main>
   <script>
+  // Add applyExitNode method to Alpine.js
+  window.altTailSentry.prototype.applyExitNode = function() {
+    const payload = {
+      auth_key: this.authKey,
+      hostname: this.device.hostname,
+      accept_routes: this.device.accept_routes ?? true,
+      advertise_exit_node: this.isExitNode,
+      advertise_routes: this.advertisedRoutes
+    };
+    this.exitNodeFeedback = '';
+    fetch('/api/authenticate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        this.exitNodeFeedback = 'Exit Node setting applied!';
+        this.loadStatus();
+      } else {
+        this.exitNodeFeedback = data.message || 'Failed to apply Exit Node setting.';
+      }
+    })
+    .catch(() => {
+      this.exitNodeFeedback = 'Network or server error.';
+    });
+  };
   // Add saveHostname method to Alpine.js
   document.addEventListener('alpine:init', () => {
     Alpine.data('altTailSentry', window.altTailSentry);
