@@ -1,14 +1,1 @@
-# Tailscale settings config for TailSentry
-# Edit this file to change Tailscale settings. The backend will use this to build the tailscale up command.
-{
-  "auth_key": "",
-  "hostname": "tailsentry-router",
-  "accept_routes": true,
-  "advertise_exit_node": true,
-  "advertise_routes": [
-    "10.0.0.0/8",
-    "172.16.0.0/12",
-    "192.168.0.0/16"
-  ]
-}
 {}
