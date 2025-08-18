@@ -330,7 +330,7 @@ class TailscaleClient:
             logger.debug(f"Using Tailscale binary at: {tailscale_path}")
             
             # Validate path exists
-            if not os.path.exists(tailscale_path) and '/' in tailscale_path:
+            if tailscale_path is not None and not os.path.exists(tailscale_path) and '/' in tailscale_path:
                 logger.error(f"Tailscale binary not found at {tailscale_path}")
                 return {"error": f"Tailscale binary not found at {tailscale_path}"}, timestamp
             
@@ -963,9 +963,6 @@ class TailscaleClient:
         except httpx.RequestError as e:
             logger.error(f"Tailscale API network error: {str(e)}")
             return {"error": f"Network error: {str(e)}"}
-        except httpx.TimeoutException:
-            logger.error("Tailscale API request timed out")
-            return {"error": "Request timed out after 10 seconds"}
         except json.JSONDecodeError as e:
             logger.error(f"Tailscale API returned invalid JSON: {str(e)}")
             return {"error": f"Invalid response format: {str(e)}"}
