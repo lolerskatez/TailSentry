@@ -14,17 +14,18 @@
 </head>
 <body x-data="window.altTailSentry()" x-init="init(); loadDarkMode()" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
   <!-- Header -->
-  <header class="flex items-center justify-between px-6 py-4 bg-indigo-600 text-white shadow" role="banner">
+  <nav class="flex items-center justify-between px-6 py-4 bg-indigo-700 text-white shadow" role="navigation">
     <div class="flex items-center gap-3">
       <img src="/static/favicon.svg" class="h-8 w-8" alt="TailSentry logo">
       <span class="font-bold text-xl tracking-tight">TailSentry</span>
       <span class="ml-2 px-2 py-1 bg-indigo-800 rounded text-xs">DASHBOARD</span>
     </div>
     <div class="flex items-center gap-4">
-      <button @click="openSettings = true" class="hover:bg-indigo-700 px-3 py-1 rounded transition" aria-label="Open settings" title="Settings">⚙️ Settings</button>
+      <a href="/" class="bg-indigo-900 px-3 py-1 rounded font-semibold" aria-label="Dashboard" title="Dashboard">Dashboard</a>
+      <a href="/settings" class="hover:bg-indigo-800 px-3 py-1 rounded transition" aria-label="Settings" title="Settings">Settings</a>
       <button @click="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded" aria-label="Logout" title="Logout">Logout</button>
     </div>
-  </header>
+  </nav>
 
   <!-- Main Content -->
   <main class="max-w-7xl mx-auto py-8 px-4 grid grid-cols-1 md:grid-cols-3 gap-6">
