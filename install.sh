@@ -38,6 +38,7 @@ mkdir -p "$INSTALL_DIR"
 
 # Clone repository
 echo "Downloading TailSentry..."
+
 git clone "$REPO_URL" "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
@@ -46,76 +47,42 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# Setup .env file
-if [ ! -f .env ]; then
-  cp .env.example .env
-  
-  # Clear screen and prompt for Tailscale PAT
-  clear
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "🔧 TailSentry Configuration"
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo ""
-  echo "📝 TailSentry requires a Tailscale Personal Access Token (PAT) to manage"
-  echo "   your Tailscale network. You can:"
-  echo ""
-  echo "   • Enter it now for full functionality"
-  echo "   • Skip it and configure later in the dashboard"
-  echo ""
-  echo "🔗 Get your PAT at: https://login.tailscale.com/admin/settings/keys"
-  echo ""
-  read -s -p "🔑 Enter Tailscale Personal Access Token (or press Enter to skip): " TS_PAT
-  echo
-  
-  # Use Python to safely update .env file with default password
-  TS_PAT="$TS_PAT" python3 << EOF
-import secrets
-import bcrypt
+# Prompt for Tailscale PAT and save to tailscale_settings.json
+clear
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🔧 TailSentry Configuration"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "📝 TailSentry requires a Tailscale Auth Key (PAT) to manage your Tailscale network."
+echo "   You can:"
+echo "   • Enter it now for full functionality"
+echo "   • Skip it and configure later in the dashboard"
+echo ""
+echo "🔗 Get your PAT at: https://login.tailscale.com/admin/settings/keys"
+echo ""
+read -s -p "🔑 Enter Tailscale Auth Key (or press Enter to skip): " TS_PAT
+echo
+
+# Save the PAT as 'auth_key' in tailscale_settings.json
+python3 << EOF
+import json
 import os
-
-# Get the Tailscale PAT from environment if provided
-ts_pat = os.environ.get('TS_PAT', '')
-
-# Generate secure session secret
-session_secret = secrets.token_hex(32)
-
-# Generate default password hash for "admin123"
-default_password = "admin123"
-password_hash = bcrypt.hashpw(default_password.encode(), bcrypt.gensalt()).decode()
-
-# Read .env file
-try:
-    with open('.env', 'r') as f:
-        content = f.read()
-    print(f"Read .env file successfully ({len(content)} bytes)")
-except Exception as e:
-    print(f"Error reading .env file: {e}")
-    exit(1)
-
-# Replace session secret and set default admin credentials
-content = content.replace('SESSION_SECRET=', f'SESSION_SECRET={session_secret}')
-content = content.replace('ADMIN_USERNAME=admin', f'ADMIN_USERNAME=admin')
-content = content.replace('ADMIN_PASSWORD_HASH=', f'ADMIN_PASSWORD_HASH={password_hash}')
-content = content.replace('DEVELOPMENT=false', 'DEVELOPMENT=true')
-
-# Add Tailscale PAT if provided
-if ts_pat:
-    content = content.replace('TAILSCALE_PAT=', f'TAILSCALE_PAT={ts_pat}')
-
-# Write back to file
-try:
-    with open('.env', 'w') as f:
-        f.write(content)
-    print(f"Wrote .env file successfully ({len(content)} bytes)")
-except Exception as e:
-    print(f"Error writing .env file: {e}")
-    exit(1)
-
-print("Configuration file updated successfully")
-print("Default admin credentials set: admin / admin123")
-print("DEVELOPMENT=true set (enables HTTP session cookies for local/Tailscale networks)")
+tskey = os.environ.get('TS_PAT', '') or '''$TS_PAT'''
+settings_path = os.path.join(os.getcwd(), 'tailscale_settings.json')
+if os.path.exists(settings_path):
+  try:
+    with open(settings_path, 'r') as f:
+      settings = json.load(f)
+  except Exception:
+    settings = {}
+else:
+  settings = {}
+if tskey:
+  settings['auth_key'] = tskey
+with open(settings_path, 'w') as f:
+  json.dump(settings, f, indent=2)
+print(f"Saved Tailscale Auth Key to {settings_path}")
 EOF
-fi
 
 # Install systemd service
 cp tailsentry.service /etc/systemd/system/
