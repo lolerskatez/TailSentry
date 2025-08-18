@@ -41,7 +41,17 @@ async def set_exit_node(request: Request):
     except Exception as e:
         logger.error(f"Failed to write tailscale_settings.json: {e}")
         return JSONResponse({"success": False, "error": "Failed to write settings."}, status_code=500)
-    # Call authenticate_tailscale with all settings
+
+    # Actually enable/disable exit node at the Tailscale service level
+    try:
+        from tailscale_client import TailscaleClient
+        result = TailscaleClient.set_exit_node(bool(enable))
+        logger.info(f"TailscaleClient.set_exit_node({enable}) result: {result}")
+    except Exception as e:
+        logger.error(f"Failed to set exit node via TailscaleClient: {e}")
+        return JSONResponse({"success": False, "error": f"Failed to set exit node: {e}"}, status_code=500)
+
+    # Call authenticate_tailscale with all settings (to ensure settings are applied)
     fake_request = Request(request.scope, receive=request.receive)
     fake_request._json = settings
     resp = await authenticate_tailscale(fake_request)
