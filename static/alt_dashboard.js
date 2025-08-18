@@ -1,3 +1,5 @@
+window.altTailSentry = function altTailSentry() {
+  return {
     saveHostname() {
       const payload = {
         hostname: this.device.hostname
@@ -21,9 +23,6 @@
         this.tailscaleCtlFeedback = 'Network or server error.';
       });
     },
-
-
-window.altTailSentry = function altTailSentry() {
   return {
     darkMode: false,
     openSettings: false,
