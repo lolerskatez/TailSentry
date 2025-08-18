@@ -21,15 +21,18 @@ function altTailSentry() {
     subnets: [],
     logs: [],
     toast: '',
-    // Always define these at the root for Alpine
-    authKey: '',
-    isExitNode: false,
+  // Always define these at the root for Alpine
+  authKey: '',
+  isExitNode: false,
+  alpineTest: 'Alpine JS loaded',
 
     init() {
       this.darkMode = localStorage.getItem('altDarkMode') === 'true';
       // Ensure authKey and isExitNode are always defined
       if (typeof this.authKey === 'undefined') this.authKey = '';
       if (typeof this.isExitNode === 'undefined') this.isExitNode = false;
+      // Log to verify correct JS is loaded
+      console.log('Alpine initialized:', this.alpineTest);
       this.loadAll();
       setInterval(() => this.loadAll(), this.refreshInterval * 1000);
     },
