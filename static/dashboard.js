@@ -8,14 +8,37 @@ function tailSentry(){
         dark: false,
         active: 'dashboard',
         lastUpdated: new Date().toLocaleTimeString(),
-        device: {
-          hostname: 'Loading...',
-          ip: '0.0.0.0',
-          role: 'Loading...',
-          uptime: '0m',
-          isExit: false,
-          exitDetails: 'Loading...'
-        },
+      // Config section
+      config: {
+        authStatus: 'unknown',
+        exitNodeEnabled: false,
+        advertisedRoutes: [],
+        tailnet: '',
+        nodeKey: '',
+        lastAuthTime: ''
+      },
+      // Traffic section
+      traffic: {
+        txRate: '0.0 MB/s',
+        rxRate: '0.0 MB/s',
+        totalTx: '',
+        totalRx: '',
+        activePeers: 0,
+        uptime: '',
+        lastActivity: '',
+        activityLevel: 0
+      },
+      // Device info
+      device: {
+        hostname: 'Loading...',
+        ip: '0.0.0.0',
+        nodeKey: '',
+        online: false,
+        role: '',
+        uptime: '',
+        isExit: false,
+        exitDetails: ''
+      },
         net: { tx: '0.0 MB/s', rx: '0.0 MB/s' },
         peers: [],
         peerFilter: '',
