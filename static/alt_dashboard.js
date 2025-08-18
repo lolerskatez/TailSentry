@@ -1,3 +1,4 @@
+
 function altTailSentry() {
   return {
     darkMode: false,
