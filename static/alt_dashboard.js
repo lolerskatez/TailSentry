@@ -26,8 +26,8 @@ function altTailSentry() {
 
     init() {
       this.darkMode = localStorage.getItem('altDarkMode') === 'true';
-      this.authKey = '';
-      this.isExitNode = this.device.isExit;
+      if (typeof this.authKey === 'undefined') this.authKey = '';
+      if (typeof this.isExitNode === 'undefined') this.isExitNode = this.device.isExit;
       this.loadAll();
       setInterval(() => this.loadAll(), this.refreshInterval * 1000);
     },
