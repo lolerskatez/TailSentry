@@ -191,49 +191,5 @@
     <span x-text="toast"></span>
   </div>
 
-  <script>
-    function tailSentry(){
-      return {
-        dark: false,
-        active: 'dashboard',
-        lastUpdated: new Date().toLocaleTimeString(),
-        
-        // Enhanced configuration data
-        },
-        
-        openReauthModal(){
-          // This function can be removed since we no longer have the auth key modal
-          this.toastMsg('Use the Configuration tab to manage authentication');
-        },
-        
-        serviceAction(action){
-          // mock actions
-          this.service.status = (action === 'stop' ? 'inactive' : 'active');
-          this.toastMsg('Service ' + action + ' (mock)');
-          // update logs
-          this.logs.unshift(new Date().toLocaleString() + ' - tailscaled: ' + action);
-          if(this.logs.length>60) this.logs.pop();
-        },
-        
-        pingPeer(p){
-          this.toastMsg('Ping to ' + p.hostname + ' -> 12ms (mock)');
-        },
-        
-        openPeerModal(p){
-          alert('Peer details (mock)\\n\\n' + JSON.stringify(p, null, 2));
-        },
-        
-        logout(){
-          // Call the logout endpoint
-          window.location.href = '/logout';
-        },
-        
-        toastMsg(msg){
-          this.toast = msg;
-          setTimeout(()=> this.toast = '', 3500);
-        }
-      }
-    }
-  </script>
 </body>
 </html>
