@@ -70,7 +70,8 @@ window.altTailSentry = function altTailSentry() {
           this.authSuccess = true;
           localStorage.setItem('tailscale_auth_key', this.authKey);
           this.tailscaleStatus = 'authenticated';
-          this.tailscaleIp = data.ip || '';
+          // Always update device info after authentication
+          this.loadStatus();
         } else {
           this.authFeedback = data.message || 'Authentication failed.';
           this.authSuccess = false;
