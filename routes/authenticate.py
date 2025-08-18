@@ -1,3 +1,7 @@
+# Simple test endpoint to verify router registration
+@router.get("/api/test-save-key")
+async def test_save_key():
+    return {"success": True, "message": "/api/save-key endpoint is available."}
 import logging
 import os
 import subprocess
