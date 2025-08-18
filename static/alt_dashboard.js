@@ -47,10 +47,18 @@ window.altTailSentry = function altTailSentry() {
         this.authSuccess = false;
         return;
       }
+      // Always send all settings to backend
+      const payload = {
+        auth_key: this.authKey,
+        hostname: this.device.hostname,
+        accept_routes: this.device.accept_routes ?? true,
+        advertise_exit_node: this.isExitNode,
+        advertise_routes: this.advertisedRoutes
+      };
       fetch('/api/authenticate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ auth_key: this.authKey })
+        body: JSON.stringify(payload)
       })
       .then(res => res.json())
       .then(data => {
