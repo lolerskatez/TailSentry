@@ -463,8 +463,8 @@ class TailscaleClient:
         if isinstance(status, dict) and "error" in status:
             logger.warning(f"Error getting subnet routes: {status['error']}")
             return []
-    self_obj = safe_get_dict(status, "Self")
-    return self_obj.get("AdvertisedRoutes", [])
+        self_obj = safe_get_dict(status, "Self")
+        return self_obj.get("AdvertisedRoutes", [])
             
     @staticmethod
     def detect_local_subnets() -> List[Dict[str, str]]:
@@ -804,10 +804,11 @@ class TailscaleClient:
             peer_stats = {}
             
             # Initialize each peer we know about
+            if not isinstance(peers, dict):
+                peers = {}
             for peer_id, peer_data in peers.items():
                 if not isinstance(peer_data, dict):
                     continue
-                    
                 peer_stats[peer_id] = {
                     "id": peer_id,
                     "hostname": peer_data.get("HostName", "Unknown"),
@@ -862,7 +863,10 @@ class TailscaleClient:
             return "Not available"
         
         try:
-            return status.get("Self", {}).get("TailscaleIPs", [None])[0] or "Not available"
+            self_obj = safe_get_dict(status, "Self")
+            if not isinstance(self_obj, dict):
+                self_obj = {}
+            return self_obj.get("TailscaleIPs", [None])[0] or "Not available"
         except (KeyError, IndexError, TypeError, AttributeError):
             logger.warning("Failed to extract Tailscale IP from status")
             return "Not available"
@@ -883,7 +887,9 @@ class TailscaleClient:
         }
             
         try:
-            self_info = status.get("Self", {})
+            self_info = safe_get_dict(status, "Self")
+            if not isinstance(self_info, dict):
+                self_info = {}
             result["tailscale"] = {
                 "id": self_info.get("ID", ""),
                 "name": self_info.get("HostName", ""),
@@ -1135,7 +1141,9 @@ class NetworkViz:
                 edges = []
                 
                 # Add self node
-                self_node = status.get("Self", {})
+                self_node = safe_get_dict(status, "Self")
+                if not isinstance(self_node, dict):
+                    self_node = {}
                 if self_node:
                     nodes.append({
                         "id": "self",
@@ -1146,11 +1154,10 @@ class NetworkViz:
                     })
                     
                 # Add peer nodes
-                peers = status.get("Peer", {})
+                peers = safe_get_dict(status, "Peer")
                 for peer_id, peer in peers.items():
                     if not isinstance(peer, dict):
                         continue
-                        
                     # Determine node group
                     group = "offline"
                     if peer.get("Online", False):
@@ -1160,7 +1167,6 @@ class NetworkViz:
                             group = "subnet_router"
                         else:
                             group = "online"
-                            
                     nodes.append({
                         "id": peer_id,
                         "label": peer.get("HostName", "Unknown"),
@@ -1209,7 +1215,7 @@ class NetworkViz:
             }
             
             # Extract self information
-            self_info = status.get("Self", {})
+            self_info = safe_get_dict(status, "Self")
             if self_info:
                 topology["self"] = {
                     "id": self_info.get("ID", ""),
@@ -1219,13 +1225,11 @@ class NetworkViz:
                     "is_subnet_router": self_info.get("Capabilities", {}).get("SubnetRouter", False),
                     "advertised_routes": self_info.get("AdvertisedRoutes", [])
                 }
-                
                 # Add self routes if it's a subnet router
                 if topology["self"]["is_subnet_router"]:
                     topology["routes"][topology["self"]["name"]] = topology["self"]["advertised_routes"]
-            
             # Extract peer information
-            peers = status.get("Peer", {})
+            peers = safe_get_dict(status, "Peer")
             for peer_id, peer in peers.items():
                 if not isinstance(peer, dict):
                     continue
