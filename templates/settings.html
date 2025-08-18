@@ -65,33 +65,34 @@
           </template>
         </div>
       </div>
-      <!-- Exit Node Card -->
-      <div class="mb-4 p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <!-- Exit Node Card (moved outside settingsPage) -->
+    </div>
+    <div class="mb-4 p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <div>
+        <div class="font-semibold">Exit Node</div>
+        <div class="text-xs text-gray-500 dark:text-gray-400">Enable or disable exit node functionality for this device.</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span :class="isExitNode ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'" class="px-2 py-1 rounded text-xs font-semibold" x-text="isExitNode ? 'Enabled' : 'Disabled'"></span>
+        <button @click="toggleExitNode()" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded hover:bg-gray-300">Toggle</button>
+      </div>
+    </div>
+    <!-- Subnet Routing Card (moved outside settingsPage) -->
+    <div class="mb-4 p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      <div class="flex items-center justify-between mb-2">
         <div>
-          <div class="font-semibold">Exit Node</div>
-          <div class="text-xs text-gray-500 dark:text-gray-400">Enable or disable exit node functionality for this device.</div>
+          <div class="font-semibold">Subnet Routing</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400">Advertise or remove subnets for this node.</div>
         </div>
-        <div class="flex items-center gap-2">
-          <span :class="isExitNode ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'" class="px-2 py-1 rounded text-xs font-semibold" x-text="isExitNode ? 'Enabled' : 'Disabled'"></span>
-          <button @click="toggleExitNode()" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded hover:bg-gray-300">Toggle</button>
-        </div>
+        <button @click="openSubnetModal()" class="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600" title="Manage Subnets">Manage</button>
       </div>
-      <!-- Subnet Routing Card -->
-      <div class="mb-4 p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between mb-2">
-          <div>
-            <div class="font-semibold">Subnet Routing</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">Advertise or remove subnets for this node.</div>
-          </div>
-          <button @click="openSubnetModal()" class="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600" title="Manage Subnets">Manage</button>
-        </div>
-        <div class="flex items-center gap-2 mb-1">
-          <span :class="isSubnetRouting ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'" class="px-2 py-1 rounded text-xs font-semibold" x-text="isSubnetRouting ? 'Enabled' : 'Disabled'"></span>
-          <template x-if="advertisedRoutes && advertisedRoutes.length">
-            <span class="text-xs text-gray-700 dark:text-gray-200">Routes: <span x-text="advertisedRoutes.join(', ')"></span></span>
-          </template>
-        </div>
+      <div class="flex items-center gap-2 mb-1">
+        <span :class="isSubnetRouting ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'" class="px-2 py-1 rounded text-xs font-semibold" x-text="isSubnetRouting ? 'Enabled' : 'Disabled'"></span>
+        <template x-if="advertisedRoutes && advertisedRoutes.length">
+          <span class="text-xs text-gray-700 dark:text-gray-200">Routes: <span x-text="advertisedRoutes.join(', ')"></span></span>
+        </template>
       </div>
+    </div>
     </div>
     <!-- Logs & Diagnostics Section -->
     <div class="mb-8">
