@@ -124,6 +124,15 @@ window.altTailSentry = function altTailSentry() {
           this.device.user = (data.User && (data.User.DisplayName || data.User.LoginName)) || '';
           this.device.magicDnsSuffix = data.MagicDNSSuffix || '';
           this.device.version = data.Version || '';
+
+          // Set tailscaleStatus based on backend state and IP
+          if (data.BackendState === 'Running' && this.device.ip && this.device.ip !== '0.0.0.0') {
+            this.tailscaleStatus = 'authenticated';
+            this.tailscaleIp = this.device.ip;
+          } else {
+            this.tailscaleStatus = 'not_authenticated';
+            this.tailscaleIp = '';
+          }
         }
       } catch (e) { this.toastMsg('Failed to load status'); }
     },
