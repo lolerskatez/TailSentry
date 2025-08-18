@@ -419,11 +419,7 @@ window.altTailSentry = function altTailSentry() {
       }
     },
     // ...existing code...
-    toggleExitNode() {
-      this.isExitNode = !this.isExitNode;
-      this.device.isExit = this.isExitNode;
-      this.toastMsg(this.isExitNode ? 'Exit node enabled (mock)' : 'Exit node disabled (mock)');
-    },
+  // Removed toggleExitNode: always use backend state
     openSubnetModal() { this.toastMsg('Subnet management coming soon!'); },
     openKeyModal() { this.toastMsg('Key management coming soon!'); },
     openLogsModal() { this.toastMsg('Logs coming soon!'); },
