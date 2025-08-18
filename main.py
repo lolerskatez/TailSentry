@@ -197,8 +197,17 @@ app.include_router(api.router, prefix="/api")
 app.include_router(config.router)
 app.include_router(version.router)
 app.include_router(dashboard.router)
+# Add explicit error logging for authenticate import and router registration
+try:
+    from routes import authenticate
+    print('IMPORT SUCCESS: routes.authenticate')
+    app.include_router(authenticate.router)
+    print('ROUTER REGISTERED: authenticate.router')
+except Exception as e:
+    print(f'IMPORT/ROUTER ERROR: routes.authenticate - {e}')
+    import traceback
+    traceback.print_exc()
 app.include_router(settings.router)
-app.include_router(authenticate.router)
 app.include_router(exit_node.router)
 # app.include_router(monitoring.router, prefix="/system", tags=["monitoring"])  # temporarily disabled
 
