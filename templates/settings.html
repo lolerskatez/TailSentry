@@ -72,7 +72,7 @@
           <div class="text-xs text-gray-500 dark:text-gray-400">Enable or disable exit node functionality for this device.</div>
         </div>
         <div class="flex items-center gap-2">
-          <span :class="isExitNode ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'" class="px-2 py-1 rounded text-xs font-semibold">{{ isExitNode ? 'Enabled' : 'Disabled' }}</span>
+          <span :class="isExitNode ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'" class="px-2 py-1 rounded text-xs font-semibold" x-text="isExitNode ? 'Enabled' : 'Disabled'"></span>
           <button @click="toggleExitNode()" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded hover:bg-gray-300">Toggle</button>
         </div>
       </div>
@@ -86,7 +86,7 @@
           <button @click="openSubnetModal()" class="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600" title="Manage Subnets">Manage</button>
         </div>
         <div class="flex items-center gap-2 mb-1">
-          <span :class="isSubnetRouting ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'" class="px-2 py-1 rounded text-xs font-semibold">{{ isSubnetRouting ? 'Enabled' : 'Disabled' }}</span>
+          <span :class="isSubnetRouting ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'" class="px-2 py-1 rounded text-xs font-semibold" x-text="isSubnetRouting ? 'Enabled' : 'Disabled'"></span>
           <template x-if="advertisedRoutes && advertisedRoutes.length">
             <span class="text-xs text-gray-700 dark:text-gray-200">Routes: <span x-text="advertisedRoutes.join(', ')"></span></span>
           </template>
