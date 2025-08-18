@@ -21,6 +21,16 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         self.csrf_header_name = csrf_header_name
         self.safe_methods = safe_methods
         self.exempt_paths = exempt_paths
+
+    def _is_exempt(self, path: str) -> bool:
+        # Exempt if exact match or if path starts with any exempt path ending with '*'
+        for exempt in self.exempt_paths:
+            if exempt.endswith('*'):
+                if path.startswith(exempt[:-1]):
+                    return True
+            elif path == exempt:
+                return True
+        return False
     
     def _generate_csrf_token(self) -> str:
         """Generate a secure CSRF token."""
@@ -30,10 +40,9 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         """Process the request/response and enforce CSRF protection."""
-        # Skip CSRF check for safe methods or exempt paths
-        if request.method in self.safe_methods or request.url.path in self.exempt_paths:
+        # Skip CSRF check for safe methods or exempt paths (with wildcard support)
+        if request.method in self.safe_methods or self._is_exempt(request.url.path):
             response = await call_next(request)
-            
             # Set CSRF cookie if not present
             if self.csrf_cookie_name not in request.cookies:
                 response.set_cookie(
@@ -44,19 +53,22 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                     samesite="strict"
                 )
             return response
-        
+
         # For unsafe methods, verify CSRF token
         csrf_cookie = request.cookies.get(self.csrf_cookie_name)
         csrf_header = request.headers.get(self.csrf_header_name)
-        
+
         if not csrf_cookie or not csrf_header or csrf_cookie != csrf_header:
             logger.warning(
                 f"CSRF validation failed for {request.url.path} "
-                f"from {request.client.host if request.client else 'unknown'}"
+                f"from {request.client.host if request.client else 'unknown'} | "
+                f"Exempt paths: {self.exempt_paths} | "
+                f"Method: {request.method} | "
+                f"CSRF cookie: {csrf_cookie} | CSRF header: {csrf_header}"
             )
             raise HTTPException(
                 status_code=403,
                 detail="CSRF token validation failed"
             )
-        
+
         return await call_next(request)
