@@ -109,6 +109,10 @@ window.altTailSentry = function altTailSentry() {
           this.device.online = data.BackendState === 'Running';
           this.isExitNode = !!self.ExitNode;
           this.device.subnetRoutes = (self.AllowedIPs && self.AllowedIPs.length) || 0;
+          // Extra: user, DNS, version for settings if needed
+          this.device.user = (data.User && (data.User.DisplayName || data.User.LoginName)) || '';
+          this.device.magicDnsSuffix = data.MagicDNSSuffix || '';
+          this.device.version = data.Version || '';
         }
       } catch (e) { this.toastMsg('Failed to load status'); }
     },
