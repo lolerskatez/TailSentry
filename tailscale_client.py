@@ -534,9 +534,37 @@ class TailscaleClient:
 
     @staticmethod
     def set_exit_node(enable=True):
-        """Enable or disable this device as an exit node"""
-        args = ["--advertise-exit-node"] if enable else ["--reset"]
-        logger.info(f"{'Enabling' if enable else 'Disabling'} exit node functionality")
+        """Enable or disable this device as an exit node, preserving all other settings"""
+        settings_path = os.path.join(os.path.dirname(__file__), 'tailscale_settings.json')
+        try:
+            with open(settings_path, 'r') as f:
+                settings = json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to read tailscale_settings.json: {e}")
+            settings = {}
+
+        args = []
+        # Always set hostname if present
+        hostname = settings.get("hostname")
+        if hostname:
+            args += ["--hostname", str(hostname)]
+        # Always set accept-routes if present
+        if settings.get("accept_routes") is not None:
+            if settings["accept_routes"]:
+                args.append("--accept-routes")
+            else:
+                args.append("--no-accept-routes")
+        # Always set advertised routes if present
+        adv_routes = settings.get("advertise_routes")
+        if adv_routes and isinstance(adv_routes, list) and adv_routes:
+            args += ["--advertise-routes", ",".join(adv_routes)]
+        # Set exit node flag
+        if enable:
+            args.append("--advertise-exit-node")
+        # If disabling, use --reset to clear exit node and routes
+        else:
+            args.append("--reset")
+        logger.info(f"{'Enabling' if enable else 'Disabling'} exit node functionality with args: {args}")
         return TailscaleClient.up(extra_args=args)
         
     @staticmethod
