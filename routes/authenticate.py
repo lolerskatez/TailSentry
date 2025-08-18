@@ -14,12 +14,12 @@ router = APIRouter()
 logger = logging.getLogger("tailsentry.authenticate")
 
 # Simple test endpoint to verify router registration
-@router.get("/api/test-save-key")
+@router.get("/test-save-key")
 async def test_save_key():
     return {"success": True, "message": "/api/save-key endpoint is available."}
 
 # Save only the auth_key to tailscale_settings.json (no tailscale up)
-@router.post("/api/save-key")
+@router.post("/save-key")
 @login_required
 async def save_auth_key(request: Request):
     logger.info("/api/save-key called")
@@ -57,7 +57,7 @@ logger = logging.getLogger("tailsentry.authenticate")
 
 
 
-@router.post("/api/down")
+@router.post("/down")
 @login_required
 async def tailscale_down(request: Request):
     logger.info("/api/down called")
@@ -84,12 +84,12 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 
-@router.get("/api/test")
+@router.get("/test")
 async def test_authenticate_route():
     logger.info("/api/test endpoint hit!")
     return {"success": True, "message": "Test endpoint reached."}
 
-@router.post("/api/authenticate")
+@router.post("/authenticate")
 @login_required
 async def authenticate_tailscale(request: Request):
     logger.info("/api/authenticate called")
