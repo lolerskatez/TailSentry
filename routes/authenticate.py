@@ -1,3 +1,39 @@
+import logging
+import os
+import subprocess
+import json
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
+from starlette import status as http_status
+from auth import login_required
+
+router = APIRouter()
+logger = logging.getLogger("tailsentry.authenticate")
+
+# Save only the auth_key to tailscale_settings.json (no tailscale up)
+@router.post("/api/save-key")
+@login_required
+async def save_auth_key(request: Request):
+    logger.info("/api/save-key called")
+    try:
+        data = await request.json()
+        key = data.get("auth_key")
+        if not key:
+            return JSONResponse({"success": False, "error": "No authentication key provided."}, status_code=400)
+        settings_path = os.path.join(os.path.dirname(__file__), '..', 'tailscale_settings.json')
+        try:
+            with open(settings_path, 'r') as f:
+                ts_settings = json.load(f)
+        except Exception:
+            ts_settings = {}
+        ts_settings["auth_key"] = key
+        with open(settings_path, 'w') as f:
+            json.dump(ts_settings, f, indent=2)
+        logger.info("Auth key saved to tailscale_settings.json")
+        return {"success": True}
+    except Exception as e:
+        logger.exception(f"Exception saving auth key: {e}")
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
 import logging
 import os

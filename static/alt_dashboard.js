@@ -100,7 +100,7 @@ window.altTailSentry = function altTailSentry() {
       }
       const payload = { auth_key: this.authKey };
       this.authFeedback = '';
-      fetch('/api/authenticate', {
+      fetch('/api/save-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
