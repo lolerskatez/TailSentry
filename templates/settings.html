@@ -115,98 +115,46 @@
     </div>
   </main>
   <script>
-  // Exit Node apply logic
+  // Helper to get persisted auth key
+  function getPersistedAuthKey() {
+    return localStorage.getItem('tailscale_auth_key') || '';
+  }
+
   document.addEventListener('alpine:init', () => {
     Alpine.store('exitNode', {
       feedback: '',
-      applying: false
-    });
-  });
-  function applyExitNode() {
-    const store = Alpine.store('exitNode');
-    store.applying = true;
-    store.feedback = '';
-    fetch('/api/exit-node', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enable: window.altTailSentry().isExitNode, auth_key: window.altTailSentry().authKey })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          store.feedback = 'Exit node setting applied!';
-        } else {
-          store.feedback = data.error || 'Failed to apply exit node.';
-        }
-      })
-      .catch(() => { store.feedback = 'Network or server error.'; })
-      .finally(() => { store.applying = false; });
-  }
-  // Persist dark mode preference
-  function loadDarkMode() {
-    if (localStorage.getItem('darkMode') !== null) {
-      window.altTailSentry().darkMode = localStorage.getItem('darkMode') === 'true';
-    }
-  }
-  function saveDarkMode() {
-    localStorage.setItem('darkMode', window.altTailSentry().darkMode);
-  }
-  // Alpine helper for authentication feedback and status
-  document.addEventListener('alpine:init', () => {
-    Alpine.data('settingsPage', () => ({
-      authKey: '',
-      authFeedback: '',
-      authSuccess: false,
-      tailscaleStatus: 'unknown',
-      tailscaleIp: '',
-      async fetchTailscaleStatus() {
-        try {
-          const res = await fetch('/api/status');
-          const data = await res.json();
-          if (res.ok && data.Self) {
-            this.tailscaleStatus = data.BackendState === 'Running' ? 'authenticated' : 'not_authenticated';
-            this.tailscaleIp = data.Self.TailscaleIPs ? data.Self.TailscaleIPs[0] : '';
-          } else {
-            this.tailscaleStatus = 'not_authenticated';
-            this.tailscaleIp = '';
-          }
-        } catch (e) {
-          this.tailscaleStatus = 'unknown';
-          this.tailscaleIp = '';
-        }
-      },
-      async authenticateTailscale() {
-        this.authFeedback = '';
-        this.authSuccess = false;
-        if (!this.authKey) {
-          this.authFeedback = 'Please enter an Auth Key.';
+      applying: false,
+      async applyExitNode(isExitNode, authKey) {
+        this.feedback = '';
+        this.applying = true;
+        // Use the provided authKey, or try to get from localStorage
+        let keyToUse = authKey || getPersistedAuthKey();
+        if (!keyToUse) {
+          this.applying = false;
+          this.feedback = 'No auth key available. Please authenticate first.';
           return;
         }
         try {
-          const res = await fetch('/api/authenticate', {
+          const res = await fetch('/api/exit-node', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ auth_key: this.authKey })
+            body: JSON.stringify({
+              enable: isExitNode,
+              auth_key: keyToUse
+            })
           });
           const data = await res.json();
           if (res.ok && data.success) {
-            this.authFeedback = 'Tailscale authentication successful!';
-            this.authSuccess = true;
-            await this.fetchTailscaleStatus();
+            this.feedback = 'Exit Node setting applied!';
           } else {
-            this.authFeedback = data.error || 'Authentication failed.';
-            this.authSuccess = false;
+            this.feedback = data.message || 'Failed to apply Exit Node setting.';
           }
         } catch (e) {
-          this.authFeedback = 'Network or server error.';
-          this.authSuccess = false;
+          this.feedback = 'Error: ' + e;
         }
-      },
-      async init() {
-        await this.fetchTailscaleStatus();
-      },
-      applyExitNode
-    }));
+        this.applying = false;
+      }
+    });
   });
   </script>
 </body>
