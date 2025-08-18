@@ -1,3 +1,9 @@
+def safe_get_dict(obj, key, default=None):
+    if isinstance(obj, dict):
+        val = obj.get(key, default if default is not None else {})
+        if isinstance(val, dict):
+            return val
+    return default if default is not None else {}
 import subprocess
 import json
 import httpx
@@ -457,12 +463,8 @@ class TailscaleClient:
         if isinstance(status, dict) and "error" in status:
             logger.warning(f"Error getting subnet routes: {status['error']}")
             return []
-        self_obj = status.get("Self", {})
-        if isinstance(self_obj, dict):
-            return self_obj.get("AdvertisedRoutes", [])
-        else:
-            logger.error("'Self' is not a dict in status; cannot get AdvertisedRoutes")
-            return []
+    self_obj = safe_get_dict(status, "Self")
+    return self_obj.get("AdvertisedRoutes", [])
             
     @staticmethod
     def detect_local_subnets() -> List[Dict[str, str]]:
@@ -548,7 +550,7 @@ class TailscaleClient:
             
         try:
             # Find which device is currently the active exit node
-            for id, peer in status.get("Peer", {}).items():
+            for id, peer in safe_get_dict(status, "Peer").items():
                 if peer.get("ExitNode", False):
                     return {
                         "id": id,
@@ -645,37 +647,35 @@ class TailscaleClient:
                 logger.warning(f"Error getting network metrics: {status['error']}")
                 return {"error": status["error"]}
             metrics = {}
-            self_data = status.get("Self", {})
-            if isinstance(self_data, dict):
-                metrics["tx_bytes"] = self_data.get("TXBytes", 0)
-                metrics["rx_bytes"] = self_data.get("RXBytes", 0)
-            peers_data = status.get("Peer", {})
-            if isinstance(peers_data, dict):
-                peers_metrics = []
-                total_tx = 0
-                total_rx = 0
-                active_peers = 0
-                for peer_id, peer in peers_data.items():
-                    if isinstance(peer, dict):
-                        tx = peer.get("TXBytes", 0)
-                        rx = peer.get("RXBytes", 0)
-                        peers_metrics.append({
-                            "id": peer_id,
-                            "hostname": peer.get("HostName", "Unknown"),
-                            "tx_bytes": tx,
-                            "rx_bytes": rx,
-                            "last_seen": peer.get("LastSeen", ""),
-                            "online": peer.get("Online", False)
-                        })
-                        total_tx += tx
-                        total_rx += rx
-                        if peer.get("Online", False):
-                            active_peers += 1
-                metrics["peers"] = peers_metrics
-                metrics["total_peer_tx"] = total_tx
-                metrics["total_peer_rx"] = total_rx
-                metrics["active_peers"] = active_peers
-                metrics["total_peers"] = len(peers_metrics)
+            self_data = safe_get_dict(status, "Self")
+            metrics["tx_bytes"] = self_data.get("TXBytes", 0)
+            metrics["rx_bytes"] = self_data.get("RXBytes", 0)
+            peers_data = safe_get_dict(status, "Peer")
+            peers_metrics = []
+            total_tx = 0
+            total_rx = 0
+            active_peers = 0
+            for peer_id, peer in peers_data.items():
+                if isinstance(peer, dict):
+                    tx = peer.get("TXBytes", 0)
+                    rx = peer.get("RXBytes", 0)
+                    peers_metrics.append({
+                        "id": peer_id,
+                        "hostname": peer.get("HostName", "Unknown"),
+                        "tx_bytes": tx,
+                        "rx_bytes": rx,
+                        "last_seen": peer.get("LastSeen", ""),
+                        "online": peer.get("Online", False)
+                    })
+                    total_tx += tx
+                    total_rx += rx
+                    if peer.get("Online", False):
+                        active_peers += 1
+            metrics["peers"] = peers_metrics
+            metrics["total_peer_tx"] = total_tx
+            metrics["total_peer_rx"] = total_rx
+            metrics["active_peers"] = active_peers
+            metrics["total_peers"] = len(peers_metrics)
             metrics["timestamp"] = int(time.time())
             return metrics
         except Exception as e:
