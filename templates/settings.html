@@ -50,8 +50,8 @@
             <div class="font-semibold text-indigo-700">Authenticate TailScale Network Connection</div>
             <div class="flex items-center gap-2">
               <span :class="tailscaleStatus === 'authenticated' ? 'text-green-600' : 'text-red-600'" class="font-medium">
-                <template x-if="tailscaleStatus === 'authenticated'">Authenticated</template>
-                <template x-if="tailscaleStatus !== 'authenticated'">Not Authenticated</template>
+                <span x-show="tailscaleStatus === 'authenticated'" x-text="'Authenticated'"></span>
+                <span x-show="tailscaleStatus !== 'authenticated'" x-text="'Not Authenticated'"></span>
               </span>
               <span class="text-xs text-gray-500" x-text="tailscaleIp ? tailscaleIp : ''"></span>
             </div>
