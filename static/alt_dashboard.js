@@ -257,9 +257,10 @@ window.altTailSentry = function altTailSentry() {
           this.device.ip = (self.TailscaleIPs && self.TailscaleIPs[0]) || '0.0.0.0';
           this.device.role = self.OS || 'Unknown';
           this.device.uptime = this.formatUptime(self.Created || null);
-          this.device.isExit = !!self.ExitNode;
+          // Use Capabilities.ExitNode to determine if this device is advertising as an exit node
+          this.device.isExit = !!(self.Capabilities && self.Capabilities.ExitNode);
           this.device.online = data.BackendState === 'Running';
-          this.isExitNode = !!self.ExitNode;
+          this.isExitNode = !!(self.Capabilities && self.Capabilities.ExitNode);
           this.device.subnetRoutes = (self.AllowedIPs && self.AllowedIPs.length) || 0;
           // Extra: user, DNS, version for settings if needed
           this.device.user = (data.User && (data.User.DisplayName || data.User.LoginName)) || '';
