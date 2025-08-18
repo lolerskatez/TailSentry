@@ -99,8 +99,12 @@ window.altTailSentry = function altTailSentry() {
         if (res.ok) {
           const data = await res.json();
           console.log('Status API response:', data);
-          // Map fields as appropriate (update this after seeing the log)
-          this.device.isExit = data.Self?.ExitNode || false;
+          // Map fields directly from root of response
+          this.device.hostname = data.Hostname || 'Unknown';
+          this.device.ip = data.TailscaleIP || '0.0.0.0';
+          this.device.role = data.Role || 'Unknown';
+          this.device.uptime = this.formatUptime(data.Created || null);
+          this.device.isExit = data.ExitNode || false;
           this.device.online = data.BackendState === 'Running';
           this.isExitNode = this.device.isExit;
         }
