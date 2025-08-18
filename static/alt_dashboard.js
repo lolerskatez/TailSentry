@@ -376,13 +376,14 @@ window.altTailSentry = function altTailSentry() {
         const data = await res.json();
         if (data.success) {
           this.exitNodeFeedback = 'Exit node setting applied!';
-          this.loadStatus();
         } else {
           this.exitNodeFeedback = data.message || 'Failed to apply Exit Node setting.';
         }
       } catch (e) {
         this.exitNodeFeedback = 'Network or server error.';
       }
+      // Always refresh the real state from backend after apply
+      this.loadStatus();
     },
     toggleSubnet(subnet) {
       if (!this.advertisedRoutes) this.advertisedRoutes = [];
