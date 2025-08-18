@@ -41,6 +41,7 @@ async def authenticate_tailscale(request: Request):
             if not isinstance(self_info, dict):
                 logger.error(f"Unexpected type for Self in Tailscale status: {type(self_info)}; value: {self_info}")
             else:
+                logger.error(f"Full Self info for debugging: {self_info}")
                 # Add --hostname
                 hostname = self_info.get("HostName")
                 if hostname:
