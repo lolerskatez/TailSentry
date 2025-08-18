@@ -239,4 +239,6 @@ function tailSentry(){
           setTimeout(()=> this.toast = '', 3500);
         }
       }
-    }
+  }
+// Expose tailSentry globally for Alpine.js
+window.tailSentry = tailSentry;
