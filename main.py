@@ -189,7 +189,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     }, status_code=500)
 
 # Import all routers (including settings) in a single line
-from routes import auth, tailscale, keys, api, config, version, dashboard, settings, authenticate
+from routes import auth, tailscale, keys, api, config, version, dashboard, settings, authenticate, exit_node
 app.include_router(auth.router)
 app.include_router(tailscale.router)
 app.include_router(keys.router)
@@ -199,6 +199,7 @@ app.include_router(version.router)
 app.include_router(dashboard.router)
 app.include_router(settings.router)
 app.include_router(authenticate.router)
+app.include_router(exit_node.router)
 # app.include_router(monitoring.router, prefix="/system", tags=["monitoring"])  # temporarily disabled
 
 # Global context processor for all templates

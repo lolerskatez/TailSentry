@@ -73,8 +73,17 @@
         <div class="text-xs text-gray-500 dark:text-gray-400">Enable or disable exit node functionality for this device.</div>
       </div>
       <div class="flex items-center gap-2">
-        <span :class="isExitNode ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'" class="px-2 py-1 rounded text-xs font-semibold" x-text="isExitNode ? 'Enabled' : 'Disabled'"></span>
-        <button @click="toggleExitNode()" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded hover:bg-gray-300">Toggle</button>
+        <button
+          :class="isExitNode ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'"
+          class="px-2 py-1 rounded text-xs font-semibold focus:outline-none"
+          @click="isExitNode = !isExitNode"
+          x-text="isExitNode ? 'On' : 'Off'"
+          aria-pressed="isExitNode"
+        ></button>
+        <button
+          @click="applyExitNode()"
+          class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none"
+        >Apply</button>
       </div>
     </div>
     <!-- Subnet Routing Card (moved outside settingsPage) -->
@@ -102,6 +111,33 @@
     </div>
   </main>
   <script>
+  // Exit Node apply logic
+  document.addEventListener('alpine:init', () => {
+    Alpine.store('exitNode', {
+      feedback: '',
+      applying: false
+    });
+  });
+  function applyExitNode() {
+    const store = Alpine.store('exitNode');
+    store.applying = true;
+    store.feedback = '';
+    fetch('/api/exit-node', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enable: window.altTailSentry().isExitNode })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          store.feedback = 'Exit node setting applied!';
+        } else {
+          store.feedback = data.error || 'Failed to apply exit node.';
+        }
+      })
+      .catch(() => { store.feedback = 'Network or server error.'; })
+      .finally(() => { store.applying = false; });
+  }
   // Persist dark mode preference
   function loadDarkMode() {
     if (localStorage.getItem('darkMode') !== null) {
@@ -164,7 +200,8 @@
       },
       async init() {
         await this.fetchTailscaleStatus();
-      }
+      },
+      applyExitNode
     }));
   });
   </script>
