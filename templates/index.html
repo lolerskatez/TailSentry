@@ -3,38 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TailSentry - Alternative Dashboard</title>
+  <title>TailSentry - Dashboard</title>
   <link rel="stylesheet" href="/static/tailwind.min.css">
   <link rel="stylesheet" href="/static/dark-mode-addon.css">
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <script src="/static/alpine.min.js" defer></script>
-    <script src="/static/alt_dashboard.js"></script>
-    <script src="/static/alpine.min.js" defer></script>
-  <style>
-    .card { @apply bg-white shadow rounded-lg p-6 mb-4; }
-    .card-dark { @apply bg-gray-800 text-gray-100; }
-    .section-title { @apply text-lg font-semibold mb-2; }
-  </style>
+  <script src="/static/alt_dashboard.js"></script>
+  <meta name="description" content="TailSentry Dashboard for managing Tailscale devices and network.">
+  <meta name="keywords" content="TailSentry, Tailscale, Dashboard, Network, Security">
 </head>
-<body x-data="window.altTailSentry()" x-init="init()" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
+<body x-data="window.altTailSentry()" x-init="init(); loadDarkMode()" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
   <!-- Header -->
-  <header class="flex items-center justify-between px-6 py-4 bg-indigo-600 text-white shadow">
+  <header class="flex items-center justify-between px-6 py-4 bg-indigo-600 text-white shadow" role="banner">
     <div class="flex items-center gap-3">
-      <img src="/static/favicon.svg" class="h-8 w-8" alt="TS">
+      <img src="/static/favicon.svg" class="h-8 w-8" alt="TailSentry logo">
       <span class="font-bold text-xl tracking-tight">TailSentry</span>
-      <span class="ml-2 px-2 py-1 bg-indigo-800 rounded text-xs">ALPHA UI</span>
+      <span class="ml-2 px-2 py-1 bg-indigo-800 rounded text-xs">DASHBOARD</span>
     </div>
     <div class="flex items-center gap-4">
-      <button @click="openSettings = true" class="hover:bg-indigo-700 px-3 py-1 rounded transition">⚙️ Settings</button>
-      <button @click="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded">Logout</button>
+      <button @click="openSettings = true" class="hover:bg-indigo-700 px-3 py-1 rounded transition" aria-label="Open settings" title="Settings">⚙️ Settings</button>
+      <button @click="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded" aria-label="Logout" title="Logout">Logout</button>
     </div>
   </header>
 
   <!-- Main Content -->
   <main class="max-w-7xl mx-auto py-8 px-4 grid grid-cols-1 md:grid-cols-3 gap-6">
     <!-- Device Overview -->
-    <section class="col-span-1 card" :class="{ 'card-dark': darkMode }">
-      <div class="section-title">Device Overview</div>
+    <section class="col-span-1 bg-white shadow rounded-lg p-6 mb-4 dark:bg-gray-800 dark:text-gray-100" aria-labelledby="device-overview-title">
+      <div id="device-overview-title" class="text-lg font-semibold mb-2">Device Overview</div>
       <div class="mb-2"><span class="font-semibold">Hostname:</span> <span x-text="device.hostname"></span></div>
       <div class="mb-2"><span class="font-semibold">Tailscale IP:</span> <span x-text="device.ip"></span></div>
       <div class="mb-2"><span class="font-semibold">Status:</span> <span :class="device.online ? 'text-green-600' : 'text-red-600'" x-text="device.online ? 'Online' : 'Offline'"></span></div>
@@ -46,8 +42,8 @@
     </section>
 
     <!-- Peers List -->
-    <section class="col-span-2 card" :class="{ 'card-dark': darkMode }">
-      <div class="section-title flex items-center justify-between">
+    <section class="col-span-2 bg-white shadow rounded-lg p-6 mb-4 dark:bg-gray-800 dark:text-gray-100" aria-labelledby="connected-devices-title">
+      <div id="connected-devices-title" class="text-lg font-semibold mb-2 flex items-center justify-between">
         <span>Connected Devices</span>
         <input type="text" x-model="peerFilter" placeholder="Search..." class="px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100">
       </div>
@@ -87,8 +83,8 @@
     </section>
 
     <!-- Network Traffic & Stats -->
-    <section class="col-span-3 card" :class="{ 'card-dark': darkMode }">
-      <div class="section-title">Network Traffic</div>
+    <section class="col-span-3 bg-white shadow rounded-lg p-6 mb-4 dark:bg-gray-800 dark:text-gray-100" aria-labelledby="network-traffic-title">
+      <div id="network-traffic-title" class="text-lg font-semibold mb-2">Network Traffic</div>
       <div class="flex gap-8 mb-2">
         <div><span class="font-semibold">Upload:</span> <span x-text="net.tx"></span></div>
         <div><span class="font-semibold">Download:</span> <span x-text="net.rx"></span></div>
@@ -101,8 +97,8 @@
     </section>
 
     <!-- Quick Actions & Features -->
-    <section class="col-span-3 card" :class="{ 'card-dark': darkMode }">
-      <div class="section-title">Quick Actions</div>
+    <section class="col-span-3 bg-white shadow rounded-lg p-6 mb-4 dark:bg-gray-800 dark:text-gray-100" aria-labelledby="quick-actions-title">
+      <div id="quick-actions-title" class="text-lg font-semibold mb-2">Quick Actions</div>
       <div class="flex flex-wrap gap-4">
         <button @click="toggleExitNode()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded">Toggle Exit Node</button>
         <button @click="openSubnetModal()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Manage Subnets</button>
@@ -113,16 +109,16 @@
   </main>
 
   <!-- Settings Modal -->
-  <div x-show="openSettings" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" style="display: none;">
+  <div x-show="openSettings" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md">
-      <div class="text-lg font-semibold mb-4">Settings</div>
+      <div id="settings-title" class="text-lg font-semibold mb-4">Settings</div>
       <div class="mb-4 flex items-center justify-between">
         <span>Dark Mode</span>
-        <input type="checkbox" x-model="darkMode" class="h-5 w-5">
+        <input type="checkbox" x-model="darkMode" class="h-5 w-5" @change="saveDarkMode()" aria-label="Toggle dark mode">
       </div>
       <div class="mb-4">
-        <label class="block mb-1 font-medium">Refresh Interval (seconds)</label>
-        <input type="number" x-model.number="refreshInterval" min="5" max="120" class="w-full px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100">
+        <label class="block mb-1 font-medium" for="refresh-interval">Refresh Interval (seconds)</label>
+        <input id="refresh-interval" type="number" x-model.number="refreshInterval" min="5" max="120" class="w-full px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100">
       </div>
       <div class="flex justify-end gap-2">
         <button @click="openSettings = false" class="px-4 py-2 bg-gray-300 dark:bg-gray-700 rounded">Close</button>
@@ -131,9 +127,9 @@
   </div>
 
   <!-- Peer Details Modal -->
-  <div x-show="peerModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" style="display: none;">
+  <div x-show="peerModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="peer-details-title">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-lg">
-      <div class="text-lg font-semibold mb-4">Peer Details</div>
+      <div id="peer-details-title" class="text-lg font-semibold mb-4">Peer Details</div>
       <pre class="bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs overflow-x-auto" x-text="JSON.stringify(selectedPeer, null, 2)"></pre>
       <div class="flex justify-end mt-4">
         <button @click="peerModal = false" class="px-4 py-2 bg-gray-300 dark:bg-gray-700 rounded">Close</button>
@@ -142,7 +138,18 @@
   </div>
 
   <!-- Toast Notification -->
-  <div x-show="toast" class="fixed bottom-6 right-6 bg-indigo-600 text-white px-4 py-2 rounded shadow-lg z-50" x-text="toast" style="display: none;"></div>
+  <div x-show="toast" class="fixed bottom-6 right-6 bg-indigo-600 text-white px-4 py-2 rounded shadow-lg z-50" x-text="toast" style="display: none;" role="status" aria-live="polite"></div>
 
+<script>
+// Persist dark mode preference
+function loadDarkMode() {
+  if (localStorage.getItem('darkMode') !== null) {
+    window.altTailSentry().darkMode = localStorage.getItem('darkMode') === 'true';
+  }
+}
+function saveDarkMode() {
+  localStorage.setItem('darkMode', window.altTailSentry().darkMode);
+}
+</script>
 </body>
 </html>
