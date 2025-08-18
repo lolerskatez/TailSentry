@@ -875,27 +875,32 @@ class TailscaleClient:
     def get_device_info() -> Dict[str, Any]:
         """Get comprehensive information about this device"""
         status = TailscaleClient.status_json()
-        
         if isinstance(status, dict) and "error" in status:
             return {"error": status["error"]}
-            
+
         result = {
             "hostname": TailscaleClient.get_hostname(),
             "os": platform.system(),
             "version": platform.version(),
             "tailscale": {}
         }
-            
+
         try:
-            self_info = safe_get_dict(status, "Self")
+            self_info = status.get("Self", {}) if isinstance(status, dict) else {}
+            # If Self is a list, use the first element
+            if isinstance(self_info, list) and self_info:
+                self_info = self_info[0]
             if not isinstance(self_info, dict):
                 self_info = {}
+            capabilities = self_info.get("Capabilities", {}) if isinstance(self_info, dict) else {}
+            if not isinstance(capabilities, dict):
+                capabilities = {}
             result["tailscale"] = {
                 "id": self_info.get("ID", ""),
                 "name": self_info.get("HostName", ""),
                 "ip": self_info.get("TailscaleIPs", [""])[0],
-                "is_exit_node": self_info.get("Capabilities", {}).get("ExitNode", False),
-                "is_subnet_router": self_info.get("Capabilities", {}).get("SubnetRouter", False),
+                "is_exit_node": capabilities.get("ExitNode", False),
+                "is_subnet_router": capabilities.get("SubnetRouter", False),
                 "advertised_routes": self_info.get("AdvertisedRoutes", []),
                 "tx_bytes": self_info.get("TXBytes", 0),
                 "rx_bytes": self_info.get("RXBytes", 0),
@@ -903,10 +908,10 @@ class TailscaleClient:
                 "last_seen": self_info.get("LastSeen", ""),
                 "online": self_info.get("Online", False),
             }
-        except (TypeError, AttributeError) as e:
+        except (TypeError, AttributeError, IndexError) as e:
             logger.error(f"Error parsing device info: {str(e)}")
             result["error"] = f"Failed to parse device information: {str(e)}"
-            
+
         return result
 
     # --- Tailscale API ---
