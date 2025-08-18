@@ -55,6 +55,7 @@ window.altTailSentry = function altTailSentry() {
         advertise_exit_node: this.isExitNode,
         advertise_routes: this.advertisedRoutes
       };
+      console.log('Sending to /api/authenticate:', payload);
       fetch('/api/authenticate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
