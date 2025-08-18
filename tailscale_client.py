@@ -454,15 +454,14 @@ class TailscaleClient:
     def subnet_routes() -> List[str]:
         """Get all advertised subnet routes for this device"""
         status = TailscaleClient.status_json()
-        # Handle potential error response
         if isinstance(status, dict) and "error" in status:
             logger.warning(f"Error getting subnet routes: {status['error']}")
             return []
-        
-        try:
-            return status.get("Self", {}).get("AdvertisedRoutes", [])
-        except (AttributeError, TypeError):
-            logger.error("Failed to parse subnet routes from status")
+        self_obj = status.get("Self", {})
+        if isinstance(self_obj, dict):
+            return self_obj.get("AdvertisedRoutes", [])
+        else:
+            logger.error("'Self' is not a dict in status; cannot get AdvertisedRoutes")
             return []
             
     @staticmethod
@@ -642,58 +641,42 @@ class TailscaleClient:
         """Get current network metrics from Tailscale status"""
         try:
             status = TailscaleClient.status_json()
-            # Handle potential error response
             if isinstance(status, dict) and "error" in status:
                 logger.warning(f"Error getting network metrics: {status['error']}")
                 return {"error": status["error"]}
-                
             metrics = {}
-            
-            # Extract self metrics
             self_data = status.get("Self", {})
-            if self_data:
+            if isinstance(self_data, dict):
                 metrics["tx_bytes"] = self_data.get("TXBytes", 0)
                 metrics["rx_bytes"] = self_data.get("RXBytes", 0)
-                
-            # Get peer metrics
             peers_data = status.get("Peer", {})
-            if peers_data:
+            if isinstance(peers_data, dict):
                 peers_metrics = []
                 total_tx = 0
                 total_rx = 0
                 active_peers = 0
-                
                 for peer_id, peer in peers_data.items():
-                    # Skip if this is not a proper peer object
-                    if not isinstance(peer, dict):
-                        continue
-                        
-                    tx = peer.get("TXBytes", 0)
-                    rx = peer.get("RXBytes", 0)
-                    
-                    peers_metrics.append({
-                        "id": peer_id,
-                        "hostname": peer.get("HostName", "Unknown"),
-                        "tx_bytes": tx,
-                        "rx_bytes": rx,
-                        "last_seen": peer.get("LastSeen", ""),
-                        "online": peer.get("Online", False)
-                    })
-                    
-                    total_tx += tx
-                    total_rx += rx
-                    if peer.get("Online", False):
-                        active_peers += 1
-                        
+                    if isinstance(peer, dict):
+                        tx = peer.get("TXBytes", 0)
+                        rx = peer.get("RXBytes", 0)
+                        peers_metrics.append({
+                            "id": peer_id,
+                            "hostname": peer.get("HostName", "Unknown"),
+                            "tx_bytes": tx,
+                            "rx_bytes": rx,
+                            "last_seen": peer.get("LastSeen", ""),
+                            "online": peer.get("Online", False)
+                        })
+                        total_tx += tx
+                        total_rx += rx
+                        if peer.get("Online", False):
+                            active_peers += 1
                 metrics["peers"] = peers_metrics
                 metrics["total_peer_tx"] = total_tx
                 metrics["total_peer_rx"] = total_rx
                 metrics["active_peers"] = active_peers
                 metrics["total_peers"] = len(peers_metrics)
-                
-            # Add timestamp
             metrics["timestamp"] = int(time.time())
-            
             return metrics
         except Exception as e:
             logger.exception(f"Error getting network metrics: {str(e)}")
