@@ -201,46 +201,7 @@
         '172.16.0.0/12',
         '192.168.0.0/16'
       ];
-  <!-- Removed broken prototype script. Alpine.js state and methods are defined in alt_dashboard.js -->
-        if (this.advertisedRoutes.includes(subnet)) {
-          this.advertisedRoutes = this.advertisedRoutes.filter(s => s !== subnet);
-        } else {
-          this.advertisedRoutes.push(subnet);
-        }
-      };
-  <!-- Removed broken prototype script. Alpine.js state and methods are defined in alt_dashboard.js -->
-        const payload = {
-          auth_key: this.authKey,
-          hostname: this.device.hostname,
-          accept_routes: this.device.accept_routes ?? true,
-          advertise_exit_node: this.isExitNode,
-          advertise_routes: this.advertisedRoutes
-        };
-        this.subnetFeedback = '';
-        fetch('/api/authenticate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            this.subnetFeedback = 'Subnet routes applied!';
-            this.subnetModalOpen = false;
-            this.loadStatus();
-          } else {
-            this.subnetFeedback = data.message || 'Failed to apply subnet routes.';
-          }
-        })
-        .catch((err) => {
-          console.error('applySubnets payload:', payload);
-          console.error('applySubnets error:', err);
-          this.subnetFeedback = 'Network or server error.';
-        });
-      };
-    </script>
-    </div>
-    </div>
+  <!-- ...existing code... -->
     <!-- Logs & Diagnostics Section -->
     <div class="mb-8">
       <div class="font-semibold mb-2 text-indigo-700">Logs & Diagnostics</div>
@@ -253,67 +214,7 @@
   <!-- Removed broken prototype script. Alpine.js state and methods are defined in alt_dashboard.js -->
     const payload = {
       auth_key: this.authKey,
-      hostname: this.device.hostname,
-      accept_routes: this.device.accept_routes ?? true,
-      advertise_exit_node: this.isExitNode,
-      advertise_routes: this.advertisedRoutes
-    };
-    this.exitNodeFeedback = '';
-    fetch('/api/authenticate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        this.exitNodeFeedback = 'Exit Node setting applied!';
-        this.loadStatus();
-      } else {
-        this.exitNodeFeedback = data.message || 'Failed to apply Exit Node setting.';
-      }
-    })
-    .catch(() => {
-      this.exitNodeFeedback = 'Network or server error.';
-    });
-  };
-  // Add saveHostname method to Alpine.js
-  document.addEventListener('alpine:init', () => {
-    Alpine.data('altTailSentry', window.altTailSentry);
-  });
-
-  <!-- Removed broken prototype script. Alpine.js state and methods are defined in alt_dashboard.js -->
-    const payload = {
-      auth_key: this.authKey,
-      hostname: this.device.hostname,
-      accept_routes: this.device.accept_routes ?? true,
-      advertise_exit_node: this.isExitNode,
-      advertise_routes: this.advertisedRoutes
-    };
-    this.authFeedback = '';
-    fetch('/api/authenticate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        this.authFeedback = 'Hostname updated and Tailscale restarted!';
-        this.authSuccess = true;
-        this.loadStatus();
-      } else {
-        this.authFeedback = data.message || 'Failed to update hostname.';
-        this.authSuccess = false;
-      }
-    })
-    .catch(() => {
-      this.authFeedback = 'Network or server error.';
-      this.authSuccess = false;
-    });
-  };
-  // Helper to get persisted auth key
-    // Exit Node apply logic
+    <!-- ...existing code... -->
     // (getPersistedAuthKey and store logic remain as previously patched)
     // (removed Alpine patching code)
 
