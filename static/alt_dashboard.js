@@ -24,6 +24,8 @@ function altTailSentry() {
   // Always define these at the root for Alpine
   authKey: '',
   isExitNode: false,
+  isSubnetRouting: false,
+  advertisedRoutes: [],
   alpineTest: 'Alpine JS loaded',
 
     init() {
@@ -142,8 +144,10 @@ function altTailSentry() {
         if (res.ok) {
           const data = await res.json();
           this.subnets = data.routes || [];
+          this.isSubnetRouting = Array.isArray(this.subnets) && this.subnets.length > 0;
+          this.advertisedRoutes = this.subnets;
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) { this.isSubnetRouting = false; this.advertisedRoutes = []; }
     },
 
     async loadTraffic() {
