@@ -1,3 +1,7 @@
+@router.get("/api/test")
+async def test_authenticate_route():
+    logger.info("/api/test endpoint hit!")
+    return {"success": True, "message": "Test endpoint reached."}
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from fastapi import status, Depends
@@ -6,8 +10,14 @@ import subprocess
 import logging
 import os
 
+
 router = APIRouter()
 logger = logging.getLogger("tailsentry.authenticate")
+
+@router.get("/api/test")
+async def test_authenticate_route():
+    logger.info("/api/test endpoint hit!")
+    return {"success": True, "message": "Test endpoint reached."}
 
 @router.post("/api/authenticate")
 @login_required
