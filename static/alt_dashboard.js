@@ -1,5 +1,6 @@
 
-function altTailSentry() {
+
+window.altTailSentry = function altTailSentry() {
   return {
     darkMode: false,
     openSettings: false,
@@ -21,20 +22,15 @@ function altTailSentry() {
     subnets: [],
     logs: [],
     toast: '',
-  // Always define these at the root for Alpine
-  authKey: '',
-  isExitNode: false,
-  isSubnetRouting: false,
-  advertisedRoutes: [],
-  alpineTest: 'Alpine JS loaded',
+    // Alpine.js global state for settings page
+    authKey: '',
+    isExitNode: false,
+    isSubnetRouting: false,
+    advertisedRoutes: [],
+    alpineTest: 'Alpine JS loaded',
 
     init() {
       this.darkMode = localStorage.getItem('altDarkMode') === 'true';
-      // Ensure authKey and isExitNode are always defined
-      if (typeof this.authKey === 'undefined') this.authKey = '';
-      if (typeof this.isExitNode === 'undefined') this.isExitNode = false;
-      // Log to verify correct JS is loaded
-      console.log('Alpine initialized:', this.alpineTest);
       this.loadAll();
       setInterval(() => this.loadAll(), this.refreshInterval * 1000);
     },
@@ -63,10 +59,9 @@ function altTailSentry() {
         }
       } catch (e) { this.toastMsg('Failed to load status'); }
     },
-    // ... (remaining code omitted for brevity)
+    // ...existing code...
   }
 }
-window.altTailSentry = altTailSentry;
 function altTailSentry() {
   return {
     darkMode: false,
