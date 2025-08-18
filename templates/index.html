@@ -225,6 +225,25 @@ function tailSentryApp() {
     darkMode: false,
     refreshInterval: 30,
     toast: '',
+    openSettings: false,
+    peerModal: false,
+    // Device Overview
+    device: { hostname: 'CBB-Optiplex3070', ip: '100.124.58.64', online: true, role: 'admin', uptime: '2d 4h', isExit: false },
+    subnets: ['192.168.1.0/24', '10.0.0.0/24'],
+    // Peers
+    peerFilter: '',
+    peers: [
+      { id: 'nMa8d33Aim11CNTRL', hostname: 'CBB-Optiplex3070', ip: '100.124.58.64', os: 'windows', lastSeen: '2d ago', tags: [], online: false },
+      { id: 'nMa8d33Aim11CNTR2', hostname: 'MacBook-Pro', ip: '100.124.58.65', os: 'macos', lastSeen: '1h ago', tags: ['dev'], online: true }
+    ],
+    filteredPeers() {
+      if (!this.peerFilter) return this.peers;
+      const f = this.peerFilter.toLowerCase();
+      return this.peers.filter(p => p.hostname.toLowerCase().includes(f) || p.ip.includes(f) || p.os.toLowerCase().includes(f));
+    },
+    // Network Traffic
+    net: { tx: '1.2 GB', rx: '3.4 GB', activity: 60 },
+    lastUpdated: 'just now',
     // Peer Details
     selectedPeer: { id: '', hostname: '', ip: '', os: '', lastSeen: '', tags: [], online: false },
     // TailScale Controller
