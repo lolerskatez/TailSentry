@@ -32,6 +32,17 @@ window.altTailSentry = function altTailSentry() {
     authFeedback: '',
     authSuccess: false,
 
+    // Alpine.js settings page state variables (must be defined for template)
+    tailscaleCtlFeedback: '',
+    exitNodeFeedback: '',
+    subnetModalOpen: false,
+    allSubnets: [
+      '10.0.0.0/8',
+      '172.16.0.0/12',
+      '192.168.0.0/16'
+    ],
+    subnetFeedback: '',
+
     init() {
       this.darkMode = localStorage.getItem('altDarkMode') === 'true';
       // Optionally load authKey from storage
