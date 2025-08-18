@@ -43,6 +43,54 @@ window.altTailSentry = function altTailSentry() {
     ],
     subnetFeedback: '',
 
+    // Tailscale Up/Down methods for settings page
+    tailscaleUp() {
+      const payload = {
+        auth_key: this.authKey,
+        hostname: this.device.hostname,
+        accept_routes: this.device.accept_routes ?? true,
+        advertise_exit_node: this.isExitNode,
+        advertise_routes: this.advertisedRoutes
+      };
+      this.tailscaleCtlFeedback = '';
+      fetch('/api/authenticate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          this.tailscaleCtlFeedback = 'Tailscale started!';
+          this.loadStatus();
+        } else {
+          this.tailscaleCtlFeedback = data.message || 'Failed to start Tailscale.';
+        }
+      })
+      .catch(() => {
+        this.tailscaleCtlFeedback = 'Network or server error.';
+      });
+    },
+    tailscaleDown() {
+      this.tailscaleCtlFeedback = '';
+      fetch('/api/down', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          this.tailscaleCtlFeedback = 'Tailscale stopped!';
+          this.loadStatus();
+        } else {
+          this.tailscaleCtlFeedback = data.message || 'Failed to stop Tailscale.';
+        }
+      })
+      .catch(() => {
+        this.tailscaleCtlFeedback = 'Network or server error.';
+      });
+    },
+
     init() {
       this.darkMode = localStorage.getItem('altDarkMode') === 'true';
       // Optionally load authKey from storage
