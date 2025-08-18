@@ -118,15 +118,7 @@
   // Helper to get persisted auth key
     // Exit Node apply logic
     // (getPersistedAuthKey and store logic remain as previously patched)
-    // Patch: log payload for /api/exit-node
-    const origApplyExitNode = Alpine.store('exitNode')?.applyExitNode;
-    if (origApplyExitNode) {
-      Alpine.store('exitNode').applyExitNode = function(isExitNode, authKey) {
-        const payload = { enable: isExitNode, auth_key: authKey };
-        console.log('Sending to /api/exit-node:', payload);
-        return origApplyExitNode.call(this, isExitNode, authKey);
-      };
-    }
+    // (removed Alpine patching code)
 
   document.addEventListener('alpine:init', () => {
     Alpine.store('exitNode', {

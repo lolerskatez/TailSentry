@@ -47,14 +47,16 @@ window.altTailSentry = function altTailSentry() {
         this.authSuccess = false;
         return;
       }
-      // Always send all settings to backend
+      // Always send all settings to backend, but only send a valid hostname
+      let hostname = this.device.hostname;
+      if (!hostname || hostname === 'Loading...') hostname = undefined;
       const payload = {
         auth_key: this.authKey,
-        hostname: this.device.hostname,
         accept_routes: this.device.accept_routes ?? true,
         advertise_exit_node: this.isExitNode,
         advertise_routes: this.advertisedRoutes
       };
+      if (hostname) payload.hostname = hostname;
       console.log('Sending to /api/authenticate:', payload);
       fetch('/api/authenticate', {
         method: 'POST',
