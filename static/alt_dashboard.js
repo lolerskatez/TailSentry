@@ -91,6 +91,36 @@ window.altTailSentry = function altTailSentry() {
       });
     },
 
+    // Save Authentication Key only (no auth attempt)
+    saveAuthKey() {
+      if (!this.authKey) {
+        this.authFeedback = 'Please enter an authentication key.';
+        this.authSuccess = false;
+        return;
+      }
+      const payload = { auth_key: this.authKey };
+      this.authFeedback = '';
+      fetch('/api/authenticate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          this.authFeedback = 'Authentication key saved!';
+          this.authSuccess = true;
+        } else {
+          this.authFeedback = data.error || 'Failed to save authentication key.';
+          this.authSuccess = false;
+        }
+      })
+      .catch(() => {
+        this.authFeedback = 'Network or server error.';
+        this.authSuccess = false;
+      });
+    },
+
     init() {
       this.darkMode = localStorage.getItem('altDarkMode') === 'true';
       // Optionally load authKey from storage

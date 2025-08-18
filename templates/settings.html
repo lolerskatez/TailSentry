@@ -79,22 +79,15 @@
     <!-- TailScale Controller Section -->
     <div class="mb-8">
       <div class="font-semibold mb-2 text-indigo-700">TailScale Controller</div>
-      <!-- Authenticate TailScale Network Connection (Card) -->
+      <!-- Authentication Key (Save only) -->
       <div class="mb-8">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col gap-3 border border-gray-200 dark:border-gray-700">
           <div class="flex items-center justify-between mb-2">
-            <div class="font-semibold text-indigo-700">Authenticate TailScale Network Connection</div>
-            <div class="flex items-center gap-2">
-              <span :class="tailscaleStatus === 'authenticated' ? 'text-green-600' : 'text-red-600'" class="font-medium">
-                <span x-show="tailscaleStatus === 'authenticated'" x-text="'Authenticated'"></span>
-                <span x-show="tailscaleStatus !== 'authenticated'" x-text="'Not Authenticated'"></span>
-              </span>
-              <span class="text-xs text-gray-500" x-text="tailscaleIp ? tailscaleIp : ''"></span>
-            </div>
+            <div class="font-semibold text-indigo-700">Authentication Key</div>
           </div>
           <div class="flex gap-2">
             <input id="auth-key" type="text" x-model="authKey" class="w-full px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100" placeholder="Enter your Tailscale Auth Key">
-            <button @click="authenticateTailscale()" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600" title="Authenticate">Authenticate</button>
+            <button @click="saveAuthKey()" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600" title="Save">Save</button>
           </div>
           <template x-if="authFeedback">
             <div class="mt-2 text-sm" :class="authSuccess ? 'text-green-600' : 'text-red-600'" x-text="authFeedback"></div>
