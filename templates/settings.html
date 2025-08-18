@@ -182,7 +182,9 @@
         this.tailscaleCtlFeedback = data.message || 'Failed to start Tailscale.';
       }
     })
-    .catch(() => {
+    .catch((err) => {
+      console.error('tailscaleUp payload:', payload);
+      console.error('tailscaleUp error:', err);
       this.tailscaleCtlFeedback = 'Network or server error.';
     });
   };
@@ -202,7 +204,8 @@
         this.tailscaleCtlFeedback = data.message || 'Failed to stop Tailscale.';
       }
     })
-    .catch(() => {
+    .catch((err) => {
+      console.error('tailscaleDown error:', err);
       this.tailscaleCtlFeedback = 'Network or server error.';
     });
   };
@@ -248,7 +251,9 @@
             this.subnetFeedback = data.message || 'Failed to apply subnet routes.';
           }
         })
-        .catch(() => {
+        .catch((err) => {
+          console.error('applySubnets payload:', payload);
+          console.error('applySubnets error:', err);
           this.subnetFeedback = 'Network or server error.';
         });
       };
