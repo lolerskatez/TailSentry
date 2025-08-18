@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="/static/tailwind.min.css">
   <link rel="stylesheet" href="/static/dark-mode-addon.css">
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <script src="/static/alpine.min.js" defer></script>
   <script src="/static/alt_dashboard.js"></script>
+  <script src="/static/alpine.min.js" defer></script>
   <meta name="description" content="TailSentry Settings for managing Tailscale controller features.">
   <meta name="keywords" content="TailSentry, Tailscale, Settings, Network, Security">
 </head>
@@ -156,28 +156,7 @@
           </template>
         </div>
       </div>
-    <script>
-  // Add Tailscale Up/Down methods to Alpine.js
-  window.altTailSentry.prototype.tailscaleCtlFeedback = '';
-  window.altTailSentry.prototype.tailscaleUp = function() {
-    const payload = {
-      auth_key: this.authKey,
-      hostname: this.device.hostname,
-      accept_routes: this.device.accept_routes ?? true,
-      advertise_exit_node: this.isExitNode,
-      advertise_routes: this.advertisedRoutes
-    };
-    this.tailscaleCtlFeedback = '';
-    fetch('/api/authenticate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        this.tailscaleCtlFeedback = 'Tailscale started!';
-        this.loadStatus();
+  <!-- Removed broken prototype script. Alpine.js state and methods are defined in alt_dashboard.js -->
       } else {
         this.tailscaleCtlFeedback = data.message || 'Failed to start Tailscale.';
       }
