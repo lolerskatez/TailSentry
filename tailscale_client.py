@@ -384,23 +384,29 @@ class TailscaleClient:
         
         # Enhanced logging for debugging
         if isinstance(result, dict) and "error" not in result:
-            if "Self" in result:
-                hostname = result.get("Self", {}).get("HostName", "unknown")
-                ip = result.get("Self", {}).get("TailscaleIPs", ["none"])[0]
-                peer_count = len(result.get("Peer", {}))
-                logger.info(f"Returning real Tailscale data: {hostname} ({ip}) with {peer_count} peers")
-                
-                # Verify this isn't mock data
-                if hostname == "tailscale-server" and peer_count == 3:
-                    logger.warning("This might be mock data - checking...")
-                    
+            self_obj = result.get("Self", {})
+            peer_obj = result.get("Peer", {})
+            if isinstance(self_obj, dict):
+                hostname = self_obj.get("HostName", "unknown")
+                ip = self_obj.get("TailscaleIPs", ["none"])[0]
             else:
-                logger.warning("Tailscale data missing 'Self' information")
-                logger.debug(f"Keys in result: {list(result.keys())}")
+                hostname = "unknown"
+                ip = "none"
+            if isinstance(peer_obj, dict):
+                peer_count = len(peer_obj)
+            else:
+                peer_count = 0
+            logger.info(f"Returning real Tailscale data: {hostname} ({ip}) with {peer_count} peers")
+            # Verify this isn't mock data
+            if hostname == "tailscale-server" and peer_count == 3:
+                logger.warning("This might be mock data - checking...")
+            if not isinstance(self_obj, dict):
+                logger.warning("Tailscale data 'Self' is not a dict")
+            if not isinstance(peer_obj, dict):
+                logger.warning("Tailscale data 'Peer' is not a dict")
         else:
             error = result.get("error", "unknown error") if isinstance(result, dict) else "not a dict"
             logger.error(f"Error in Tailscale status: {error}")
-            
         return result
         
     @staticmethod
