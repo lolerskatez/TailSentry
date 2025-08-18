@@ -1,7 +1,3 @@
-# Simple test endpoint to verify router registration
-@router.get("/api/test-save-key")
-async def test_save_key():
-    return {"success": True, "message": "/api/save-key endpoint is available."}
 
 import logging
 import os
@@ -14,6 +10,11 @@ from auth import login_required
 
 router = APIRouter()
 logger = logging.getLogger("tailsentry.authenticate")
+
+# Simple test endpoint to verify router registration
+@router.get("/api/test-save-key")
+async def test_save_key():
+    return {"success": True, "message": "/api/save-key endpoint is available."}
 
 # Save only the auth_key to tailscale_settings.json (no tailscale up)
 @router.post("/api/save-key")
