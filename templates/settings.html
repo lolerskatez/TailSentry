@@ -72,19 +72,23 @@
         <div class="font-semibold">Exit Node</div>
         <div class="text-xs text-gray-500 dark:text-gray-400">Enable or disable exit node functionality for this device.</div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
         <button
           :class="isExitNode ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'"
-          class="px-2 py-1 rounded text-xs font-semibold focus:outline-none"
+          class="w-16 h-9 rounded text-sm font-semibold focus:outline-none transition-colors duration-150"
           @click="isExitNode = !isExitNode"
           x-text="isExitNode ? 'On' : 'Off'"
           aria-pressed="isExitNode"
         ></button>
         <button
           @click="applyExitNode()"
-          class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none"
+          class="w-16 h-9 bg-blue-500 text-white rounded text-sm font-semibold hover:bg-blue-600 focus:outline-none transition-colors duration-150"
+          :disabled="$store.exitNode.applying"
         >Apply</button>
       </div>
+      <template x-if="$store.exitNode.feedback">
+        <div class="mt-2 text-xs font-semibold" :class="$store.exitNode.feedback.includes('applied') ? 'text-green-600' : 'text-red-600'" x-text="$store.exitNode.feedback"></div>
+      </template>
     </div>
     <!-- Subnet Routing Card (moved outside settingsPage) -->
     <div class="mb-4 p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
@@ -125,7 +129,7 @@
     fetch('/api/exit-node', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enable: window.altTailSentry().isExitNode })
+      body: JSON.stringify({ enable: window.altTailSentry().isExitNode, auth_key: window.altTailSentry().authKey })
     })
       .then(res => res.json())
       .then(data => {

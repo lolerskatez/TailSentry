@@ -17,6 +17,7 @@ SETTINGS_PATH = os.path.join(os.path.dirname(__file__), '..', 'tailscale_setting
 async def set_exit_node(request: Request):
     data = await request.json()
     enable = data.get("enable")
+    auth_key = data.get("auth_key")
     if enable is None:
         return JSONResponse({"success": False, "error": "Missing 'enable' field."}, status_code=400)
     try:
@@ -32,8 +33,8 @@ async def set_exit_node(request: Request):
     except Exception as e:
         logger.error(f"Failed to write tailscale_settings.json: {e}")
         return JSONResponse({"success": False, "error": "Failed to write settings."}, status_code=500)
-    # Optionally, re-run tailscale up
+    # Use provided auth_key if present, else from settings
     fake_request = Request(request.scope, receive=request.receive)
-    fake_request._json = {"auth_key": settings.get("auth_key", "")}
+    fake_request._json = {"auth_key": auth_key or settings.get("auth_key", "")}
     resp = await authenticate_tailscale(fake_request)
     return resp
