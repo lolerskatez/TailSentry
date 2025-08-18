@@ -12,7 +12,7 @@
   <meta name="description" content="TailSentry Dashboard for managing Tailscale devices and network.">
   <meta name="keywords" content="TailSentry, Tailscale, Dashboard, Network, Security">
 </head>
-<body x-data="window.altTailSentry()" x-init="init(); loadDarkMode()" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
+<body x-data="tailSentryApp()" x-init="loadDarkMode()" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
   <!-- Header -->
   <nav class="flex items-center justify-between px-6 py-4 bg-indigo-700 text-white shadow" role="navigation">
     <div class="flex items-center gap-3">
@@ -201,7 +201,7 @@
           </div>
           <div>
             <div class="font-semibold">Tags:</div>
-            <div class="mb-2 text-sm text-gray-700 dark:text-gray-300" x-text="selectedPeer.tags.length ? selectedPeer.tags.join(', ') : 'None'"></div>
+            <div class="mb-2 text-sm text-gray-700 dark:text-gray-300" x-text="Array.isArray(selectedPeer.tags) && selectedPeer.tags.length ? selectedPeer.tags.join(', ') : 'None'"></div>
           </div>
           <div>
             <div class="font-semibold">Status:</div>
@@ -219,14 +219,55 @@
   <div x-show="toast" class="fixed bottom-6 right-6 bg-indigo-600 text-white px-4 py-2 rounded shadow-lg z-50" x-text="toast" style="display: none;" role="status" aria-live="polite"></div>
 
 <script>
-// Persist dark mode preference
-function loadDarkMode() {
-  if (localStorage.getItem('darkMode') !== null) {
-    window.altTailSentry().darkMode = localStorage.getItem('darkMode') === 'true';
-  }
-}
-function saveDarkMode() {
-  localStorage.setItem('darkMode', window.altTailSentry().darkMode);
+function tailSentryApp() {
+  return {
+    // UI State
+    darkMode: false,
+    refreshInterval: 30,
+    toast: '',
+    // Peer Details
+    selectedPeer: { id: '', hostname: '', ip: '', os: '', lastSeen: '', tags: [], online: false },
+    // TailScale Controller
+    authKey: '',
+    isExitNode: false,
+    // Methods
+    saveDarkMode() {
+      localStorage.setItem('darkMode', this.darkMode);
+    },
+    loadDarkMode() {
+      if (localStorage.getItem('darkMode') !== null) {
+        this.darkMode = localStorage.getItem('darkMode') === 'true';
+      }
+    },
+    regenerateAuthKey() {
+      // Placeholder for backend call
+      this.authKey = 'NEW_GENERATED_KEY';
+      this.toast = 'Auth key regenerated!';
+      setTimeout(() => this.toast = '', 2000);
+    },
+    toggleExitNode() {
+      this.isExitNode = !this.isExitNode;
+      this.toast = this.isExitNode ? 'Exit node enabled' : 'Exit node disabled';
+      setTimeout(() => this.toast = '', 2000);
+    },
+    openSubnetModal() {
+      // Placeholder
+      alert('Open Subnet Modal');
+    },
+    openKeyModal() {
+      // Placeholder
+      alert('Open Key Modal');
+    },
+    openLogsModal() {
+      // Placeholder
+      alert('Open Logs Modal');
+    },
+    logout() {
+      // Placeholder
+      alert('Logging out...');
+    },
+    // ...existing methods...
+  };
 }
 </script>
 </body>
