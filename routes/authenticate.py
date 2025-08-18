@@ -38,16 +38,19 @@ async def authenticate_tailscale(request: Request):
         extra_args = []
         if isinstance(ts_status, dict):
             self_info = ts_status.get("Self")
-            if isinstance(self_info, dict):
+            if not isinstance(self_info, dict):
+                logger.error(f"Unexpected type for Self in Tailscale status: {type(self_info)}; value: {self_info}")
+            else:
                 # Add --hostname
                 hostname = self_info.get("HostName")
                 if hostname:
                     extra_args.append(f"--hostname={hostname}")
                 # Add --accept-routes if present
-                if self_info.get("Capabilities", {}).get("AcceptRoutes", False):
+                capabilities = self_info.get("Capabilities", {})
+                if isinstance(capabilities, dict) and capabilities.get("AcceptRoutes", False):
                     extra_args.append("--accept-routes")
                 # Add --advertise-exit-node if present
-                if self_info.get("Capabilities", {}).get("ExitNode", False):
+                if isinstance(capabilities, dict) and capabilities.get("ExitNode", False):
                     extra_args.append("--advertise-exit-node")
                 # Add --advertise-routes if present
                 advertised_routes = self_info.get("AdvertisedRoutes", [])
