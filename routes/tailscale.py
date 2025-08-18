@@ -23,7 +23,14 @@ def toggle_subnet(request: Request, cidr: str = Form(...), enable: bool = Form(.
 @login_required
 def exitnode(request: Request):
     status = TailscaleClient.status_json()
-    is_exit = status.get("Self", {}).get("Capabilities", {}).get("ExitNode", False)
+    self_obj = status.get("Self", {}) if isinstance(status, dict) else {}
+    # If Self is a list, use the first element, else use as dict
+    if isinstance(self_obj, list) and self_obj:
+        self_obj = self_obj[0]
+    if not isinstance(self_obj, dict):
+        self_obj = {}
+    capabilities = self_obj.get("Capabilities", {}) if isinstance(self_obj, dict) else {}
+    is_exit = capabilities.get("ExitNode", False) if isinstance(capabilities, dict) else False
     return templates.TemplateResponse("exitnode.html", {"request": request, "is_exit": is_exit})
 
 @router.post("/exitnode/toggle")
