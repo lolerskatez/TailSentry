@@ -295,12 +295,71 @@ window.altTailSentry = function altTailSentry() {
       return `${Math.floor(diff/86400)}d ago`;
     },
 
-    toggleExitNode() {
-  this.isExitNode = !this.isExitNode;
-  this.device.isExit = this.isExitNode;
-  this.toastMsg(this.isExitNode ? 'Exit node enabled (mock)' : 'Exit node disabled (mock)');
-    },
 
+    // Settings page Alpine.js methods
+    async applyExitNode() {
+      // Call backend to apply exit node setting
+      const payload = {
+        is_exit_node: this.isExitNode,
+        hostname: this.device.hostname
+      };
+      this.exitNodeFeedback = '';
+      try {
+        const res = await fetch('/api/exit-node', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          this.exitNodeFeedback = 'Exit node setting applied!';
+          this.loadStatus();
+        } else {
+          this.exitNodeFeedback = data.message || 'Failed to apply Exit Node setting.';
+        }
+      } catch (e) {
+        this.exitNodeFeedback = 'Network or server error.';
+      }
+    },
+    toggleSubnet(subnet) {
+      if (!this.advertisedRoutes) this.advertisedRoutes = [];
+      if (this.advertisedRoutes.includes(subnet)) {
+        this.advertisedRoutes = this.advertisedRoutes.filter(s => s !== subnet);
+      } else {
+        this.advertisedRoutes.push(subnet);
+      }
+    },
+    async applySubnets() {
+      // Call backend to apply subnet routes
+      const payload = {
+        advertised_routes: this.advertisedRoutes,
+        hostname: this.device.hostname
+      };
+      this.subnetFeedback = '';
+      try {
+        const res = await fetch('/api/authenticate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          this.subnetFeedback = 'Subnet routes applied!';
+          this.subnetModalOpen = false;
+          this.loadStatus();
+        } else {
+          this.subnetFeedback = data.message || 'Failed to apply subnet routes.';
+        }
+      } catch (e) {
+        this.subnetFeedback = 'Network or server error.';
+      }
+    },
+    // ...existing code...
+    toggleExitNode() {
+      this.isExitNode = !this.isExitNode;
+      this.device.isExit = this.isExitNode;
+      this.toastMsg(this.isExitNode ? 'Exit node enabled (mock)' : 'Exit node disabled (mock)');
+    },
     openSubnetModal() { this.toastMsg('Subnet management coming soon!'); },
     openKeyModal() { this.toastMsg('Key management coming soon!'); },
     openLogsModal() { this.toastMsg('Logs coming soon!'); },

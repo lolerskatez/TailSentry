@@ -197,6 +197,8 @@ app.include_router(api.router, prefix="/api")
 app.include_router(config.router)
 app.include_router(version.router)
 app.include_router(dashboard.router)
+from routes import down
+app.include_router(down.router, prefix="/api")
 # Add explicit error logging for authenticate import and router registration
 try:
     from routes import authenticate
