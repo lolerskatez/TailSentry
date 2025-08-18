@@ -26,12 +26,51 @@ window.altTailSentry = function altTailSentry() {
     isExitNode: false,
     isSubnetRouting: false,
     advertisedRoutes: [],
-
+    // Settings UI state
+    tailscaleStatus: 'unknown',
+    tailscaleIp: '',
+    authFeedback: '',
+    authSuccess: false,
 
     init() {
       this.darkMode = localStorage.getItem('altDarkMode') === 'true';
+      // Optionally load authKey from storage
+      const key = localStorage.getItem('tailscale_auth_key');
+      if (key) this.authKey = key;
       this.loadAll();
       setInterval(() => this.loadAll(), this.refreshInterval * 1000);
+    },
+
+    authenticateTailscale() {
+      if (!this.authKey) {
+        this.authFeedback = 'Please enter an Auth Key.';
+        this.authSuccess = false;
+        return;
+      }
+      fetch('/api/authenticate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auth_key: this.authKey })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          this.authFeedback = 'Tailscale authentication successful!';
+          this.authSuccess = true;
+          localStorage.setItem('tailscale_auth_key', this.authKey);
+          this.tailscaleStatus = 'authenticated';
+          this.tailscaleIp = data.ip || '';
+        } else {
+          this.authFeedback = data.message || 'Authentication failed.';
+          this.authSuccess = false;
+          this.tailscaleStatus = 'not_authenticated';
+        }
+      })
+      .catch(() => {
+        this.authFeedback = 'Network or server error.';
+        this.authSuccess = false;
+        this.tailscaleStatus = 'not_authenticated';
+      });
     },
 
     loadAll() {

@@ -12,7 +12,7 @@
   <meta name="description" content="TailSentry Settings for managing Tailscale controller features.">
   <meta name="keywords" content="TailSentry, Tailscale, Settings, Network, Security">
 </head>
-<body x-data="window.altTailSentry()" x-init="init(); loadDarkMode()" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
+<body x-data="window.altTailSentry()" x-init="init()" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
   <!-- Navigation -->
   <nav class="flex items-center justify-between px-6 py-4 bg-indigo-700 text-white shadow" role="navigation">
     <div class="flex items-center gap-3">
@@ -45,7 +45,7 @@
       <div class="font-semibold mb-2 text-indigo-700">TailScale Controller</div>
       <!-- Authenticate TailScale Network Connection (Card) -->
       <div class="mb-8">
-        <div x-data="settingsPage()" x-init="init()" class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col gap-3 border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col gap-3 border border-gray-200 dark:border-gray-700">
           <div class="flex items-center justify-between mb-2">
             <div class="font-semibold text-indigo-700">Authenticate TailScale Network Connection</div>
             <div class="flex items-center gap-2">
@@ -81,7 +81,7 @@
           aria-pressed="isExitNode"
         ></button>
         <button
-          @click="applyExitNode()"
+            @click="$store.exitNode.applyExitNode(isExitNode, authKey)"
           class="w-16 h-9 bg-blue-500 text-white rounded text-sm font-semibold hover:bg-blue-600 focus:outline-none transition-colors duration-150"
           :disabled="$store.exitNode.applying"
         >Apply</button>
@@ -116,9 +116,8 @@
   </main>
   <script>
   // Helper to get persisted auth key
-  function getPersistedAuthKey() {
-    return localStorage.getItem('tailscale_auth_key') || '';
-  }
+    // Exit Node apply logic
+    // (getPersistedAuthKey and store logic remain as previously patched)
 
   document.addEventListener('alpine:init', () => {
     Alpine.store('exitNode', {
