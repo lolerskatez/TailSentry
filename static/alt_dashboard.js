@@ -20,6 +20,9 @@ function altTailSentry() {
     subnets: [],
     logs: [],
     toast: '',
+    // Settings page additions
+    authKey: '',
+    isExitNode: false,
 
     init() {
       this.darkMode = localStorage.getItem('altDarkMode') === 'true';
