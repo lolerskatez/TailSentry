@@ -19,26 +19,34 @@ async def test_authenticate_route():
 async def authenticate_tailscale(request: Request):
     logger.info("/api/authenticate called")
     try:
-        data = await request.json()
-        logger.info(f"Request JSON: {data}")
-        auth_key = data.get("auth_key")
-        if not auth_key:
-            logger.error("No auth key provided to /api/authenticate")
-            return JSONResponse({"success": False, "error": "No auth key provided."}, status_code=http_status.HTTP_400_BAD_REQUEST)
-        logger.info(f"Environment PATH: {os.environ.get('PATH')}")
-        logger.info("About to run tailscale CLI")
-        # Get current Tailscale status to extract non-default flags
         import json
         settings_path = os.path.join(os.path.dirname(__file__), '..', 'tailscale_settings.json')
+        data = await request.json()
+        logger.info(f"Request JSON: {data}")
+        # Update settings file with any provided values
         try:
             with open(settings_path, 'r') as f:
                 ts_settings = json.load(f)
-        except Exception as e:
-            logger.error(f"Failed to read tailscale_settings.json: {e}")
-            return JSONResponse({"success": False, "error": "Failed to read Tailscale settings."}, status_code=500)
-
+        except Exception:
+            ts_settings = {}
+        # Update settings with new values from request
+        if "auth_key" in data and data["auth_key"]:
+            ts_settings["auth_key"] = data["auth_key"]
+        if "hostname" in data and data["hostname"]:
+            ts_settings["hostname"] = data["hostname"]
+        if "accept_routes" in data:
+            ts_settings["accept_routes"] = data["accept_routes"]
+        if "advertise_exit_node" in data:
+            ts_settings["advertise_exit_node"] = data["advertise_exit_node"]
+        if "advertise_routes" in data:
+            ts_settings["advertise_routes"] = data["advertise_routes"]
+        # Save updated settings
+        with open(settings_path, 'w') as f:
+            json.dump(ts_settings, f, indent=2)
+        # Now build CLI command from file only
+        with open(settings_path, 'r') as f:
+            ts_settings = json.load(f)
         extra_args = []
-        # Build command from config
         if ts_settings.get("hostname"):
             extra_args.append(f"--hostname={ts_settings['hostname']}")
         if ts_settings.get("accept_routes"):
@@ -48,12 +56,12 @@ async def authenticate_tailscale(request: Request):
         adv_routes = ts_settings.get("advertise_routes", [])
         if adv_routes:
             extra_args.append(f"--advertise-routes={','.join(adv_routes)}")
-        # Compose the command
         cmd = ["tailscale", "up"]
         if ts_settings.get("auth_key"):
             cmd.append(f"--authkey={ts_settings['auth_key']}")
-        elif auth_key:
-            cmd.append(f"--authkey={auth_key}")
+        else:
+            logger.error("No auth key provided to /api/authenticate")
+            return JSONResponse({"success": False, "error": "No auth key provided."}, status_code=http_status.HTTP_400_BAD_REQUEST)
         cmd += extra_args
         logger.error(f"tailscale up full command: {' '.join(cmd)}")
         try:
