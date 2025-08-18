@@ -106,8 +106,8 @@ app.add_middleware(SecurityHeadersMiddleware,
 
 # Add CSRF protection
 from middleware.csrf import CSRFMiddleware
-# Exempt /api/* endpoints and some others from CSRF protection
-csrf_exempt_paths = {"/login", "/", "/api/*"}
+# Exempt /api/* endpoints, /health, and some others from CSRF protection
+csrf_exempt_paths = {"/login", "/", "/api/*", "/health"}
 app.add_middleware(CSRFMiddleware, exempt_paths=csrf_exempt_paths)
 
 # Add rate limiting in production
