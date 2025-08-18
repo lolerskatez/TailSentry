@@ -30,9 +30,12 @@
     <!-- Device Info Section -->
     <div class="mb-8 p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
       <div class="font-semibold mb-2 text-indigo-700">Device Info</div>
-      <div class="grid grid-cols-2 gap-2 text-sm">
+      <div class="grid grid-cols-2 gap-2 text-sm items-center">
         <div>Hostname:</div>
-        <div x-text="device.hostname"></div>
+        <div class="flex gap-2 items-center">
+          <input type="text" x-model="device.hostname" class="px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100 w-40" />
+          <button @click="saveHostname()" class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs">Save</button>
+        </div>
         <div>Tailscale IP:</div>
         <div x-text="device.ip"></div>
         <div>OS:</div>
@@ -139,6 +142,41 @@
     </div>
   </main>
   <script>
+  // Add saveHostname method to Alpine.js
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('altTailSentry', window.altTailSentry);
+  });
+
+  window.altTailSentry.prototype.saveHostname = function() {
+    const payload = {
+      auth_key: this.authKey,
+      hostname: this.device.hostname,
+      accept_routes: this.device.accept_routes ?? true,
+      advertise_exit_node: this.isExitNode,
+      advertise_routes: this.advertisedRoutes
+    };
+    this.authFeedback = '';
+    fetch('/api/authenticate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        this.authFeedback = 'Hostname updated and Tailscale restarted!';
+        this.authSuccess = true;
+        this.loadStatus();
+      } else {
+        this.authFeedback = data.message || 'Failed to update hostname.';
+        this.authSuccess = false;
+      }
+    })
+    .catch(() => {
+      this.authFeedback = 'Network or server error.';
+      this.authSuccess = false;
+    });
+  };
   // Helper to get persisted auth key
     // Exit Node apply logic
     // (getPersistedAuthKey and store logic remain as previously patched)
