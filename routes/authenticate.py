@@ -86,23 +86,32 @@ async def authenticate_tailscale(request: Request):
         # Now build CLI command from file only
         with open(settings_path, 'r') as f:
             ts_settings = json.load(f)
-        extra_args = []
-        if ts_settings.get("hostname"):
-            extra_args.append(f"--hostname={ts_settings['hostname']}")
-        if ts_settings.get("accept_routes"):
-            extra_args.append("--accept-routes")
-        if ts_settings.get("advertise_exit_node"):
-            extra_args.append("--advertise-exit-node")
-        adv_routes = ts_settings.get("advertise_routes", [])
-        if adv_routes:
-            extra_args.append(f"--advertise-routes={','.join(adv_routes)}")
+        # Always include all flags for tailscale up
         cmd = ["tailscale", "up"]
         if ts_settings.get("auth_key"):
             cmd.append(f"--authkey={ts_settings['auth_key']}")
         else:
             logger.error("No auth key provided to /api/authenticate")
             return JSONResponse({"success": False, "error": "No auth key provided."}, status_code=http_status.HTTP_400_BAD_REQUEST)
-        cmd += extra_args
+        # Always include all non-default flags
+        if ts_settings.get("hostname"):
+            cmd.append(f"--hostname={ts_settings['hostname']}")
+        # Accept routes (default True)
+        if ts_settings.get("accept_routes") is not False:
+            cmd.append("--accept-routes")
+        else:
+            cmd.append("--accept-routes=false")
+        # Advertise exit node
+        if ts_settings.get("advertise_exit_node"):
+            cmd.append("--advertise-exit-node")
+        else:
+            cmd.append("--advertise-exit-node=false")
+        # Advertise routes
+        adv_routes = ts_settings.get("advertise_routes", [])
+        if adv_routes:
+            cmd.append(f"--advertise-routes={','.join(adv_routes)}")
+        else:
+            cmd.append("--advertise-routes=")
         logger.error(f"tailscale up full command: {' '.join(cmd)}")
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)

@@ -16,25 +16,33 @@ SETTINGS_PATH = os.path.join(os.path.dirname(__file__), '..', 'tailscale_setting
 @login_required
 async def set_exit_node(request: Request):
     data = await request.json()
-    enable = data.get("enable")
-    auth_key = data.get("auth_key")
+    # Accept is_exit_node (frontend) or enable (legacy)
+    enable = data.get("is_exit_node")
     if enable is None:
-        return JSONResponse({"success": False, "error": "Missing 'enable' field."}, status_code=400)
+        enable = data.get("enable")
+    if enable is None:
+        return JSONResponse({"success": False, "error": "Missing 'is_exit_node' field."}, status_code=400)
+    # Load all settings
     try:
         with open(SETTINGS_PATH, 'r') as f:
             settings = json.load(f)
     except Exception as e:
         logger.error(f"Failed to read tailscale_settings.json: {e}")
         return JSONResponse({"success": False, "error": "Failed to read settings."}, status_code=500)
+    # Update exit node setting
     settings["advertise_exit_node"] = bool(enable)
+    # Optionally update hostname if provided
+    if "hostname" in data:
+        settings["hostname"] = data["hostname"]
+    # Save settings
     try:
         with open(SETTINGS_PATH, 'w') as f:
             json.dump(settings, f, indent=2)
     except Exception as e:
         logger.error(f"Failed to write tailscale_settings.json: {e}")
         return JSONResponse({"success": False, "error": "Failed to write settings."}, status_code=500)
-    # Use provided auth_key if present, else from settings
+    # Call authenticate_tailscale with all settings
     fake_request = Request(request.scope, receive=request.receive)
-    fake_request._json = {"auth_key": auth_key or settings.get("auth_key", "")}
+    fake_request._json = settings
     resp = await authenticate_tailscale(fake_request)
     return resp

@@ -1,3 +1,26 @@
+    saveHostname() {
+      const payload = {
+        hostname: this.device.hostname
+      };
+      this.tailscaleCtlFeedback = '';
+      fetch('/api/authenticate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          this.tailscaleCtlFeedback = 'Hostname saved!';
+          this.loadStatus();
+        } else {
+          this.tailscaleCtlFeedback = data.message || 'Failed to save hostname.';
+        }
+      })
+      .catch(() => {
+        this.tailscaleCtlFeedback = 'Network or server error.';
+      });
+    },
 
 
 window.altTailSentry = function altTailSentry() {
