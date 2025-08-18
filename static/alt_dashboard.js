@@ -49,6 +49,61 @@ function altTailSentry() {
         }
       } catch (e) { this.toastMsg('Failed to load status'); }
     },
+    // ... (remaining code omitted for brevity)
+  }
+}
+window.altTailSentry = altTailSentry;
+function altTailSentry() {
+  return {
+    darkMode: false,
+    openSettings: false,
+    peerModal: false,
+    selectedPeer: {},
+    refreshInterval: 30,
+    lastUpdated: '',
+    device: {
+      hostname: 'Loading...',
+      ip: '0.0.0.0',
+      role: 'Loading...',
+      uptime: '0m',
+      isExit: false,
+      online: false
+    },
+    net: { tx: '0.0 MB/s', rx: '0.0 MB/s', activity: 0 },
+    peers: [],
+    peerFilter: '',
+    subnets: [],
+    logs: [],
+    toast: '',
+
+    init() {
+      this.darkMode = localStorage.getItem('altDarkMode') === 'true';
+      this.loadAll();
+      setInterval(() => this.loadAll(), this.refreshInterval * 1000);
+    },
+
+    loadAll() {
+      this.loadStatus();
+      this.loadPeers();
+      this.loadSubnets();
+      this.loadTraffic();
+      this.lastUpdated = new Date().toLocaleTimeString();
+    },
+
+    async loadStatus() {
+      try {
+        const res = await fetch('/api/status');
+        if (res.ok) {
+          const data = await res.json();
+          this.device.hostname = data.Self?.HostName || 'unknown';
+          this.device.ip = data.Self?.TailscaleIPs?.[0] || '0.0.0.0';
+          this.device.role = data.Self?.Role || 'N/A';
+          this.device.uptime = this.formatUptime(data.Self?.Created);
+          this.device.isExit = data.Self?.ExitNode || false;
+          this.device.online = data.BackendState === 'Running';
+        }
+      } catch (e) { this.toastMsg('Failed to load status'); }
+    },
 
     async loadPeers() {
       try {
