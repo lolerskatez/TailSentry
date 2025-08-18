@@ -39,29 +39,31 @@ async def authenticate_tailscale(request: Request):
         if isinstance(ts_status, dict):
             self_info = ts_status.get("Self")
             if isinstance(self_info, dict):
-                # Add advertised routes if present
-                advertised_routes = self_info.get("AdvertisedRoutes", [])
-                if advertised_routes:
-                    extra_args.append(f"--advertise-routes={','.join(advertised_routes)}")
-                # Add exit node flag if present
-                capabilities = self_info.get("Capabilities", {})
-                if isinstance(capabilities, dict) and capabilities.get("ExitNode", False):
-                    extra_args.append("--advertise-exit-node")
-                # Add hostname if present
+                # Add --hostname
                 hostname = self_info.get("HostName")
                 if hostname:
                     extra_args.append(f"--hostname={hostname}")
-                # Add accept-routes if present
-                if isinstance(capabilities, dict) and capabilities.get("AcceptRoutes", False):
+                # Add --accept-routes if present
+                if self_info.get("Capabilities", {}).get("AcceptRoutes", False):
                     extra_args.append("--accept-routes")
+                # Add --advertise-exit-node if present
+                if self_info.get("Capabilities", {}).get("ExitNode", False):
+                    extra_args.append("--advertise-exit-node")
+                # Add --advertise-routes if present
+                advertised_routes = self_info.get("AdvertisedRoutes", [])
+                if advertised_routes:
+                    extra_args.append(f"--advertise-routes={','.join(advertised_routes)}")
         # Compose the command
         cmd = ["tailscale", "up", f"--authkey={auth_key}"] + extra_args
-        logger.info(f"Running tailscale up with args: {cmd}")
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        logger.info("tailscale CLI finished running")
-        logger.info(f"tailscale up returned code {result.returncode}")
-        logger.info(f"stdout: {result.stdout}")
-        logger.info(f"stderr: {result.stderr}")
+        logger.error(f"tailscale up full command: {' '.join(cmd)}")
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        except Exception as e:
+            logger.exception(f"Exception running tailscale up: {e}")
+            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+        logger.error(f"tailscale CLI finished running. Return code: {result.returncode}")
+        logger.error(f"stdout: {result.stdout}")
+        logger.error(f"stderr: {result.stderr}")
         if result.returncode == 0:
             logger.info("tailscale up succeeded")
             return {"success": True, "stdout": result.stdout}
