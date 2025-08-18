@@ -201,8 +201,8 @@ app.include_router(dashboard.router)
 try:
     from routes import authenticate
     print('IMPORT SUCCESS: routes.authenticate')
-    app.include_router(authenticate.router)
-    print('ROUTER REGISTERED: authenticate.router')
+    app.include_router(authenticate.router, prefix="/api")
+    print('ROUTER REGISTERED: authenticate.router (with /api prefix)')
 except Exception as e:
     print(f'IMPORT/ROUTER ERROR: routes.authenticate - {e}')
     import traceback
