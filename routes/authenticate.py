@@ -28,37 +28,33 @@ async def authenticate_tailscale(request: Request):
         logger.info(f"Environment PATH: {os.environ.get('PATH')}")
         logger.info("About to run tailscale CLI")
         # Get current Tailscale status to extract non-default flags
-        from tailscale_client import TailscaleClient
-        ts_status_raw = TailscaleClient.status_json()
-        # Unpack if status_json returns a tuple (data, timestamp)
-        if isinstance(ts_status_raw, tuple):
-            ts_status = ts_status_raw[0]
-        else:
-            ts_status = ts_status_raw
+        import json
+        settings_path = os.path.join(os.path.dirname(__file__), '..', 'tailscale_settings.json')
+        try:
+            with open(settings_path, 'r') as f:
+                ts_settings = json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to read tailscale_settings.json: {e}")
+            return JSONResponse({"success": False, "error": "Failed to read Tailscale settings."}, status_code=500)
+
         extra_args = []
-        if isinstance(ts_status, dict):
-            self_info = ts_status.get("Self")
-            if not isinstance(self_info, dict):
-                logger.error(f"Unexpected type for Self in Tailscale status: {type(self_info)}; value: {self_info}")
-            else:
-                logger.error(f"Full Self info for debugging: {self_info}")
-                # Add --hostname
-                hostname = self_info.get("HostName")
-                if hostname:
-                    extra_args.append(f"--hostname={hostname}")
-                # Add --accept-routes if present
-                capabilities = self_info.get("Capabilities", {})
-                if isinstance(capabilities, dict) and capabilities.get("AcceptRoutes", False):
-                    extra_args.append("--accept-routes")
-                # Add --advertise-exit-node if present
-                if isinstance(capabilities, dict) and capabilities.get("ExitNode", False):
-                    extra_args.append("--advertise-exit-node")
-                # Add --advertise-routes if present
-                advertised_routes = self_info.get("AdvertisedRoutes", [])
-                if advertised_routes:
-                    extra_args.append(f"--advertise-routes={','.join(advertised_routes)}")
+        # Build command from config
+        if ts_settings.get("hostname"):
+            extra_args.append(f"--hostname={ts_settings['hostname']}")
+        if ts_settings.get("accept_routes"):
+            extra_args.append("--accept-routes")
+        if ts_settings.get("advertise_exit_node"):
+            extra_args.append("--advertise-exit-node")
+        adv_routes = ts_settings.get("advertise_routes", [])
+        if adv_routes:
+            extra_args.append(f"--advertise-routes={','.join(adv_routes)}")
         # Compose the command
-        cmd = ["tailscale", "up", f"--authkey={auth_key}"] + extra_args
+        cmd = ["tailscale", "up"]
+        if ts_settings.get("auth_key"):
+            cmd.append(f"--authkey={ts_settings['auth_key']}")
+        elif auth_key:
+            cmd.append(f"--authkey={auth_key}")
+        cmd += extra_args
         logger.error(f"tailscale up full command: {' '.join(cmd)}")
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
