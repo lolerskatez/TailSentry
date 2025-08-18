@@ -98,6 +98,8 @@ window.altTailSentry = function altTailSentry() {
         const res = await fetch('/api/status');
         if (res.ok) {
           const data = await res.json();
+          console.log('Status API response:', data);
+          // Map fields as appropriate (update this after seeing the log)
           this.device.isExit = data.Self?.ExitNode || false;
           this.device.online = data.BackendState === 'Running';
           this.isExitNode = this.device.isExit;
