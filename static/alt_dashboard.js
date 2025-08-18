@@ -20,17 +20,16 @@ function altTailSentry() {
     peerFilter: '',
     subnets: [],
     logs: [],
-  toast: '',
-  authKey: '',
-  isExitNode: false,
-    // Settings page additions
+    toast: '',
+    // Always define these at the root for Alpine
     authKey: '',
     isExitNode: false,
 
     init() {
       this.darkMode = localStorage.getItem('altDarkMode') === 'true';
+      // Ensure authKey and isExitNode are always defined
       if (typeof this.authKey === 'undefined') this.authKey = '';
-      if (typeof this.isExitNode === 'undefined') this.isExitNode = this.device.isExit;
+      if (typeof this.isExitNode === 'undefined') this.isExitNode = false;
       this.loadAll();
       setInterval(() => this.loadAll(), this.refreshInterval * 1000);
     },
@@ -54,6 +53,8 @@ function altTailSentry() {
           this.device.uptime = this.formatUptime(data.Self?.Created);
           this.device.isExit = data.Self?.ExitNode || false;
           this.device.online = data.BackendState === 'Running';
+          // Keep isExitNode in sync with device.isExit
+          this.isExitNode = this.device.isExit;
         }
       } catch (e) { this.toastMsg('Failed to load status'); }
     },
@@ -192,8 +193,9 @@ function altTailSentry() {
     },
 
     toggleExitNode() {
-      this.device.isExit = !this.device.isExit;
-      this.toastMsg(this.device.isExit ? 'Exit node enabled (mock)' : 'Exit node disabled (mock)');
+      this.isExitNode = !this.isExitNode;
+      this.device.isExit = this.isExitNode;
+      this.toastMsg(this.isExitNode ? 'Exit node enabled (mock)' : 'Exit node disabled (mock)');
     },
 
     openSubnetModal() { this.toastMsg('Subnet management coming soon!'); },
