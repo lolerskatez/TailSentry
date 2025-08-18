@@ -168,7 +168,7 @@
     });
   };
 
-  window.altTailSentry.prototype.tailscaleDown = function() {
+  <!-- Removed broken prototype script. Alpine.js state and methods are defined in alt_dashboard.js -->
     this.tailscaleCtlFeedback = '';
     fetch('/api/down', {
       method: 'POST',
@@ -192,21 +192,19 @@
       document.addEventListener('alpine:init', () => {
         Alpine.data('altTailSentry', window.altTailSentry);
       });
-      window.altTailSentry.prototype.subnetModalOpen = false;
-      window.altTailSentry.prototype.subnetFeedback = '';
-      window.altTailSentry.prototype.allSubnets = [
+  <!-- Removed broken prototype script. Alpine.js state and methods are defined in alt_dashboard.js -->
         '10.0.0.0/8',
         '172.16.0.0/12',
         '192.168.0.0/16'
       ];
-      window.altTailSentry.prototype.toggleSubnet = function(subnet) {
+  <!-- Removed broken prototype script. Alpine.js state and methods are defined in alt_dashboard.js -->
         if (this.advertisedRoutes.includes(subnet)) {
           this.advertisedRoutes = this.advertisedRoutes.filter(s => s !== subnet);
         } else {
           this.advertisedRoutes.push(subnet);
         }
       };
-      window.altTailSentry.prototype.applySubnets = function() {
+  <!-- Removed broken prototype script. Alpine.js state and methods are defined in alt_dashboard.js -->
         const payload = {
           auth_key: this.authKey,
           hostname: this.device.hostname,
@@ -248,7 +246,7 @@
   </main>
   <script>
   // Add applyExitNode method to Alpine.js
-  window.altTailSentry.prototype.applyExitNode = function() {
+  <!-- Removed broken prototype script. Alpine.js state and methods are defined in alt_dashboard.js -->
     const payload = {
       auth_key: this.authKey,
       hostname: this.device.hostname,
@@ -280,7 +278,7 @@
     Alpine.data('altTailSentry', window.altTailSentry);
   });
 
-  window.altTailSentry.prototype.saveHostname = function() {
+  <!-- Removed broken prototype script. Alpine.js state and methods are defined in alt_dashboard.js -->
     const payload = {
       auth_key: this.authKey,
       hostname: this.device.hostname,
