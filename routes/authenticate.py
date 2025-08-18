@@ -11,7 +11,7 @@ from auth import login_required
 router = APIRouter()
 logger = logging.getLogger("tailsentry.authenticate")
 
-# ...existing endpoints...
+
 
 @router.post("/api/down")
 @login_required
@@ -38,14 +38,7 @@ async def tailscale_down(request: Request):
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from fastapi import status as http_status, Depends
-from auth import login_required
-import subprocess
-import logging
-import os
 
-router = APIRouter()
-logger = logging.getLogger("tailsentry.authenticate")
 
 @router.get("/api/test")
 async def test_authenticate_route():
