@@ -19,7 +19,9 @@ function altTailSentry() {
     peerFilter: '',
     subnets: [],
     logs: [],
-    toast: '',
+  toast: '',
+  authKey: '',
+  isExitNode: false,
     // Settings page additions
     authKey: '',
     isExitNode: false,
