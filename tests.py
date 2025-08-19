@@ -68,6 +68,37 @@ class MockSubprocess:
             return b"mocked output"
 
 class TailscaleClientTests(unittest.TestCase):
+
+    def test_missing_tailscale_binary(self):
+        """Test error when Tailscale binary is missing"""
+        # Patch get_tailscale_path to return a non-existent path
+        with patch('tailscale_client.TailscaleClient.get_tailscale_path', return_value='Z:/notfound/tailscale.exe'):
+            result = TailscaleClient.status_json()
+            self.assertIn('error', result)
+            self.assertIn('not found', result['error'])
+
+    def test_tailscale_cli_failure(self):
+        """Test error when Tailscale CLI fails to run"""
+        def fail_run(*args, **kwargs):
+            raise subprocess.CalledProcessError(1, 'tailscale')
+        with patch('subprocess.run', fail_run):
+            result = TailscaleClient.status_json()
+            self.assertIn('error', result)
+
+    def test_set_subnet_routes_empty(self):
+        """Test set_subnet_routes with empty input"""
+        result = TailscaleClient.set_subnet_routes([])
+        if self.force_live:
+            # In live mode, just check that it returns without exception
+            self.assertIsNotNone(result)
+        else:
+            self.assertIn('error', result)
+            self.assertIn('No subnets provided', result['error'])
+
+    def test_set_subnet_routes_malformed(self):
+        """Test set_subnet_routes with malformed input"""
+        result = TailscaleClient.set_subnet_routes(['not_a_cidr'])
+        self.assertIn('Invalid CIDR format', str(result))
     @classmethod
     def setUpClass(cls):
         cls.force_live = os.getenv("TAILSENTRY_FORCE_LIVE_DATA", "true").lower() == "true"
