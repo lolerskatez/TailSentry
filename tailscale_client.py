@@ -555,19 +555,17 @@ class TailscaleClient:
 
     @staticmethod
     def set_subnet_routes(routes):
-        """Set the subnet routes to advertise"""
+        """Set the subnet routes to advertise, always including all non-default flags for robust tailscale up invocation."""
         # Validate routes format
         if not isinstance(routes, list):
             logger.error("Invalid routes parameter: not a list")
             return "Routes must be a list"
-        
         # Basic CIDR validation
         cidr_pattern = re.compile(r'^(\d{1,3}\.){3}\d{1,3}/\d{1,2}$')
         for route in routes:
             if not isinstance(route, str) or not cidr_pattern.match(route):
                 logger.error(f"Invalid CIDR format: {route}")
                 return f"Invalid CIDR format: {route}"
-        
         # Further validate CIDR syntax with ipaddress module
         try:
             import ipaddress
@@ -576,9 +574,31 @@ class TailscaleClient:
         except ValueError as e:
             logger.error(f"Invalid network address: {str(e)}")
             return f"Invalid network address: {str(e)}"
-                
-        args = ["--advertise-routes", ",".join(routes)]
-        logger.info(f"Setting subnet routes: {routes}")
+
+        # Get current device info for all non-default flags
+        status = TailscaleClient.status_json()
+        self_obj = safe_get_dict(status, "Self")
+        hostname = self_obj.get("HostName") or TailscaleClient.get_hostname()
+        accept_routes = self_obj.get("AcceptRoutes", True)
+        adv_routes = list(routes)  # Only subnets, not exit node
+        # Check if this device is currently an exit node
+        adv_exit = False
+        advertised = self_obj.get("AdvertisedRoutes", [])
+        if "0.0.0.0/0" in advertised or "::/0" in advertised:
+            adv_exit = True
+
+        args = []
+        if hostname:
+            args += ["--hostname", str(hostname)]
+        if accept_routes:
+            args.append("--accept-routes")
+        else:
+            args.append("--no-accept-routes")
+        if adv_routes:
+            args += ["--advertise-routes", ",".join(adv_routes)]
+        if adv_exit:
+            args.append("--advertise-exit-node")
+        logger.info(f"Setting subnet routes with all flags: {args}")
         return TailscaleClient.up(extra_args=args)
 
     @staticmethod
