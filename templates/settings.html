@@ -165,19 +165,6 @@
           </template>
         </div>
       </div>
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        this.tailscaleCtlFeedback = 'Tailscale stopped!';
-        this.loadStatus();
-      } else {
-        this.tailscaleCtlFeedback = data.message || 'Failed to stop Tailscale.';
-      }
-    })
-    .catch((err) => {
-      console.error('tailscaleDown error:', err);
-      this.tailscaleCtlFeedback = 'Network or server error.';
-    });
   };
       // Alpine.js modal state and subnet logic
       document.addEventListener('alpine:init', () => {
