@@ -306,7 +306,12 @@ class TailscaleClient:
             current_accept_routes = True
         # Merge with requested changes
         merged_hostname = hostname or current_hostname
-        merged_adv_routes = advertised_routes if advertised_routes is not None else current_adv_routes
+        # If enabling exit node, ensure 0.0.0.0/0 is present in advertise_routes
+        merged_adv_routes = list(advertised_routes) if advertised_routes is not None else list(current_adv_routes)
+        if advertised_routes is not None and ("0.0.0.0/0" not in merged_adv_routes and "::/0" not in merged_adv_routes):
+            # Check if user is enabling exit node (by intent)
+            if firewall or (hasattr(advertised_routes, '__len__') and len(advertised_routes) == 0):
+                merged_adv_routes.append("0.0.0.0/0")
         merged_firewall = firewall if firewall is not None else False
         # Build args (match set_exit_node logic)
         args = []
