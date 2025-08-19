@@ -37,12 +37,9 @@ window.altTailSentry = function altTailSentry() {
     exitNodeLastError: '',
     exitNodeFeedback: '',
     subnetModalOpen: false,
-    allSubnets: [
-      '10.0.0.0/8',
-      '172.16.0.0/12',
-      '192.168.0.0/16'
-    ],
   allSubnets: [],
+  subnetsLoading: false,
+  subnetsChanged: false,
     subnetFeedback: '',
     // Settings UI state
     tailscaleStatus: 'unknown',
@@ -308,7 +305,11 @@ window.altTailSentry = function altTailSentry() {
       } catch (e) { this.toastMsg('Failed to load peers'); }
     },
 
+    subnetsLoading: false,
+    subnetsChanged: false,
     async loadSubnets() {
+      this.subnetsLoading = true;
+      // Load currently advertised routes
       try {
         const res = await fetch('/api/subnet-routes');
         if (res.ok) {
@@ -324,36 +325,28 @@ window.altTailSentry = function altTailSentry() {
         if (res.ok) {
           const data = await res.json();
           // data.subnets is a list of {cidr, interface, family}
-          this.allSubnets = Array.isArray(data.subnets) ? data.subnets.map(s => s.cidr) : [];
+          this.allSubnets = Array.isArray(data.subnets) ? data.subnets : [];
         }
       } catch (e) { this.allSubnets = []; }
+      this.subnetsLoading = false;
+      this.subnetsChanged = false;
     },
-
-    async loadTraffic() {
-      try {
-        const res = await fetch('/api/traffic');
-        if (res.ok) {
-          const data = await res.json();
-          this.net.tx = data.traffic?.tx_rate || '0.0 MB/s';
-          this.net.rx = data.traffic?.rx_rate || '0.0 MB/s';
-          this.net.activity = data.traffic?.activity_level || 0;
-        }
-      } catch (e) { /* ignore */ }
+    toggleSubnet(subnet) {
+      if (!this.advertisedRoutes) this.advertisedRoutes = [];
+      if (this.advertisedRoutes.includes(subnet)) {
+        this.advertisedRoutes = this.advertisedRoutes.filter(s => s !== subnet);
+      } else {
+        this.advertisedRoutes = [...this.advertisedRoutes, subnet];
+      }
+      this.subnetsChanged = true;
     },
-
-    refresh() {
-      this.loadAll();
-      this.toastMsg('Refreshed');
-    },
-
-    filteredPeers() {
-      if (!this.peerFilter) return this.peers;
-      const q = this.peerFilter.toLowerCase();
-      return this.peers.filter(p =>
-        p.hostname.toLowerCase().includes(q) ||
-        p.ip.includes(q) ||
-        (p.tags.join(' ').includes(q))
-      );
+    toggleSelectAllSubnets(e) {
+      if (e.target.checked) {
+        this.advertisedRoutes = this.allSubnets.map(s => s.cidr);
+      } else {
+        this.advertisedRoutes = [];
+      }
+      this.subnetsChanged = true;
     },
 
     formatUptime(created) {
@@ -410,8 +403,18 @@ window.altTailSentry = function altTailSentry() {
       if (this.advertisedRoutes.includes(subnet)) {
         this.advertisedRoutes = this.advertisedRoutes.filter(s => s !== subnet);
       } else {
-        this.advertisedRoutes.push(subnet);
+        this.advertisedRoutes = [...this.advertisedRoutes, subnet];
       }
+      this.subnetsChanged = true;
+    },
+
+    toggleSelectAllSubnets(e) {
+      if (e.target.checked) {
+        this.advertisedRoutes = this.allSubnets.map(s => s.cidr);
+      } else {
+        this.advertisedRoutes = [];
+      }
+      this.subnetsChanged = true;
     },
     openSubnetModal() {
       this.loadSubnets();
