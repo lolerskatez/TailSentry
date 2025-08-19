@@ -1,6 +1,9 @@
 // --- Alpine.js state and methods ---
 window.altTailSentry = function altTailSentry() {
   return {
+    init() {
+      // No-op for Alpine x-init
+    },
     // Alpine.js state and methods
     // --- Helper methods for feedback and loading ---
     setFeedback(type, msg) {
