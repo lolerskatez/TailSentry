@@ -289,30 +289,40 @@ class TailscaleClient:
     @staticmethod
     def set_exit_node_advanced(advertised_routes=None, firewall=None, hostname=None):
         """
-        Enable/disable exit node with full control over advertised routes, firewall, and hostname.
-        advertised_routes: list of routes (e.g. ["0.0.0.0/0", "::/0"])
-        firewall: bool (if True, enable firewall for exit node traffic)
-        hostname: optional string
+        Enable/disable exit node with full control, always including all non-default flags.
+        This method merges current Tailscale state with requested changes and builds a robust tailscale up command.
         """
+        import platform
+        # Get current Tailscale state
+        status = TailscaleClient.status_json()
+        self_obj = safe_get_dict(status, "Self")
+        # Gather current settings
+        current_hostname = self_obj.get("HostName") or platform.node()
+        current_adv_routes = self_obj.get("AdvertisedRoutes", [])
+        current_accept_routes = self_obj.get("Capabilities", {}).get("AcceptRoutes", True)
+        # Merge with requested changes
+        merged_hostname = hostname or current_hostname
+        merged_adv_routes = advertised_routes if advertised_routes is not None else current_adv_routes
+        merged_firewall = firewall if firewall is not None else False
+        # Build args (match set_exit_node logic)
         args = []
-        # Hostname
-        if hostname:
-            args += ["--hostname", str(hostname)]
-        # Advertised routes
-        if advertised_routes and isinstance(advertised_routes, list):
-            # Separate exit node and subnet routes
-            adv_subnets = [r for r in advertised_routes if r not in ("0.0.0.0/0", "::/0")]
-            if adv_subnets:
-                args += ["--advertise-routes", ",".join(adv_subnets)]
-            # Exit node flags
-            if "0.0.0.0/0" in advertised_routes:
-                args.append("--advertise-exit-node")
-            if "::/0" in advertised_routes:
-                args.append("--advertise-exit-node=::/0")
+        if merged_hostname:
+            args += ["--hostname", str(merged_hostname)]
+        # Accept routes (always explicit)
+        if current_accept_routes:
+            args.append("--accept-routes")
+        else:
+            args.append("--no-accept-routes")
+        # Advertised subnet routes (not exit node)
+        subnet_routes = [r for r in merged_adv_routes if r not in ("0.0.0.0/0", "::/0")]
+        if subnet_routes:
+            args += ["--advertise-routes", ",".join(subnet_routes)]
+        # Exit node flags
+        if "0.0.0.0/0" in merged_adv_routes or "::/0" in merged_adv_routes:
+            args.append("--advertise-exit-node")
         # Firewall
-        if firewall:
+        if merged_firewall:
             args.append("--exit-node-firewall")
-        # Always use up command
         logger.info(f"Running tailscale up with args: {args}")
         return TailscaleClient.up(extra_args=args)
     @staticmethod
