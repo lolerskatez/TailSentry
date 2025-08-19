@@ -28,6 +28,8 @@ window.altTailSentry = function altTailSentry() {
     subnets: [],
     logs: [],
     toast: '',
+    manualSubnet: '',
+    manualSubnetError: '',
     authKey: '',
     isExitNode: false,
     isSubnetRouting: false,
