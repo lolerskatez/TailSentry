@@ -622,23 +622,29 @@ class TailscaleClient:
         if not isinstance(adv_routes, list):
             adv_routes = []
 
+        # Always merge with current status to ensure all non-default flags are present
+        status = TailscaleClient.status_json()
+        self_obj = safe_get_dict(status, "Self")
+        current_adv_routes = self_obj.get("AdvertisedRoutes", [])
+        # Always preserve all current subnet routes
+        subnet_routes = [r for r in set(adv_routes + [r for r in current_adv_routes if r not in ("0.0.0.0/0", "::/0")])]  # dedup
+        # Always preserve exit node advertising if currently enabled or requested
+        adv_exit = enable or any(r in current_adv_routes for r in ("0.0.0.0/0", "::/0"))
+
         args = []
-        # Always set hostname
         if hostname:
             args += ["--hostname", str(hostname)]
-        # Always set accept-routes
         if accept_routes:
             args.append("--accept-routes")
         else:
             args.append("--no-accept-routes")
-        # Always set advertised routes (subnets only)
-        subnet_routes = [r for r in adv_routes if r not in ("0.0.0.0/0", "::/0")]
         if subnet_routes:
             args += ["--advertise-routes", ",".join(subnet_routes)]
-        # Always set exit node flag(s)
-        if enable:
+        # Only add --advertise-exit-node if enabling or currently enabled
+        if adv_exit:
             args.append("--advertise-exit-node")
-        else:
+        # If disabling exit node and no subnets, use --reset
+        if not enable and not subnet_routes:
             args.append("--reset")
         logger.info(f"{'Enabling' if enable else 'Disabling'} exit node functionality with args: {args}")
         return TailscaleClient.up(extra_args=args)
