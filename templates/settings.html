@@ -190,14 +190,25 @@
       </div>
       <!-- Subnet Modal -->
       <div x-show="subnetModalOpen" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 w-96">
-          <div class="font-semibold mb-2 text-indigo-700">Select Subnets to Advertise</div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 w-[420px] min-h-[320px] relative">
+          <div class="font-semibold mb-2 text-indigo-700 flex items-center gap-2">
+            Select Subnets to Advertise
+            <span class="ml-auto" x-show="subnetsLoading"><svg class="animate-spin h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg></span>
+          </div>
           <template x-if="allSubnets && allSubnets.length">
             <div class="flex flex-col gap-2 mb-4">
-              <template x-for="subnet in allSubnets" :key="subnet">
-                <label class="flex items-center gap-2">
-                  <input type="checkbox" :value="subnet" :checked="advertisedRoutes.includes(subnet)" @change="toggleSubnet(subnet)">
-                  <span x-text="subnet"></span>
+              <label class="flex items-center gap-2 font-semibold text-xs mb-1">
+                <input type="checkbox" @change="toggleSelectAllSubnets($event)" :checked="allSubnets.every(s => advertisedRoutes.includes(s.cidr))">
+                Select All
+              </label>
+              <template x-for="subnet in allSubnets" :key="subnet.cidr">
+                <label class="flex items-center gap-2 text-sm">
+                  <input type="checkbox" :value="subnet.cidr" :checked="advertisedRoutes.includes(subnet.cidr)" @change="toggleSubnet(subnet.cidr)">
+                  <span class="font-mono" x-text="subnet.cidr"></span>
+                  <span class="text-xs text-gray-500 ml-1" x-text="subnet.interface"></span>
+                  <span class="text-xs text-gray-400 ml-1" x-text="subnet.family"></span>
+                  <span class="ml-2 text-xs text-yellow-600" x-show="subnet.cidr.endsWith('/32')">/32</span>
+                  <span class="ml-2 text-xs text-red-500" x-show="!subnet.cidr.startsWith('10.') && !subnet.cidr.startsWith('192.168.') && !subnet.cidr.startsWith('172.')">Public?</span>
                 </label>
               </template>
             </div>
@@ -205,8 +216,8 @@
           <template x-if="!allSubnets || !allSubnets.length">
             <div class="text-xs text-gray-400 italic mb-4">No local subnets detected on this device.</div>
           </template>
-          <div class="flex gap-2 justify-end">
-            <button @click="applySubnets()" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">Apply</button>
+          <div class="flex gap-2 justify-end mt-2">
+            <button @click="applySubnets()" :disabled="!advertisedRoutes.length || !subnetsChanged" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">Apply</button>
             <button @click="subnetModalOpen = false" class="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500">Cancel</button>
           </div>
           <template x-if="subnetFeedback">
