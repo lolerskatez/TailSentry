@@ -183,47 +183,5 @@
       <div class="text-xs text-gray-500 dark:text-gray-400">Access logs and diagnostic information for troubleshooting.</div>
     </div>
   </main>
-  <script>
-  // ...existing code...
-    // (getPersistedAuthKey and store logic remain as previously patched)
-    // (removed Alpine patching code)
-
-  document.addEventListener('alpine:init', () => {
-    Alpine.store('exitNode', {
-      feedback: '',
-      applying: false,
-      async applyExitNode(isExitNode, authKey) {
-        this.feedback = '';
-        this.applying = true;
-        // Use the provided authKey, or try to get from localStorage
-        let keyToUse = authKey || getPersistedAuthKey();
-        if (!keyToUse) {
-          this.applying = false;
-          this.feedback = 'No auth key available. Please authenticate first.';
-          return;
-        }
-        try {
-          const res = await fetch('/api/exit-node', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              enable: isExitNode,
-              auth_key: keyToUse
-            })
-          });
-          const data = await res.json();
-          if (res.ok && data.success) {
-            this.feedback = 'Exit Node setting applied!';
-          } else {
-            this.feedback = data.message || 'Failed to apply Exit Node setting.';
-          }
-        } catch (e) {
-          this.feedback = 'Error: ' + e;
-        }
-        this.applying = false;
-      }
-    });
-  });
-  </script>
-</body>
+  </body>
 </html>
