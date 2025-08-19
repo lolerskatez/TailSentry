@@ -1,3 +1,37 @@
+## Contributing & Developer Onboarding
+
+### Quick Setup
+1. Copy `.env.example` to `.env` and fill in required values (see comments in the file).
+2. Install Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. (Optional) Install frontend test dependencies:
+   ```bash
+   npm install --save-dev jest @testing-library/dom @testing-library/jest-dom
+   ```
+4. Run backend tests:
+   ```bash
+   python -m unittest tests.py
+   ```
+5. Run frontend tests:
+   ```bash
+   npx jest static/alt_dashboard.test.js
+   ```
+
+### Troubleshooting
+- If you see platform or bytes/string errors, ensure you are not globally mocking subprocess or platform internals in live mode.
+- For Tailscale CLI errors, check that the binary is installed and in your PATH.
+- For session/auth issues, ensure `SESSION_SECRET` is set and cookies are enabled in your browser.
+- For rate limiting or CORS issues, check your `.env` and FastAPI middleware settings.
+
+### How to Contribute
+- Fork the repo and create a feature branch.
+- Add or update tests for your changes.
+- Run all tests and ensure they pass in both live and mock modes.
+- Open a pull request with a clear description of your changes and testing steps.
+
+We welcome improvements to security, UI/UX, documentation, and test coverage!
 ## Testing & Development
 
 ### Running Tests

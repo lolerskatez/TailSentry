@@ -168,10 +168,17 @@ from fastapi import Body
 @login_required
 async def set_subnet_routes(request: Request, payload: dict = Body(...)):
     """Set advertised subnet routes"""
+    import ipaddress
     try:
         routes = payload.get("routes")
         if not isinstance(routes, list):
             return {"success": False, "error": "'routes' must be a list of CIDR strings"}
+        # Strictly validate each subnet as a valid CIDR
+        for subnet in routes:
+            try:
+                ipaddress.ip_network(subnet, strict=False)
+            except Exception:
+                return {"success": False, "error": f"Invalid subnet: {subnet}"}
         result = TailscaleClient.set_subnet_routes(routes)
         # If set_subnet_routes returns a string, it's an error
         if isinstance(result, str) and result.lower().startswith("invalid"):
