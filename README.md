@@ -89,6 +89,7 @@ A secure, minimal FastAPI + TailwindCSS dashboard for managing a Tailscale subne
    - Open http://localhost:8080 in your browser
    - Complete the onboarding wizard to set up your admin account
 
+
 For manual installation or development setup:
 ```bash
 git clone https://github.com/lolerskatez/TailSentry.git
@@ -99,6 +100,28 @@ pip install -r requirements.txt
 uvicorn main:app --host 0.0.0.0 --port 8080
 ```
 
+## Project Structure
+
+- `config/` — All configuration and environment files (`.env`, `tailscale_settings.json`, etc.)
+- `services/` — Core business logic modules (e.g., `tailscale_service.py`, `rbac_service.py`)
+- `routes/` — API route handlers
+- `middleware/` — Custom FastAPI middleware
+- `static/`, `templates/` — Frontend assets and HTML templates
+- `tests/` — Automated test suite (`tests.py`), with manual/diagnostic scripts in `tests/manual/`
+- `scripts/` — Deployment, backup, and test scripts
+
+## Configuration
+
+All environment and config files are now in the `config/` directory. Update your `.env` and `tailscale_settings.json` there. Scripts and services reference these new paths.
+
+## Running Tests
+
+Run all automated tests:
+```bash
+python -m unittest tests.py
+```
+
+Manual/diagnostic scripts are in `tests/manual/` (see `test_real_data.py`, `test_auth_api.py`, etc.).
 The first time you run TailSentry, you'll be prompted to create an admin account. This will automatically generate a secure session key and store your credentials safely.
 
 ## Deployment

@@ -47,7 +47,7 @@ scheduler = BackgroundScheduler()
 # Background tasks
 def update_status_cache():
     """Update cached Tailscale status"""
-    from tailscale_client import TailscaleClient
+    from services.tailscale_service import TailscaleClient
     try:
         logger.debug("Updating Tailscale status cache...")
         status = TailscaleClient.status_json()

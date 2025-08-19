@@ -62,13 +62,10 @@ def test_api_endpoints():
 def test_tailscale_direct():
     """Test direct Tailscale client access"""
     print("Testing direct TailscaleClient access...\n")
-    
+    from services.tailscale_service import TailscaleClient
     try:
-        from tailscale_client import TailscaleClient
-        
         print("Getting Tailscale status directly...")
         status = TailscaleClient.status_json()
-        
         if isinstance(status, dict):
             if "error" in status:
                 print(f"❌ Error: {status['error']}")
@@ -76,7 +73,6 @@ def test_tailscale_direct():
                 hostname = status["Self"].get("HostName", "unknown")
                 peer_count = len(status.get("Peer", {}))
                 print(f"✅ Direct access works: {hostname} with {peer_count} peers")
-                
                 # Check for signs of mock data
                 if hostname == "tailscale-server" and peer_count == 3:
                     print("⚠️ This looks like mock data")
@@ -87,7 +83,6 @@ def test_tailscale_direct():
                 print(f"Keys available: {list(status.keys())}")
         else:
             print(f"❌ Invalid response type: {type(status)}")
-            
     except Exception as e:
         print(f"❌ Direct access failed: {e}")
 

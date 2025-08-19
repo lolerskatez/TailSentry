@@ -2,7 +2,7 @@
 import time
 from fastapi import APIRouter, Request, HTTPException, Depends
 from middleware.monitoring import MonitoringMiddleware
-from rbac import requires_permission
+from services.rbac_service import requires_permission
 
 router = APIRouter()
 

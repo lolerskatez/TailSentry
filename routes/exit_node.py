@@ -10,7 +10,7 @@ from .authenticate import authenticate_tailscale
 router = APIRouter()
 logger = logging.getLogger("tailsentry.exit_node")
 
-SETTINGS_PATH = os.path.join(os.path.dirname(__file__), '..', 'tailscale_settings.json')
+SETTINGS_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
 
 @router.post("/api/exit-node")
 @login_required
@@ -47,7 +47,7 @@ async def set_exit_node(request: Request):
         return JSONResponse({"success": False, "error": f"Failed to write settings: {e}"}, status_code=500)
 
     # Actually apply exit node settings at the Tailscale service level
-    from tailscale_client import TailscaleClient
+    from services.tailscale_service import TailscaleClient
     try:
         # Use new set_exit_node_advanced for full control if implemented, else fallback
         if hasattr(TailscaleClient, 'set_exit_node_advanced'):

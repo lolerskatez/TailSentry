@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from pydantic import BaseModel
 from auth import login_required
-from tailscale_client import TailscaleClient
+from services.tailscale_service import TailscaleClient
 import logging
 
 router = APIRouter()

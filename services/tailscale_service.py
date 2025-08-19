@@ -632,7 +632,7 @@ class TailscaleClient:
         import platform
         if settings is None:
             # Fallback: load from file if not provided
-            settings_path = os.path.join(os.path.dirname(__file__), 'tailscale_settings.json')
+            settings_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
             try:
                 with open(settings_path, 'r') as f:
                     settings = json.load(f)

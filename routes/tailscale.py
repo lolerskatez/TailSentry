@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Form
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from auth import login_required
-from tailscale_client import TailscaleClient
+from services.tailscale_service import TailscaleClient
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")

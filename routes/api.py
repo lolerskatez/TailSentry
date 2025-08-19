@@ -5,7 +5,7 @@ from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from auth import login_required
-from tailscale_client import TailscaleClient
+from services.tailscale_service import TailscaleClient
 import asyncio
 import json
 import logging
@@ -41,7 +41,7 @@ import time
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from auth import login_required
-from tailscale_client import TailscaleClient
+from services.tailscale_service import TailscaleClient
 import asyncio
 import json
 import logging

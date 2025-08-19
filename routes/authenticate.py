@@ -29,7 +29,7 @@ async def save_auth_key(request: Request):
         key = data.get("auth_key")
         if not key:
             return JSONResponse({"success": False, "error": "No authentication key provided."}, status_code=400)
-        settings_path = os.path.join(os.path.dirname(__file__), '..', 'tailscale_settings.json')
+        settings_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
         try:
             with open(settings_path, 'r') as f:
                 ts_settings = json.load(f)
@@ -60,7 +60,7 @@ async def authenticate_tailscale(request: Request):
     logger.info("/api/authenticate called")
     try:
         import json
-        settings_path = os.path.join(os.path.dirname(__file__), '..', 'tailscale_settings.json')
+        settings_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
         data = await request.json()
         logger.info(f"Request JSON: {data}")
         # Update settings file with any provided values
