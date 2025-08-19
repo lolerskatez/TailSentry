@@ -1,3 +1,42 @@
+
+import os
+import time
+from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import JSONResponse
+from auth import login_required
+from tailscale_client import TailscaleClient
+import asyncio
+import json
+import logging
+
+router = APIRouter()
+templates = Jinja2Templates(directory="templates")
+logger = logging.getLogger("tailsentry.ws")
+
+# Store active websocket connections
+active_connections = []
+
+# Logs & Diagnostics API endpoint (after all imports and router definition)
+@router.get("/logs")
+@login_required
+async def get_logs(request: Request):
+    """Return the last N lines of the main log file for diagnostics."""
+    try:
+        lines = int(request.query_params.get('lines', 100))
+    except Exception:
+        lines = 100
+    log_path = os.path.join(os.path.dirname(__file__), '..', 'logs', 'tailsentry.log')
+    try:
+        if not os.path.exists(log_path):
+            return {"logs": "Log file not found."}
+        with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+            all_lines = f.readlines()
+            last_lines = all_lines[-lines:] if lines > 0 else all_lines
+        return {"logs": ''.join(last_lines)}
+    except Exception as e:
+        logger.error(f"Failed to read logs: {e}")
+        return {"logs": f"Error reading logs: {e}"}
 import time
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
