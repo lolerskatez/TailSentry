@@ -174,31 +174,31 @@ TAILSCALE_PATH=$TAILSCALE_PATH
 EOF
     fi
     
-    # Prompt for Tailscale PAT
+    # Prompt for Tailscale Authentication Key
     clear
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BLUE}🔧 TailSentry Configuration${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
-    echo "📝 TailSentry requires a Tailscale Personal Access Token (PAT) to manage"
+    echo "📝 TailSentry requires a Tailscale Authentication Key to manage"
     echo "   your Tailscale network. You can:"
     echo ""
     echo "   • Enter it now for full functionality"
     echo "   • Skip it and configure later in the dashboard"
     echo ""
-    echo "🔗 Get your PAT at: https://login.tailscale.com/admin/settings/keys"
+    echo "🔗 Get your Tailscale Authentication Key at: https://login.tailscale.com/admin/settings/keys"
     echo ""
-    read -s -p "🔑 Enter Tailscale Personal Access Token (or press Enter to skip): " TS_PAT
+    read -s -p "🔑 Enter Tailscale Authentication Key (or press Enter to skip): " TS_AUTHKEY
     echo
     
     # Use Python to update .env file
-    TS_PAT="$TS_PAT" python3 << EOF
+    TS_AUTHKEY="$TS_AUTHKEY" python3 << EOF
 import secrets
 import bcrypt
 import os
 
-# Get the Tailscale PAT from environment if provided
-ts_pat = os.environ.get('TS_PAT', '')
+# Get the Tailscale Authentication Key from environment if provided
+ts_authkey = os.environ.get('TS_AUTHKEY', '')
 
 # Read .env file
 try:
@@ -215,9 +215,9 @@ password_hash = bcrypt.hashpw(default_password.encode(), bcrypt.gensalt()).decod
 # Replace or set password hash
 content = content.replace('ADMIN_PASSWORD_HASH=', f'ADMIN_PASSWORD_HASH={password_hash}')
 
-# Add Tailscale PAT if provided
-if ts_pat:
-    content = content.replace('TAILSCALE_PAT=', f'TAILSCALE_PAT={ts_pat}')
+# Add Tailscale Authentication Key if provided
+if ts_authkey:
+    content = content.replace('TAILSCALE_AUTHKEY=', f'TAILSCALE_AUTHKEY={ts_authkey}')
 
 # Make sure Tailscale path is set
 if "TAILSCALE_PATH=" not in content:
