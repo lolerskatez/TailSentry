@@ -190,8 +190,9 @@
       </div>
       <!-- Subnet Modal -->
       <div x-show="subnetModalOpen" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40" role="dialog" aria-modal="true" aria-labelledby="subnet-routing-title">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 w-[420px] min-h-[320px] relative" tabindex="0">
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 w-[420px] min-h-[320px] relative" tabindex="0" role="document" aria-describedby="subnet-modal-desc" @keydown.escape.window="subnetModalOpen = false" x-trap.noscroll="subnetModalOpen">
           <div class="font-semibold mb-2 text-indigo-700 flex items-center gap-2">
+            <span id="subnet-modal-desc" class="sr-only">Select subnets to advertise. Use Tab to navigate, Space to select, and Escape to close.</span>
             Select Subnets to Advertise
             <span class="ml-auto" x-show="subnetsLoading"><svg class="animate-spin h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg></span>
           </div>
@@ -203,7 +204,7 @@
                 <button @click="addManualSubnet()" class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs" aria-label="Add Subnet">Add</button>
               </div>
               <template x-if="manualSubnetError">
-                <div class="text-xs text-red-600 mb-1" x-text="manualSubnetError"></div>
+                <div class="text-xs text-red-600 mb-1" x-text="manualSubnetError" role="alert" aria-live="assertive"></div>
               </template>
               <label class="flex items-center gap-2 font-semibold text-xs mb-1">
                 <input type="checkbox" @change="toggleSelectAllSubnets($event)" :checked="allSubnets.every(s => advertisedRoutes.includes(s.cidr))">
@@ -225,11 +226,11 @@
             <div class="text-xs text-gray-400 italic mb-4">No local subnets detected on this device.</div>
           </template>
           <div class="flex gap-2 justify-end mt-2">
-            <button @click="applySubnets()" :disabled="!advertisedRoutes.length || !subnetsChanged || subnetApplyLoading" :aria-busy="subnetApplyLoading" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">Apply</button>
+            <button @click="applySubnets()" :disabled="!advertisedRoutes.length || !subnetsChanged || subnetApplyLoading" :aria-busy="subnetApplyLoading" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Apply Subnet Routes">Apply</button>
             <button @click="subnetModalOpen = false" class="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500" aria-label="Cancel Subnet Modal">Cancel</button>
           </div>
           <template x-if="subnetFeedback">
-            <div class="mt-2 text-xs font-semibold" :class="subnetFeedback.includes('applied') ? 'text-green-600' : 'text-red-600'" x-text="subnetFeedback"></div>
+            <div class="mt-2 text-xs font-semibold" :class="subnetFeedback.includes('applied') ? 'text-green-600' : 'text-red-600'" x-text="subnetFeedback" role="status" aria-live="polite"></div>
           </template>
         </div>
       </div>
