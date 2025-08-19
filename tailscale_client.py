@@ -585,6 +585,13 @@ class TailscaleClient:
             adv_routes = []
             settings["advertise_routes"] = []
 
+        # Persist updated settings (with defaults) before running tailscale up
+        try:
+            with open(settings_path, 'w') as f:
+                json.dump(settings, f, indent=2)
+        except Exception as e:
+            logger.error(f"Failed to write tailscale_settings.json: {e}")
+
         args = []
         # Always set hostname
         if hostname:
