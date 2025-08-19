@@ -436,6 +436,7 @@ window.altTailSentry = function altTailSentry() {
         const data = await res.json();
         if (data.success) {
           this.subnetFeedback = 'Subnet routes applied!';
+          this.toastMsg('Subnet routes applied!');
           this.subnetModalOpen = false;
           this.loadStatus();
         } else {
