@@ -30,8 +30,7 @@ window.altTailSentry = function altTailSentry() {
     isExitNode: false,
     isSubnetRouting: false,
     advertisedRoutes: [],
-    advertiseIPv4Exit: false,
-    advertiseIPv6Exit: false,
+  // Removed advertiseIPv4Exit and advertiseIPv6Exit
     exitNodeFirewall: false, // UI only
     exitNodePeerCount: 0,
     exitNodeLastChanged: '',
@@ -52,12 +51,10 @@ window.altTailSentry = function altTailSentry() {
     tailscaleCtlFeedback: '',
     applyExitNodeAdvanced: async function() {
       // Build advertised routes array
-      const routes = [];
-      if (this.advertiseIPv4Exit) routes.push('0.0.0.0/0');
-      if (this.advertiseIPv6Exit) routes.push('::/0');
-      // Add any other advertised routes
-      for (const r of this.advertisedRoutes) {
-        if (!routes.includes(r) && r !== '0.0.0.0/0' && r !== '::/0') routes.push(r);
+      // Only advertise exit node if enabled
+      let routes = [];
+      if (this.isExitNode) {
+        routes = ['0.0.0.0/0', '::/0'];
       }
       const payload = {
         advertised_routes: routes,
@@ -244,11 +241,7 @@ window.altTailSentry = function altTailSentry() {
           // Check if AdvertisedRoutes contains 0.0.0.0/0 or ::/0 (exit node)
           const advRoutes = Array.isArray(self.AdvertisedRoutes) ? self.AdvertisedRoutes : [];
           this.advertisedRoutes = advRoutes;
-          const isIPv4Exit = advRoutes.includes('0.0.0.0/0');
-          const isIPv6Exit = advRoutes.includes('::/0');
-          this.advertiseIPv4Exit = isIPv4Exit;
-          this.advertiseIPv6Exit = isIPv6Exit;
-          const isExitNode = isIPv4Exit || isIPv6Exit;
+          const isExitNode = advRoutes.includes('0.0.0.0/0') || advRoutes.includes('::/0');
           this.device.isExit = isExitNode;
           this.device.online = data.BackendState === 'Running';
           this.isExitNode = isExitNode;

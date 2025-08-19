@@ -120,11 +120,9 @@
         <span class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" x-text="advertisedRoutes.join(', ')"></span>
       </div>
       <div class="flex flex-wrap gap-4 items-center mb-2">
-        <label class="flex items-center gap-1 text-xs">
-          <input type="checkbox" x-model="advertiseIPv4Exit" class="h-4 w-4"> IPv4 Exit (0.0.0.0/0)
-        </label>
-        <label class="flex items-center gap-1 text-xs">
-          <input type="checkbox" x-model="advertiseIPv6Exit" class="h-4 w-4"> IPv6 Exit (::/0)
+        <label class="flex items-center gap-2 text-xs font-semibold">
+          <input type="checkbox" x-model="isExitNode" class="h-5 w-5">
+          <span x-text="isExitNode ? 'Exit Node Enabled' : 'Exit Node Disabled'"></span>
         </label>
         <label class="flex items-center gap-1 text-xs">
           <input type="checkbox" x-model="exitNodeFirewall" class="h-4 w-4"> Firewall
