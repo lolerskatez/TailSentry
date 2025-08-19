@@ -47,8 +47,8 @@ async def set_exit_node(request: Request):
         return JSONResponse({"success": False, "error": f"Failed to write settings: {e}"}, status_code=500)
 
     # Actually apply exit node settings at the Tailscale service level
+    from tailscale_client import TailscaleClient
     try:
-        from tailscale_client import TailscaleClient
         # Use new set_exit_node_advanced for full control if implemented, else fallback
         if hasattr(TailscaleClient, 'set_exit_node_advanced'):
             result = TailscaleClient.set_exit_node_advanced(
@@ -64,27 +64,14 @@ async def set_exit_node(request: Request):
                 enable = '0.0.0.0/0' in adv_routes or '::/0' in adv_routes
             result = TailscaleClient.set_exit_node(enable, settings=merged)
         logger.info(f"TailscaleClient.set_exit_node result: {result}")
-        # If result is not True, treat as error (result may be error string or False)
+        # Always return the latest status and any error
+        status = TailscaleClient.status_json()
         if result is not True:
             logger.error(f"Exit node operation failed: {result}")
-            return JSONResponse({"success": False, "error": str(result)}, status_code=500)
+            return JSONResponse({"success": False, "error": str(result), "status": status}, status_code=500)
+        # Success: return updated status
+        return JSONResponse({"success": True, "message": "Exit node setting applied!", "status": status})
     except Exception as e:
         logger.error(f"Failed to set exit node via TailscaleClient: {e}", exc_info=True)
-        return JSONResponse({"success": False, "error": f"Failed to set exit node: {e}"}, status_code=500)
-
-    # Call authenticate_tailscale with all settings (to ensure settings are applied)
-    try:
-        fake_request = Request(request.scope, receive=request.receive)
-        fake_request._json = merged
-        resp = await authenticate_tailscale(fake_request)
-    except Exception as e:
-        logger.error(f"Failed to authenticate tailscale after exit node change: {e}", exc_info=True)
-        return JSONResponse({"success": False, "error": f"Failed to authenticate tailscale: {e}"}, status_code=500)
-    # Return new state for frontend sync
-    try:
-        with open(SETTINGS_PATH, 'r') as f:
-            new_settings = json.load(f)
-    except Exception as e:
-        logger.error(f"Failed to reload settings after exit node change: {e}", exc_info=True)
-        new_settings = merged
-    return JSONResponse({"success": True, "settings": new_settings})
+        status = TailscaleClient.status_json()
+        return JSONResponse({"success": False, "error": f"Failed to set exit node: {e}", "status": status}, status_code=500)
