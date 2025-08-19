@@ -22,9 +22,15 @@ window.altTailSentry = function altTailSentry() {
     logs: [],
     toast: '',
     authKey: '',
-    isExitNode: false,
-    isSubnetRouting: false,
-    advertisedRoutes: [],
+  isExitNode: false,
+  isSubnetRouting: false,
+  advertisedRoutes: [],
+  advertiseIPv4Exit: false,
+  advertiseIPv6Exit: false,
+  exitNodeFirewall: false, // UI only
+  exitNodePeerCount: 0,
+  exitNodeLastChanged: '',
+  exitNodeLastError: '',
     // Settings UI state
     tailscaleStatus: 'unknown',
     tailscaleIp: '',
@@ -259,11 +265,69 @@ window.altTailSentry = function altTailSentry() {
           this.device.uptime = this.formatUptime(self.Created || null);
           // Check if AdvertisedRoutes contains 0.0.0.0/0 or ::/0 (exit node)
           const advRoutes = Array.isArray(self.AdvertisedRoutes) ? self.AdvertisedRoutes : [];
-          const isExitNode = advRoutes.includes('0.0.0.0/0') || advRoutes.includes('::/0');
+          this.advertisedRoutes = advRoutes;
+          const isIPv4Exit = advRoutes.includes('0.0.0.0/0');
+          const isIPv6Exit = advRoutes.includes('::/0');
+          this.advertiseIPv4Exit = isIPv4Exit;
+          this.advertiseIPv6Exit = isIPv6Exit;
+          const isExitNode = isIPv4Exit || isIPv6Exit;
           this.device.isExit = isExitNode;
           this.device.online = data.BackendState === 'Running';
           this.isExitNode = isExitNode;
           this.device.subnetRoutes = (self.AllowedIPs && self.AllowedIPs.length) || 0;
+          // Peers using this as exit node (count peers with ExitNode == this device's ID)
+          const myId = self.ID;
+          let peerCount = 0;
+          if (data.Peer && myId) {
+            for (const peerId in data.Peer) {
+              const peer = data.Peer[peerId];
+              if (peer.ExitNode === myId) peerCount++;
+            }
+          }
+          this.exitNodePeerCount = peerCount;
+          // Last changed and last error/log (UI only, could be improved with backend support)
+          this.exitNodeLastChanged = localStorage.getItem('exitNodeLastChanged') || '';
+          this.exitNodeLastError = localStorage.getItem('exitNodeLastError') || '';
+    // Advanced Exit Node apply
+    async applyExitNodeAdvanced() {
+      // Build advertised routes array
+      const routes = [];
+      if (this.advertiseIPv4Exit) routes.push('0.0.0.0/0');
+      if (this.advertiseIPv6Exit) routes.push('::/0');
+      // Add any other advertised routes
+      for (const r of this.advertisedRoutes) {
+        if (!routes.includes(r) && r !== '0.0.0.0/0' && r !== '::/0') routes.push(r);
+      }
+      const payload = {
+        advertised_routes: routes,
+        hostname: this.device.hostname,
+        firewall: this.exitNodeFirewall // UI only, backend can ignore or use
+      };
+      this.exitNodeFeedback = '';
+      try {
+        const res = await fetch('/api/exit-node', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          this.exitNodeFeedback = 'Exit node setting applied!';
+          const now = new Date().toLocaleString();
+          this.exitNodeLastChanged = now;
+          localStorage.setItem('exitNodeLastChanged', now);
+        } else {
+          this.exitNodeFeedback = data.message || 'Failed to apply Exit Node setting.';
+          this.exitNodeLastError = this.exitNodeFeedback;
+          localStorage.setItem('exitNodeLastError', this.exitNodeFeedback);
+        }
+      } catch (e) {
+        this.exitNodeFeedback = 'Network or server error.';
+        this.exitNodeLastError = this.exitNodeFeedback;
+        localStorage.setItem('exitNodeLastError', this.exitNodeFeedback);
+      }
+      this.loadStatus();
+    },
           // Extra: user, DNS, version for settings if needed
           this.device.user = (data.User && (data.User.DisplayName || data.User.LoginName)) || '';
           this.device.magicDnsSuffix = data.MagicDNSSuffix || '';
@@ -422,6 +486,46 @@ window.altTailSentry = function altTailSentry() {
       }
     },
     // ...existing code...
+    // Advanced Exit Node apply
+    async applyExitNodeAdvanced() {
+      // Build advertised routes array
+      const routes = [];
+      if (this.advertiseIPv4Exit) routes.push('0.0.0.0/0');
+      if (this.advertiseIPv6Exit) routes.push('::/0');
+      // Add any other advertised routes
+      for (const r of this.advertisedRoutes) {
+        if (!routes.includes(r) && r !== '0.0.0.0/0' && r !== '::/0') routes.push(r);
+      }
+      const payload = {
+        advertised_routes: routes,
+        hostname: this.device.hostname,
+        firewall: this.exitNodeFirewall // UI only, backend can ignore or use
+      };
+      this.exitNodeFeedback = '';
+      try {
+        const res = await fetch('/api/exit-node', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          this.exitNodeFeedback = 'Exit node setting applied!';
+          const now = new Date().toLocaleString();
+          this.exitNodeLastChanged = now;
+          localStorage.setItem('exitNodeLastChanged', now);
+        } else {
+          this.exitNodeFeedback = data.message || 'Failed to apply Exit Node setting.';
+          this.exitNodeLastError = this.exitNodeFeedback;
+          localStorage.setItem('exitNodeLastError', this.exitNodeFeedback);
+        }
+      } catch (e) {
+        this.exitNodeFeedback = 'Network or server error.';
+        this.exitNodeLastError = this.exitNodeFeedback;
+        localStorage.setItem('exitNodeLastError', this.exitNodeFeedback);
+      }
+      this.loadStatus();
+    },
   // Removed toggleExitNode: always use backend state
     openSubnetModal() { this.toastMsg('Subnet management coming soon!'); },
     openKeyModal() { this.toastMsg('Key management coming soon!'); },
