@@ -299,7 +299,11 @@ class TailscaleClient:
         # Gather current settings
         current_hostname = self_obj.get("HostName") or platform.node()
         current_adv_routes = self_obj.get("AdvertisedRoutes", [])
-        current_accept_routes = self_obj.get("Capabilities", {}).get("AcceptRoutes", True)
+        capabilities = self_obj.get("Capabilities", {})
+        if isinstance(capabilities, dict):
+            current_accept_routes = capabilities.get("AcceptRoutes", True)
+        else:
+            current_accept_routes = True
         # Merge with requested changes
         merged_hostname = hostname or current_hostname
         merged_adv_routes = advertised_routes if advertised_routes is not None else current_adv_routes
