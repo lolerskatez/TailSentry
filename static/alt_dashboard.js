@@ -49,6 +49,20 @@ window.altTailSentry = function altTailSentry() {
     authFeedback: '',
     authSuccess: false,
     tailscaleCtlFeedback: '',
+    // Peer filtering and refresh methods for dashboard
+    filteredPeers() {
+      if (!this.peerFilter) return this.peers;
+      const filter = this.peerFilter.toLowerCase();
+      return this.peers.filter(peer =>
+        (peer.hostname && peer.hostname.toLowerCase().includes(filter)) ||
+        (peer.ip && peer.ip.toLowerCase().includes(filter)) ||
+        (peer.os && peer.os.toLowerCase().includes(filter)) ||
+        (peer.tags && peer.tags.join(',').toLowerCase().includes(filter))
+      );
+    },
+    refresh() {
+      this.loadAll();
+    },
     applyExitNodeAdvanced: async function() {
       // Build advertised routes array
       // Only advertise exit node if enabled
