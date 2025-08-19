@@ -113,8 +113,9 @@ window.altTailSentry = function altTailSentry() {
       } finally {
         this.exitNodeLoading = false;
       }
-      // Always refresh the real state from backend after apply
-      this.loadStatus();
+  // Always refresh the real state from backend after apply
+  await this.loadStatus();
+  await this.loadSubnets();
     },
 
     // Tailscale Up/Down methods for settings page
