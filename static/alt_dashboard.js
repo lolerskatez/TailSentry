@@ -257,10 +257,12 @@ window.altTailSentry = function altTailSentry() {
           this.device.ip = (self.TailscaleIPs && self.TailscaleIPs[0]) || '0.0.0.0';
           this.device.role = self.OS || 'Unknown';
           this.device.uptime = this.formatUptime(self.Created || null);
-          // Use Capabilities.ExitNode to determine if this device is advertising as an exit node
-          this.device.isExit = !!(self.Capabilities && self.Capabilities.ExitNode);
+          // Check if Capabilities array contains the exit node capability string
+          const caps = Array.isArray(self.Capabilities) ? self.Capabilities : [];
+          const isExitNodeCap = caps.includes('https://tailscale.com/cap/exit-node');
+          this.device.isExit = isExitNodeCap;
           this.device.online = data.BackendState === 'Running';
-          this.isExitNode = !!(self.Capabilities && self.Capabilities.ExitNode);
+          this.isExitNode = isExitNodeCap;
           this.device.subnetRoutes = (self.AllowedIPs && self.AllowedIPs.length) || 0;
           // Extra: user, DNS, version for settings if needed
           this.device.user = (data.User && (data.User.DisplayName || data.User.LoginName)) || '';
