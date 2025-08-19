@@ -1,5 +1,3 @@
-  manualSubnet: '',
-  manualSubnetError: '',
 window.altTailSentry = function altTailSentry() {
   return {
     // Alpine.js state and methods
