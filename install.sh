@@ -63,12 +63,16 @@ echo ""
 read -s -p "🔑 Enter Tailscale Auth Key (or press Enter to skip): " TS_PAT
 echo
 
-# Save the PAT as 'auth_key' in tailscale_settings.json
+tskey = os.environ.get('TS_PAT', '') or '''$TS_PAT'''
+# Save the PAT as 'auth_key' in config/tailscale_settings.json
+mkdir -p config
 python3 << EOF
 import json
 import os
 tskey = os.environ.get('TS_PAT', '') or '''$TS_PAT'''
-settings_path = os.path.join(os.getcwd(), 'tailscale_settings.json')
+config_dir = os.path.join(os.getcwd(), 'config')
+settings_path = os.path.join(config_dir, 'tailscale_settings.json')
+os.makedirs(config_dir, exist_ok=True)
 if os.path.exists(settings_path):
   try:
     with open(settings_path, 'r') as f:
