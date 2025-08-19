@@ -565,6 +565,7 @@ class TailscaleClient:
     @staticmethod
     def set_exit_node(enable=True):
         """Enable or disable this device as an exit node, always including all non-default flags for robust tailscale up invocation."""
+        import platform
         settings_path = os.path.join(os.path.dirname(__file__), 'tailscale_settings.json')
         try:
             with open(settings_path, 'r') as f:
@@ -573,30 +574,34 @@ class TailscaleClient:
             logger.error(f"Failed to read tailscale_settings.json: {e}")
             settings = {}
 
+        # Enforce defaults for all required settings
+        hostname = settings.get("hostname") or platform.node()
+        accept_routes = settings.get("accept_routes")
+        if accept_routes is None:
+            accept_routes = True
+            settings["accept_routes"] = True
+        adv_routes = settings.get("advertise_routes")
+        if not isinstance(adv_routes, list):
+            adv_routes = []
+            settings["advertise_routes"] = []
+
         args = []
-        # Always set hostname if present
-        hostname = settings.get("hostname")
+        # Always set hostname
         if hostname:
             args += ["--hostname", str(hostname)]
-        # Always set accept-routes if present
-        if settings.get("accept_routes") is not None:
-            if settings["accept_routes"]:
-                args.append("--accept-routes")
-            else:
-                args.append("--no-accept-routes")
-        # Always set advertised routes if present
-        adv_routes = settings.get("advertise_routes")
-        if adv_routes and isinstance(adv_routes, list) and adv_routes:
-            # Only include subnet routes (not exit node routes)
-            subnet_routes = [r for r in adv_routes if r not in ("0.0.0.0/0", "::/0")]
-            if subnet_routes:
-                args += ["--advertise-routes", ",".join(subnet_routes)]
-        # Set exit node flag(s)
+        # Always set accept-routes
+        if accept_routes:
+            args.append("--accept-routes")
+        else:
+            args.append("--no-accept-routes")
+        # Always set advertised routes (subnets only)
+        subnet_routes = [r for r in adv_routes if r not in ("0.0.0.0/0", "::/0")]
+        if subnet_routes:
+            args += ["--advertise-routes", ",".join(subnet_routes)]
+        # Always set exit node flag(s)
         if enable:
-            # Always advertise both IPv4 and IPv6 exit node routes
             args.append("--advertise-exit-node")
         else:
-            # If disabling, use --reset to clear exit node and routes
             args.append("--reset")
         logger.info(f"{'Enabling' if enable else 'Disabling'} exit node functionality with args: {args}")
         return TailscaleClient.up(extra_args=args)
