@@ -584,7 +584,11 @@ class TailscaleClient:
         # Check if this device is currently an exit node
         adv_exit = False
         advertised = self_obj.get("AdvertisedRoutes", [])
-        if "0.0.0.0/0" in advertised or "::/0" in advertised:
+        # Check for exit node capability as well as advertised routes
+        capabilities = self_obj.get("Capabilities", {})
+        if not isinstance(capabilities, dict):
+            capabilities = {}
+        if capabilities.get("ExitNode", False) or "0.0.0.0/0" in advertised or "::/0" in advertised:
             adv_exit = True
 
         args = []
