@@ -595,7 +595,7 @@ class TailscaleClient:
         else:
             args.append("--no-accept-routes")
         if adv_routes:
-            args += ["--advertise-routes", ",".join(adv_routes)]
+            args += [f"--advertise-routes={','.join(adv_routes)}"]
         if adv_exit:
             args.append("--advertise-exit-node")
         logger.info(f"Setting subnet routes with all flags: {args}")
