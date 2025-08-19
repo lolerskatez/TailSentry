@@ -80,6 +80,15 @@ window.altTailSentry = function altTailSentry() {
           this.exitNodeLastError = this.exitNodeFeedback;
           localStorage.setItem('exitNodeLastError', this.exitNodeFeedback);
         }
+        // If backend returned status, update UI immediately
+        if (data.status && data.status.Self) {
+          const self = data.status.Self;
+          const advRoutes = Array.isArray(self.AdvertisedRoutes) ? self.AdvertisedRoutes : [];
+          this.advertisedRoutes = advRoutes;
+          const isExitNode = advRoutes.includes('0.0.0.0/0') || advRoutes.includes('::/0');
+          this.device.isExit = isExitNode;
+          this.isExitNode = isExitNode;
+        }
       } catch (e) {
         this.exitNodeFeedback = 'Network or server error.';
         this.exitNodeLastError = this.exitNodeFeedback;
