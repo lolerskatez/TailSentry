@@ -336,13 +336,21 @@ class TailscaleClient:
         return TailscaleClient.up(extra_args=args)
     @staticmethod
     def get_tailscale_path():
-        """Find the tailscale binary path for the current platform"""
-        # Get the system platform
-        system = platform.system()
-        
+        """Find the tailscale binary path for the current platform, robust to platform module bugs on Windows."""
+        # Defensive: ensure platform.system() always returns a string
+        try:
+            system = platform.system()
+        except Exception as e:
+            # Fallback: try subprocess and decode output
+            try:
+                out = subprocess.check_output([sys.executable, '-c', 'import platform; print(platform.system())'])
+                system = out.decode('utf-8').strip()
+            except Exception:
+                system = 'Windows' if os.name == 'nt' else 'Linux'
+
         # Look in common locations based on platform
         possible_paths = TAILSCALE_PATHS.get(system, ["tailscale"])
-        
+
         # Add the system PATH to our search locations
         if os.environ.get("PATH"):
             path_dirs = os.environ["PATH"].split(os.pathsep)
@@ -351,7 +359,7 @@ class TailscaleClient:
                     possible_paths.append(os.path.join(path_dir, "tailscale.exe"))
                 else:
                     possible_paths.append(os.path.join(path_dir, "tailscale"))
-        
+
         # Try each path
         for path in possible_paths:
             try:
@@ -360,9 +368,9 @@ class TailscaleClient:
                 # On Windows, shutil.which can help find executables
                 if system == "Windows" and shutil.which(path):
                     return shutil.which(path)
-            except:
+            except Exception:
                 continue
-                
+
         # Fall back to just the binary name (rely on PATH)
         return "tailscale" if system != "Windows" else "tailscale.exe"
     

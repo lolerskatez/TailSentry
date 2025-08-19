@@ -1,3 +1,17 @@
+    // --- Helper methods for feedback and loading ---
+    setFeedback(type, msg) {
+      if (type === 'exitNode') {
+        this.exitNodeFeedback = msg;
+        this.exitNodeLastError = msg;
+        localStorage.setItem('exitNodeLastError', msg);
+      } else if (type === 'subnet') {
+        this.subnetFeedback = msg;
+      }
+    },
+    setLoading(type, val) {
+      if (type === 'exitNode') this.exitNodeLoading = val;
+      if (type === 'subnet') this.subnetApplyLoading = val;
+    },
 window.altTailSentry = function altTailSentry() {
   return {
     // Alpine.js state and methods
@@ -463,12 +477,12 @@ window.altTailSentry = function altTailSentry() {
       this.subnetsChanged = true;
     },
     async applySubnets() {
-      // Call backend to apply subnet routes
+      // Use helpers for feedback and loading state
       const payload = {
         routes: this.advertisedRoutes
       };
-      this.subnetFeedback = '';
-      this.subnetApplyLoading = true;
+      this.setFeedback('subnet', '');
+      this.setLoading('subnet', true);
       try {
         const res = await fetch('/api/subnet-routes', {
           method: 'POST',
@@ -477,38 +491,38 @@ window.altTailSentry = function altTailSentry() {
         });
         const data = await res.json();
         if (data.success) {
-          this.subnetFeedback = 'Subnet routes applied!';
+          this.setFeedback('subnet', 'Subnet routes applied!');
           this.toastMsg('Subnet routes applied!');
           this.subnetModalOpen = false;
           // Always reload subnets and status to reflect new state
           await this.loadSubnets();
           await this.loadStatus();
         } else {
-          this.subnetFeedback = (data.error || data.message || 'Failed to apply subnet routes.');
+          this.setFeedback('subnet', data.error || data.message || 'Failed to apply subnet routes.');
         }
       } catch (e) {
-        this.subnetFeedback = (e && e.message) ? e.message : 'Network or server error.';
+        this.setFeedback('subnet', (e && e.message) ? e.message : 'Network or server error.');
       } finally {
-        this.subnetApplyLoading = false;
+        this.setLoading('subnet', false);
       }
     },
     // ...existing code...
     // Advanced Exit Node apply
     async applyExitNodeAdvanced() {
-      // Build advertised routes array
+      // Use helpers for feedback and loading state
       const routes = [];
       if (this.advertiseIPv4Exit) routes.push('0.0.0.0/0');
       if (this.advertiseIPv6Exit) routes.push('::/0');
-      // Add any other advertised routes
       for (const r of this.advertisedRoutes) {
         if (!routes.includes(r) && r !== '0.0.0.0/0' && r !== '::/0') routes.push(r);
       }
       const payload = {
         advertised_routes: routes,
         hostname: this.device.hostname,
-        firewall: this.exitNodeFirewall // UI only, backend can ignore or use
+        firewall: this.exitNodeFirewall
       };
-      this.exitNodeFeedback = '';
+      this.setFeedback('exitNode', '');
+      this.setLoading('exitNode', true);
       try {
         const res = await fetch('/api/exit-node', {
           method: 'POST',
@@ -517,19 +531,17 @@ window.altTailSentry = function altTailSentry() {
         });
         const data = await res.json();
         if (data.success) {
-          this.exitNodeFeedback = 'Exit node setting applied!';
+          this.setFeedback('exitNode', 'Exit node setting applied!');
           const now = new Date().toLocaleString();
           this.exitNodeLastChanged = now;
           localStorage.setItem('exitNodeLastChanged', now);
         } else {
-          this.exitNodeFeedback = data.message || 'Failed to apply Exit Node setting.';
-          this.exitNodeLastError = this.exitNodeFeedback;
-          localStorage.setItem('exitNodeLastError', this.exitNodeFeedback);
+          this.setFeedback('exitNode', data.message || 'Failed to apply Exit Node setting.');
         }
       } catch (e) {
-        this.exitNodeFeedback = 'Network or server error.';
-        this.exitNodeLastError = this.exitNodeFeedback;
-        localStorage.setItem('exitNodeLastError', this.exitNodeFeedback);
+        this.setFeedback('exitNode', 'Network or server error.');
+      } finally {
+        this.setLoading('exitNode', false);
       }
       this.loadStatus();
     },
