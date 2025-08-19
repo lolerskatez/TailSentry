@@ -1,3 +1,5 @@
+  manualSubnet: '',
+  manualSubnetError: '',
 window.altTailSentry = function altTailSentry() {
   return {
     // Alpine.js state and methods
@@ -418,6 +420,27 @@ window.altTailSentry = function altTailSentry() {
     openSubnetModal() {
       this.loadSubnets();
       this.subnetModalOpen = true;
+  this.manualSubnet = '';
+  this.manualSubnetError = '';
+    },
+    addManualSubnet() {
+      // Validate subnet format (basic CIDR check)
+      const cidr = this.manualSubnet.trim();
+      const cidrRegex = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/;
+      if (!cidrRegex.test(cidr)) {
+        this.manualSubnetError = 'Invalid CIDR format (e.g. 192.168.1.0/24)';
+        return;
+      }
+      // Check for duplicate
+      if (this.allSubnets.some(s => s.cidr === cidr)) {
+        this.manualSubnetError = 'Subnet already in list.';
+        return;
+      }
+      // Add to allSubnets
+      this.allSubnets.push({ cidr, interface: 'manual', family: 'IPv4' });
+      this.manualSubnet = '';
+      this.manualSubnetError = '';
+      this.subnetsChanged = true;
     },
     async applySubnets() {
       // Call backend to apply subnet routes

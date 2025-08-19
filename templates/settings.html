@@ -197,6 +197,14 @@
           </div>
           <template x-if="allSubnets && allSubnets.length">
             <div class="flex flex-col gap-2 mb-4">
+              <!-- Manual subnet entry -->
+              <div class="flex gap-2 items-center mb-1">
+                <input type="text" x-model="manualSubnet" placeholder="Add subnet (e.g. 192.168.1.0/24)" class="px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100 text-xs w-48" @keydown.enter.prevent="addManualSubnet()">
+                <button @click="addManualSubnet()" class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs">Add</button>
+              </div>
+              <template x-if="manualSubnetError">
+                <div class="text-xs text-red-600 mb-1" x-text="manualSubnetError"></div>
+              </template>
               <label class="flex items-center gap-2 font-semibold text-xs mb-1">
                 <input type="checkbox" @change="toggleSelectAllSubnets($event)" :checked="allSubnets.every(s => advertisedRoutes.includes(s.cidr))">
                 Select All
