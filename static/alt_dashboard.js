@@ -42,6 +42,7 @@ window.altTailSentry = function altTailSentry() {
       '172.16.0.0/12',
       '192.168.0.0/16'
     ],
+  allSubnets: [],
     subnetFeedback: '',
     // Settings UI state
     tailscaleStatus: 'unknown',
@@ -317,6 +318,15 @@ window.altTailSentry = function altTailSentry() {
           this.advertisedRoutes = this.subnets;
         }
       } catch (e) { this.isSubnetRouting = false; this.advertisedRoutes = []; }
+      // Load all detected local subnets for modal
+      try {
+        const res = await fetch('/api/local-subnets');
+        if (res.ok) {
+          const data = await res.json();
+          // data.subnets is a list of {cidr, interface, family}
+          this.allSubnets = Array.isArray(data.subnets) ? data.subnets.map(s => s.cidr) : [];
+        }
+      } catch (e) { this.allSubnets = []; }
     },
 
     async loadTraffic() {
@@ -373,8 +383,8 @@ window.altTailSentry = function altTailSentry() {
     async applyExitNode() {
       // Call backend to apply exit node setting
       const payload = {
-        is_exit_node: this.isExitNode,
-        hostname: this.device.hostname
+  routes: this.advertisedRoutes,
+  hostname: this.device.hostname,
       };
       this.exitNodeFeedback = '';
       try {
@@ -402,6 +412,10 @@ window.altTailSentry = function altTailSentry() {
       } else {
         this.advertisedRoutes.push(subnet);
       }
+    },
+    openSubnetModal() {
+      this.loadSubnets();
+      this.subnetModalOpen = true;
     },
     async applySubnets() {
       // Call backend to apply subnet routes

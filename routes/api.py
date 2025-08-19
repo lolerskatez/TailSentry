@@ -120,3 +120,25 @@ async def get_local_subnets(request: Request):
     except Exception as e:
         logger.error(f"Local subnets API error: {str(e)}")
         return {"error": str(e)}
+
+
+# Robust POST endpoint to set advertised subnet routes
+from fastapi import Body
+
+@router.post("/subnet-routes")
+@login_required
+async def set_subnet_routes(request: Request, payload: dict = Body(...)):
+    """Set advertised subnet routes"""
+    try:
+        routes = payload.get("routes")
+        if not isinstance(routes, list):
+            return {"success": False, "error": "'routes' must be a list of CIDR strings"}
+        result = TailscaleClient.set_subnet_routes(routes)
+        # If set_subnet_routes returns a string, it's an error
+        if isinstance(result, str) and result.lower().startswith("invalid"):
+            logger.error(f"Subnet routes set error: {result}")
+            return {"success": False, "error": result}
+        return {"success": True, "result": result}
+    except Exception as e:
+        logger.error(f"Set subnet routes API error: {str(e)}")
+        return {"success": False, "error": str(e)}
