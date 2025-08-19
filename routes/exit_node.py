@@ -55,6 +55,9 @@ async def set_exit_node(request: Request):
                 enable = '0.0.0.0/0' in advertised_routes or '::/0' in advertised_routes
             result = TailscaleClient.set_exit_node(enable)
         logger.info(f"TailscaleClient.set_exit_node result: {result}")
+        # If result is not True, treat as error (result may be error string or False)
+        if result is not True:
+            return JSONResponse({"success": False, "error": str(result)}, status_code=500)
     except Exception as e:
         logger.error(f"Failed to set exit node via TailscaleClient: {e}")
         return JSONResponse({"success": False, "error": f"Failed to set exit node: {e}"}, status_code=500)

@@ -75,7 +75,8 @@ window.altTailSentry = function altTailSentry() {
           this.exitNodeLastChanged = now;
           localStorage.setItem('exitNodeLastChanged', now);
         } else {
-          this.exitNodeFeedback = data.message || 'Failed to apply Exit Node setting.';
+          // Show backend error if present
+          this.exitNodeFeedback = data.error || data.message || 'Failed to apply Exit Node setting.';
           this.exitNodeLastError = this.exitNodeFeedback;
           localStorage.setItem('exitNodeLastError', this.exitNodeFeedback);
         }
@@ -84,6 +85,7 @@ window.altTailSentry = function altTailSentry() {
         this.exitNodeLastError = this.exitNodeFeedback;
         localStorage.setItem('exitNodeLastError', this.exitNodeFeedback);
       }
+      // Always refresh the real state from backend after apply
       this.loadStatus();
     },
 
