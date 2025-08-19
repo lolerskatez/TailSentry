@@ -228,11 +228,10 @@ window.altTailSentry = function altTailSentry() {
     },
 
     loadAll() {
-      this.loadStatus();
-      this.loadPeers();
-      this.loadSubnets();
-      this.loadTraffic();
-      this.lastUpdated = new Date().toLocaleTimeString();
+  this.loadStatus();
+  this.loadPeers();
+  this.loadSubnets();
+  this.lastUpdated = new Date().toLocaleTimeString();
     },
 
     async loadStatus() {
