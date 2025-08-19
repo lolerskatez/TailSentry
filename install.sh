@@ -53,22 +53,21 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "🔧 TailSentry Configuration"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "📝 TailSentry requires a Tailscale Auth Key (PAT) to manage your Tailscale network."
+echo "📝 TailSentry requires a Tailscale Authentication Key to manage your Tailscale network."
 echo "   You can:"
 echo "   • Enter it now for full functionality"
 echo "   • Skip it and configure later in the dashboard"
 echo ""
-echo "🔗 Get your PAT at: https://login.tailscale.com/admin/settings/keys"
+echo "🔗 Get your Tailscale Authentication Key at: https://login.tailscale.com/admin/settings/keys"
 echo ""
 echo
 
 tskey = os.environ.get('TS_PAT', '') or '''$TS_PAT'''
-read -s -p "🔑 Enter Tailscale Auth Key (or press Enter to skip): " TS_PAT
+read -s -p "🔑 Enter Tailscale Authentication Key (or press Enter to skip): " TS_PAT
 echo
-# Save the PAT as 'auth_key' in config/tailscale_settings.json
+# Save the Tailscale Authentication Key as 'auth_key' in config/tailscale_settings.json
 mkdir -p config
 python3 << EOF
-import json
 import os
 tskey = os.environ.get('TS_PAT', '') or '''$TS_PAT'''
 config_dir = os.path.join(os.getcwd(), 'config')
@@ -86,7 +85,7 @@ if tskey:
   settings['auth_key'] = tskey
 with open(settings_path, 'w') as f:
   json.dump(settings, f, indent=2)
-print(f"Saved Tailscale Auth Key to {settings_path}")
+print(f"Saved Tailscale Authentication Key to {settings_path}")
 EOF
 
 # Install systemd service
@@ -168,7 +167,7 @@ echo "🎯 Next Steps:"
 echo "   1. Open TailSentry in your browser"
 echo "   2. Login with admin / admin123"
 echo "   3. Change your password in the settings"
-echo "   4. Configure your Tailscale PAT if not set during installation"
+echo "   4. Configure your Tailscale Authentication Key if not set during installation"
 echo ""
 echo "🔧 To change password later:"
 echo "   Visit the dashboard settings or run: python3 change_password.py"
