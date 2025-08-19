@@ -564,7 +564,7 @@ class TailscaleClient:
 
     @staticmethod
     def set_exit_node(enable=True):
-        """Enable or disable this device as an exit node, preserving all other settings"""
+        """Enable or disable this device as an exit node, always including all non-default flags for robust tailscale up invocation."""
         settings_path = os.path.join(os.path.dirname(__file__), 'tailscale_settings.json')
         try:
             with open(settings_path, 'r') as f:
@@ -587,12 +587,16 @@ class TailscaleClient:
         # Always set advertised routes if present
         adv_routes = settings.get("advertise_routes")
         if adv_routes and isinstance(adv_routes, list) and adv_routes:
-            args += ["--advertise-routes", ",".join(adv_routes)]
-        # Set exit node flag
+            # Only include subnet routes (not exit node routes)
+            subnet_routes = [r for r in adv_routes if r not in ("0.0.0.0/0", "::/0")]
+            if subnet_routes:
+                args += ["--advertise-routes", ",".join(subnet_routes)]
+        # Set exit node flag(s)
         if enable:
+            # Always advertise both IPv4 and IPv6 exit node routes
             args.append("--advertise-exit-node")
-        # If disabling, use --reset to clear exit node and routes
         else:
+            # If disabling, use --reset to clear exit node and routes
             args.append("--reset")
         logger.info(f"{'Enabling' if enable else 'Disabling'} exit node functionality with args: {args}")
         return TailscaleClient.up(extra_args=args)
