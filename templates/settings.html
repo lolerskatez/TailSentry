@@ -14,7 +14,7 @@
 </head>
 <body x-data="window.altTailSentry()" x-init="init()" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
   <!-- Navigation -->
-  <nav class="flex items-center justify-between px-6 py-4 bg-indigo-700 text-white shadow" role="navigation">
+  <nav class="flex items-center justify-between px-6 py-4 bg-indigo-700 text-white shadow" role="navigation" aria-label="Main Navigation">
     <div class="flex items-center gap-3">
       <img src="/static/favicon.svg" class="h-8 w-8" alt="TailSentry logo">
       <span class="font-bold text-xl tracking-tight">TailSentry</span>
@@ -22,14 +22,14 @@
     <div class="flex items-center gap-4">
       <a href="/" class="hover:bg-indigo-800 px-3 py-1 rounded transition" aria-label="Dashboard" title="Dashboard">Dashboard</a>
       <a href="/settings" class="bg-indigo-900 px-3 py-1 rounded font-semibold" aria-label="Settings" title="Settings">Settings</a>
-      <button @click="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded" aria-label="Logout" title="Logout">Logout</button>
+  <button @click="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded" aria-label="Logout" title="Logout">Logout</button>
     </div>
   </nav>
 
   <main class="max-w-2xl mx-auto py-8 px-4">
     <!-- Device Info Section -->
     <div class="mb-8 p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-      <div class="font-semibold mb-2 text-indigo-700">Device Info</div>
+  <div class="font-semibold mb-2 text-indigo-700" id="device-info-title">Device Info</div>
       <div class="grid grid-cols-2 gap-2 text-sm items-center">
         <div>Hostname:</div>
         <div class="flex gap-2 items-center">
@@ -59,14 +59,14 @@
     <div class="mb-8">
     <!-- Tailscale Up/Down Controls -->
     <div class="mb-8 p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-      <div class="font-semibold mb-2 text-indigo-700">Tailscale Controls</div>
+  <div class="font-semibold mb-2 text-indigo-700" id="tailscale-controls-title">Tailscale Controls</div>
       <div class="flex gap-4 items-center">
         <button @click="tailscaleUp()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Tailscale Up</button>
         <button @click="tailscaleDown()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Tailscale Down</button>
         <span class="text-sm font-semibold" x-text="tailscaleCtlFeedback"></span>
       </div>
     </div>
-      <div class="font-semibold mb-2 text-indigo-700">Appearance</div>
+  <div class="font-semibold mb-2 text-indigo-700" id="appearance-title">Appearance</div>
       <div class="flex items-center justify-between mb-2">
         <span>Dark Mode</span>
         <input type="checkbox" x-model="darkMode" class="h-5 w-5" @change="saveDarkMode()" aria-label="Toggle dark mode">
@@ -78,7 +78,7 @@
     </div>
     <!-- TailScale Controller Section -->
     <div class="mb-8">
-      <div class="font-semibold mb-2 text-indigo-700">TailScale Controller</div>
+  <div class="font-semibold mb-2 text-indigo-700" id="controller-title">TailScale Controller</div>
       <!-- Authentication Key (Save only) -->
       <div class="mb-8">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col gap-3 border border-gray-200 dark:border-gray-700">
@@ -105,16 +105,16 @@
     <div class="mb-6 p-6 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
       <div class="flex items-center justify-between mb-4">
         <div>
-          <div class="font-semibold text-lg flex items-center gap-2">
+      <div class="font-semibold text-lg flex items-center gap-2" id="exit-node-title">
             <svg x-show="isExitNode" class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="currentColor"/></svg>
             <svg x-show="!isExitNode" class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>
             Exit Node
           </div>
           <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Enable or disable exit node for this device. All traffic from peers can route through this node when enabled.</div>
         </div>
-        <label class="inline-flex items-center cursor-pointer">
-          <input type="checkbox" x-model="isExitNode" class="sr-only peer">
-          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 dark:bg-gray-700 rounded-full peer peer-checked:bg-green-500 transition-all"></div>
+        <label class="inline-flex items-center cursor-pointer" aria-label="Toggle Exit Node" tabindex="0">
+          <input type="checkbox" x-model="isExitNode" class="sr-only peer" aria-checked="isExitNode" aria-labelledby="exit-node-title">
+          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 dark:bg-gray-700 rounded-full peer peer-checked:bg-green-500 transition-all" tabindex="-1"></div>
           <span class="ml-3 text-sm font-medium" x-text="isExitNode ? 'Enabled' : 'Disabled'"></span>
         </label>
       </div>
@@ -140,7 +140,7 @@
         <label class="flex items-center gap-2 text-xs font-semibold">
           <input type="checkbox" x-model="exitNodeFirewall" class="h-4 w-4"> Firewall
         </label>
-        <button @click="applyExitNodeAdvanced()" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold shadow">Apply</button>
+    <button @click="applyExitNodeAdvanced()" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold shadow" :aria-busy="exitNodeLoading" :disabled="exitNodeLoading">Apply</button>
       </div>
       <div class="flex flex-col gap-1 mt-2">
         <span class="text-xs text-gray-600 dark:text-gray-300">Last changed:</span>
@@ -157,7 +157,7 @@
     <div class="mb-6 p-6 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
       <div class="flex items-center justify-between mb-4">
         <div>
-          <div class="font-semibold text-lg flex items-center gap-2">
+      <div class="font-semibold text-lg flex items-center gap-2" id="subnet-routing-title">
             <svg class="h-5 w-5 text-green-500" x-show="isSubnetRouting" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="currentColor"/></svg>
             <svg class="h-5 w-5 text-gray-400" x-show="!isSubnetRouting" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>
             Subnet Routing
@@ -168,7 +168,7 @@
           </div>
           <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Advertise or remove subnets for this node.</div>
         </div>
-        <button @click="openSubnetModal()" class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 font-semibold shadow" title="Manage Subnets">Manage</button>
+  <button @click="openSubnetModal()" class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 font-semibold shadow" title="Manage Subnets" aria-label="Manage Subnets">Manage</button>
       </div>
       <div class="flex items-center gap-2 mb-2">
         <span :class="isSubnetRouting ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'" class="px-2 py-1 rounded text-xs font-semibold" x-text="isSubnetRouting ? 'Enabled' : 'Disabled'"></span>
@@ -189,8 +189,8 @@
         </template>
       </div>
       <!-- Subnet Modal -->
-      <div x-show="subnetModalOpen" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 w-[420px] min-h-[320px] relative">
+      <div x-show="subnetModalOpen" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40" role="dialog" aria-modal="true" aria-labelledby="subnet-routing-title">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 w-[420px] min-h-[320px] relative" tabindex="0">
           <div class="font-semibold mb-2 text-indigo-700 flex items-center gap-2">
             Select Subnets to Advertise
             <span class="ml-auto" x-show="subnetsLoading"><svg class="animate-spin h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg></span>
@@ -199,8 +199,8 @@
             <div class="flex flex-col gap-2 mb-4">
               <!-- Manual subnet entry -->
               <div class="flex gap-2 items-center mb-1">
-                <input type="text" x-model="manualSubnet" placeholder="Add subnet (e.g. 192.168.1.0/24)" class="px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100 text-xs w-48" @keydown.enter.prevent="addManualSubnet()">
-                <button @click="addManualSubnet()" class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs">Add</button>
+                <input type="text" x-model="manualSubnet" placeholder="Add subnet (e.g. 192.168.1.0/24)" class="px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100 text-xs w-48" @keydown.enter.prevent="addManualSubnet()" aria-label="Manual Subnet Entry">
+                <button @click="addManualSubnet()" class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs" aria-label="Add Subnet">Add</button>
               </div>
               <template x-if="manualSubnetError">
                 <div class="text-xs text-red-600 mb-1" x-text="manualSubnetError"></div>
@@ -225,8 +225,8 @@
             <div class="text-xs text-gray-400 italic mb-4">No local subnets detected on this device.</div>
           </template>
           <div class="flex gap-2 justify-end mt-2">
-            <button @click="applySubnets()" :disabled="!advertisedRoutes.length || !subnetsChanged" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">Apply</button>
-            <button @click="subnetModalOpen = false" class="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500">Cancel</button>
+            <button @click="applySubnets()" :disabled="!advertisedRoutes.length || !subnetsChanged || subnetApplyLoading" :aria-busy="subnetApplyLoading" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">Apply</button>
+            <button @click="subnetModalOpen = false" class="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500" aria-label="Cancel Subnet Modal">Cancel</button>
           </div>
           <template x-if="subnetFeedback">
             <div class="mt-2 text-xs font-semibold" :class="subnetFeedback.includes('applied') ? 'text-green-600' : 'text-red-600'" x-text="subnetFeedback"></div>
