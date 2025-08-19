@@ -285,6 +285,36 @@ class TailscaleACL:
 
 
 class TailscaleClient:
+
+    @staticmethod
+    def set_exit_node_advanced(advertised_routes=None, firewall=None, hostname=None):
+        """
+        Enable/disable exit node with full control over advertised routes, firewall, and hostname.
+        advertised_routes: list of routes (e.g. ["0.0.0.0/0", "::/0"])
+        firewall: bool (if True, enable firewall for exit node traffic)
+        hostname: optional string
+        """
+        args = []
+        # Hostname
+        if hostname:
+            args += ["--hostname", str(hostname)]
+        # Advertised routes
+        if advertised_routes and isinstance(advertised_routes, list):
+            # Separate exit node and subnet routes
+            adv_subnets = [r for r in advertised_routes if r not in ("0.0.0.0/0", "::/0")]
+            if adv_subnets:
+                args += ["--advertise-routes", ",".join(adv_subnets)]
+            # Exit node flags
+            if "0.0.0.0/0" in advertised_routes:
+                args.append("--advertise-exit-node")
+            if "::/0" in advertised_routes:
+                args.append("--advertise-exit-node=::/0")
+        # Firewall
+        if firewall:
+            args.append("--exit-node-firewall")
+        # Always use up command
+        logger.info(f"Running tailscale up with args: {args}")
+        return TailscaleClient.up(extra_args=args)
     @staticmethod
     def get_tailscale_path():
         """Find the tailscale binary path for the current platform"""
