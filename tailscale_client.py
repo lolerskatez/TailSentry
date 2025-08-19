@@ -513,7 +513,9 @@ class TailscaleClient:
             logger.warning(f"Error getting subnet routes: {status['error']}")
             return []
         self_obj = safe_get_dict(status, "Self")
-        return self_obj.get("AdvertisedRoutes", [])
+        adv_routes = self_obj.get("AdvertisedRoutes", [])
+        logger.info(f"AdvertisedRoutes from Tailscale status: {adv_routes}")
+        return adv_routes
             
     @staticmethod
     def detect_local_subnets() -> List[Dict[str, str]]:
