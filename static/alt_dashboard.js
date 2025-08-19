@@ -459,7 +459,9 @@ window.altTailSentry = function altTailSentry() {
           this.subnetFeedback = 'Subnet routes applied!';
           this.toastMsg('Subnet routes applied!');
           this.subnetModalOpen = false;
-          this.loadStatus();
+          // Always reload subnets and status to reflect new state
+          await this.loadSubnets();
+          await this.loadStatus();
         } else {
           this.subnetFeedback = data.error || data.message || 'Failed to apply subnet routes.';
         }
