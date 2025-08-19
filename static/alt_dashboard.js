@@ -36,12 +36,14 @@ window.altTailSentry = function altTailSentry() {
     exitNodeFirewall: false, // UI only
     exitNodePeerCount: 0,
     exitNodeLastChanged: '',
-    exitNodeLastError: '',
-    exitNodeFeedback: '',
+  exitNodeLastError: '',
+  exitNodeFeedback: '',
+  exitNodeLoading: false,
     subnetModalOpen: false,
   allSubnets: [],
   subnetsLoading: false,
   subnetsChanged: false,
+  subnetApplyLoading: false,
     subnetFeedback: '',
     // Settings UI state
     tailscaleStatus: 'unknown',
@@ -76,6 +78,7 @@ window.altTailSentry = function altTailSentry() {
         firewall: this.exitNodeFirewall // UI only, backend can ignore or use
       };
       this.exitNodeFeedback = '';
+      this.exitNodeLoading = true;
       try {
         const res = await fetch('/api/exit-node', {
           method: 'POST',
@@ -90,7 +93,7 @@ window.altTailSentry = function altTailSentry() {
           localStorage.setItem('exitNodeLastChanged', now);
         } else {
           // Show backend error if present
-          this.exitNodeFeedback = data.error || data.message || 'Failed to apply Exit Node setting.';
+          this.exitNodeFeedback = (data.error || data.message || 'Failed to apply Exit Node setting.');
           this.exitNodeLastError = this.exitNodeFeedback;
           localStorage.setItem('exitNodeLastError', this.exitNodeFeedback);
         }
@@ -104,9 +107,11 @@ window.altTailSentry = function altTailSentry() {
           this.isExitNode = isExitNode;
         }
       } catch (e) {
-        this.exitNodeFeedback = 'Network or server error.';
+        this.exitNodeFeedback = (e && e.message) ? e.message : 'Network or server error.';
         this.exitNodeLastError = this.exitNodeFeedback;
         localStorage.setItem('exitNodeLastError', this.exitNodeFeedback);
+      } finally {
+        this.exitNodeLoading = false;
       }
       // Always refresh the real state from backend after apply
       this.loadStatus();
@@ -462,6 +467,7 @@ window.altTailSentry = function altTailSentry() {
         routes: this.advertisedRoutes
       };
       this.subnetFeedback = '';
+      this.subnetApplyLoading = true;
       try {
         const res = await fetch('/api/subnet-routes', {
           method: 'POST',
@@ -477,10 +483,12 @@ window.altTailSentry = function altTailSentry() {
           await this.loadSubnets();
           await this.loadStatus();
         } else {
-          this.subnetFeedback = data.error || data.message || 'Failed to apply subnet routes.';
+          this.subnetFeedback = (data.error || data.message || 'Failed to apply subnet routes.');
         }
       } catch (e) {
-        this.subnetFeedback = 'Network or server error.';
+        this.subnetFeedback = (e && e.message) ? e.message : 'Network or server error.';
+      } finally {
+        this.subnetApplyLoading = false;
       }
     },
     // ...existing code...
