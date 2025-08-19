@@ -517,9 +517,9 @@ class TailscaleClient:
             
     @staticmethod
     def detect_local_subnets() -> List[Dict[str, str]]:
-        """Detect all available local subnets on this device"""
+        """Detect all available local subnets on this device, normalized to network address"""
+        import ipaddress
         detected_subnets = []
-        
         try:
             # Linux/macOS specific method - will fail on Windows
             if platform.system() != "Windows":
@@ -529,15 +529,18 @@ class TailscaleClient:
                     universal_newlines=True
                 )
                 interfaces = json.loads(interfaces_output)
-                
                 for iface in interfaces:
                     if iface.get("link_type") == "loopback":
                         continue  # Skip loopback interface
-                        
                     name = iface.get("ifname", "")
                     for addr_info in iface.get("addr_info", []):
                         if addr_info.get("family") == "inet":  # IPv4 only
-                            cidr = f"{addr_info['local']}/{addr_info['prefixlen']}"
+                            try:
+                                ipnet = ipaddress.IPv4Network(f"{addr_info['local']}/{addr_info['prefixlen']}", strict=False)
+                                cidr = str(ipnet)
+                            except Exception as e:
+                                logger.warning(f"Failed to normalize subnet: {e}")
+                                cidr = f"{addr_info['local']}/{addr_info['prefixlen']}"
                             detected_subnets.append({
                                 "interface": name,
                                 "cidr": cidr,
@@ -545,12 +548,9 @@ class TailscaleClient:
                             })
             else:
                 # Basic Windows support - will miss some subnets but provides basic functionality
-                # Use 'ipconfig' output parsing or WMI in a more comprehensive implementation
                 logger.info("Local subnet detection not fully supported on Windows")
-                
         except (subprocess.SubprocessError, json.JSONDecodeError, KeyError) as e:
             logger.warning(f"Error detecting local subnets: {str(e)}")
-            
         return detected_subnets
 
     @staticmethod
