@@ -257,12 +257,12 @@ window.altTailSentry = function altTailSentry() {
           this.device.ip = (self.TailscaleIPs && self.TailscaleIPs[0]) || '0.0.0.0';
           this.device.role = self.OS || 'Unknown';
           this.device.uptime = this.formatUptime(self.Created || null);
-          // Check if Capabilities array contains the exit node capability string
-          const caps = Array.isArray(self.Capabilities) ? self.Capabilities : [];
-          const isExitNodeCap = caps.includes('https://tailscale.com/cap/exit-node');
-          this.device.isExit = isExitNodeCap;
+          // Check if AdvertisedRoutes contains 0.0.0.0/0 or ::/0 (exit node)
+          const advRoutes = Array.isArray(self.AdvertisedRoutes) ? self.AdvertisedRoutes : [];
+          const isExitNode = advRoutes.includes('0.0.0.0/0') || advRoutes.includes('::/0');
+          this.device.isExit = isExitNode;
           this.device.online = data.BackendState === 'Running';
-          this.isExitNode = isExitNodeCap;
+          this.isExitNode = isExitNode;
           this.device.subnetRoutes = (self.AllowedIPs && self.AllowedIPs.length) || 0;
           // Extra: user, DNS, version for settings if needed
           this.device.user = (data.User && (data.User.DisplayName || data.User.LoginName)) || '';
