@@ -565,4 +565,3 @@ window.altTailSentry = function altTailSentry() {
     }
   }
 }
-window.altTailSentry = altTailSentry;
