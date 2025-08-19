@@ -1,4 +1,4 @@
-print('LOADING AUTHENTICATE ROUTER: e/TailSentry/routes/authenticate.py')
+# Debug print removed for production
 
 
 
@@ -112,15 +112,15 @@ async def authenticate_tailscale(request: Request):
             cmd.append(f"--advertise-routes={','.join(adv_routes)}")
         else:
             cmd.append("--advertise-routes=")
-        logger.error(f"tailscale up full command: {' '.join(cmd)}")
+        logger.info(f"tailscale up command: {' '.join(cmd)}")
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         except Exception as e:
             logger.exception(f"Exception running tailscale up: {e}")
             return JSONResponse({"success": False, "error": str(e)}, status_code=500)
-        logger.error(f"tailscale CLI finished running. Return code: {result.returncode}")
-        logger.error(f"stdout: {result.stdout}")
-        logger.error(f"stderr: {result.stderr}")
+        logger.info(f"tailscale CLI finished running. Return code: {result.returncode}")
+        logger.debug(f"stdout: {result.stdout}")
+        logger.debug(f"stderr: {result.stderr}")
         if result.returncode == 0:
             logger.info("tailscale up succeeded")
             return {"success": True, "stdout": result.stdout}

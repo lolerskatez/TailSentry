@@ -30,15 +30,15 @@ async def login_post(request: Request, username: str = Form(...), password: str 
         })
     
     # Attempt login
-    logger.info(f"Login attempt - Username received: '{username}', Expected: '{ADMIN_USERNAME}'")
-    logger.info(f"Username match: {username == ADMIN_USERNAME}")
-    logger.info(f"Password hash available: {'Yes' if ADMIN_PASSWORD_HASH else 'No'}")
+    logger.debug(f"Login attempt - Username received: '{username}', Expected: '{ADMIN_USERNAME}'")
+    logger.debug(f"Username match: {username == ADMIN_USERNAME}")
+    logger.debug(f"Password hash available: {'Yes' if ADMIN_PASSWORD_HASH else 'No'}")
     
     password_match = verify_password(password, ADMIN_PASSWORD_HASH)
-    logger.info(f"Password verification result: {password_match}")
+    logger.debug(f"Password verification result: {password_match}")
     
     success = username == ADMIN_USERNAME and password_match
-    logger.info(f"Overall login success: {success}")
+    logger.info(f"Login attempt from {client_host} - Success: {success}")
     
     record_login_attempt(client_host, success)
     
