@@ -422,12 +422,11 @@ window.altTailSentry = function altTailSentry() {
     async applySubnets() {
       // Call backend to apply subnet routes
       const payload = {
-        advertised_routes: this.advertisedRoutes,
-        hostname: this.device.hostname
+        routes: this.advertisedRoutes
       };
       this.subnetFeedback = '';
       try {
-        const res = await fetch('/api/authenticate', {
+        const res = await fetch('/api/subnet-routes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -439,7 +438,7 @@ window.altTailSentry = function altTailSentry() {
           this.subnetModalOpen = false;
           this.loadStatus();
         } else {
-          this.subnetFeedback = data.message || 'Failed to apply subnet routes.';
+          this.subnetFeedback = data.error || data.message || 'Failed to apply subnet routes.';
         }
       } catch (e) {
         this.subnetFeedback = 'Network or server error.';
