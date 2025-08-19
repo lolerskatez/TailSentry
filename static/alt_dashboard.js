@@ -484,7 +484,10 @@ window.altTailSentry = function altTailSentry() {
       this.loadStatus();
     },
   // Removed toggleExitNode: always use backend state
-    openSubnetModal() { this.toastMsg('Subnet management coming soon!'); },
+    openSubnetModal() {
+      this.loadSubnets();
+      this.subnetModalOpen = true;
+    },
     openKeyModal() { this.toastMsg('Key management coming soon!'); },
     openLogsModal() { this.toastMsg('Logs coming soon!'); },
     openPeerModal(peer) { this.selectedPeer = peer; this.peerModal = true; },
