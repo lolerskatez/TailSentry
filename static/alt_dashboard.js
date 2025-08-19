@@ -12,64 +12,13 @@ window.altTailSentry = function altTailSentry() {
       ip: '0.0.0.0',
       role: 'Loading...',
       uptime: '0m',
-      isExit: false,
-      online: false
-    },
-    net: { tx: '0.0 MB/s', rx: '0.0 MB/s', activity: 0 },
-    peers: [],
-    peerFilter: '',
-    subnets: [],
-    logs: [],
-    toast: '',
-    authKey: '',
-  isExitNode: false,
-  isSubnetRouting: false,
-  advertisedRoutes: [],
-  advertiseIPv4Exit: false,
-  advertiseIPv6Exit: false,
-  exitNodeFirewall: false, // UI only
-  exitNodePeerCount: 0,
-  exitNodeLastChanged: '',
-  exitNodeLastError: '',
-    // Settings UI state
-    tailscaleStatus: 'unknown',
-    tailscaleIp: '',
-    authFeedback: '',
-    authSuccess: false,
-    // Alpine.js settings page state variables (must be defined for template)
-    tailscaleCtlFeedback: '',
-    exitNodeFeedback: '',
-    subnetModalOpen: false,
-    allSubnets: [
-      '10.0.0.0/8',
-      '172.16.0.0/12',
-      '192.168.0.0/16'
-    ],
-    subnetFeedback: '',
-
-    // Alpine.js methods
-    saveHostname() {
-      const payload = {
-        hostname: this.device.hostname
-      };
-      this.tailscaleCtlFeedback = '';
-      fetch('/api/authenticate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          this.tailscaleCtlFeedback = 'Hostname saved!';
-          this.loadStatus();
-        } else {
-          this.tailscaleCtlFeedback = data.message || 'Failed to save hostname.';
-        }
-      })
-      .catch(() => {
-        this.tailscaleCtlFeedback = 'Network or server error.';
-      });
+  // ...existing code...
+        allSubnets: [
+          '10.0.0.0/8',
+          '172.16.0.0/12',
+          '192.168.0.0/16'
+        ],
+        subnetFeedback: '',
     },
     darkMode: false,
     openSettings: false,
@@ -288,8 +237,9 @@ window.altTailSentry = function altTailSentry() {
           // Last changed and last error/log (UI only, could be improved with backend support)
           this.exitNodeLastChanged = localStorage.getItem('exitNodeLastChanged') || '';
           this.exitNodeLastError = localStorage.getItem('exitNodeLastError') || '';
-    // Advanced Exit Node apply
-    async applyExitNodeAdvanced() {
+          // ...existing code...
+    // Alpine.js methods
+    applyExitNodeAdvanced: async function() {
       // Build advertised routes array
       const routes = [];
       if (this.advertiseIPv4Exit) routes.push('0.0.0.0/0');
