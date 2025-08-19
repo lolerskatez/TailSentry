@@ -1,3 +1,7 @@
+// --- Alpine.js state and methods ---
+window.altTailSentry = function altTailSentry() {
+  return {
+    // Alpine.js state and methods
     // --- Helper methods for feedback and loading ---
     setFeedback(type, msg) {
       if (type === 'exitNode') {
@@ -6,15 +10,14 @@
         localStorage.setItem('exitNodeLastError', msg);
       } else if (type === 'subnet') {
         this.subnetFeedback = msg;
+      } else if (type === 'tailscaleCtl') {
+        this.tailscaleCtlFeedback = msg;
       }
     },
     setLoading(type, val) {
       if (type === 'exitNode') this.exitNodeLoading = val;
       if (type === 'subnet') this.subnetApplyLoading = val;
     },
-window.altTailSentry = function altTailSentry() {
-  return {
-    // Alpine.js state and methods
     darkMode: false,
     openSettings: false,
     peerModal: false,
@@ -141,7 +144,7 @@ window.altTailSentry = function altTailSentry() {
         advertise_exit_node: this.isExitNode,
         advertise_routes: this.advertisedRoutes
       };
-      this.tailscaleCtlFeedback = '';
+  this.setFeedback('tailscaleCtl', '');
       fetch('/api/authenticate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -150,18 +153,18 @@ window.altTailSentry = function altTailSentry() {
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          this.tailscaleCtlFeedback = 'Tailscale started!';
+          this.setFeedback('tailscaleCtl', 'Tailscale started!');
           this.loadStatus();
         } else {
-          this.tailscaleCtlFeedback = data.message || 'Failed to start Tailscale.';
+          this.setFeedback('tailscaleCtl', data.message || 'Failed to start Tailscale.');
         }
       })
       .catch(() => {
-        this.tailscaleCtlFeedback = 'Network or server error.';
+        this.setFeedback('tailscaleCtl', 'Network or server error.');
       });
     },
     tailscaleDown() {
-      this.tailscaleCtlFeedback = '';
+  this.setFeedback('tailscaleCtl', '');
       fetch('/api/down', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -169,14 +172,14 @@ window.altTailSentry = function altTailSentry() {
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          this.tailscaleCtlFeedback = 'Tailscale stopped!';
+          this.setFeedback('tailscaleCtl', 'Tailscale stopped!');
           this.loadStatus();
         } else {
-          this.tailscaleCtlFeedback = data.message || 'Failed to stop Tailscale.';
+          this.setFeedback('tailscaleCtl', data.message || 'Failed to stop Tailscale.');
         }
       })
       .catch(() => {
-        this.tailscaleCtlFeedback = 'Network or server error.';
+        this.setFeedback('tailscaleCtl', 'Network or server error.');
       });
     },
 
