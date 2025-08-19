@@ -1,10 +1,6 @@
 // --- Alpine.js state and methods ---
 window.altTailSentry = function altTailSentry() {
   return {
-    init() {
-      // No-op for Alpine x-init
-    },
-    // Alpine.js state and methods
     // --- Helper methods for feedback and loading ---
     setFeedback(type, msg) {
       if (type === 'exitNode') {
@@ -21,6 +17,8 @@ window.altTailSentry = function altTailSentry() {
       if (type === 'exitNode') this.exitNodeLoading = val;
       if (type === 'subnet') this.subnetApplyLoading = val;
     },
+    
+    // --- Alpine.js state variables ---
     darkMode: false,
     openSettings: false,
     peerModal: false,
@@ -52,18 +50,17 @@ window.altTailSentry = function altTailSentry() {
     isExitNode: false,
     isSubnetRouting: false,
     advertisedRoutes: [],
-  // Removed advertiseIPv4Exit and advertiseIPv6Exit
     exitNodeFirewall: false, // UI only
     exitNodePeerCount: 0,
     exitNodeLastChanged: '',
-  exitNodeLastError: '',
-  exitNodeFeedback: '',
-  exitNodeLoading: false,
+    exitNodeLastError: '',
+    exitNodeFeedback: '',
+    exitNodeLoading: false,
     subnetModalOpen: false,
-  allSubnets: [],
-  subnetsLoading: false,
-  subnetsChanged: false,
-  subnetApplyLoading: false,
+    allSubnets: [],
+    subnetsLoading: false,
+    subnetsChanged: false,
+    subnetApplyLoading: false,
     subnetFeedback: '',
     // Settings UI state
     tailscaleStatus: 'unknown',
@@ -346,8 +343,6 @@ window.altTailSentry = function altTailSentry() {
       } catch (e) { this.toastMsg('Failed to load peers'); }
     },
 
-    subnetsLoading: false,
-    subnetsChanged: false,
     async loadSubnets() {
       this.subnetsLoading = true;
       // Load currently advertised routes
@@ -439,15 +434,6 @@ window.altTailSentry = function altTailSentry() {
       // Always refresh the real state from backend after apply
       this.loadStatus();
     },
-    toggleSubnet(subnet) {
-      if (!this.advertisedRoutes) this.advertisedRoutes = [];
-      if (this.advertisedRoutes.includes(subnet)) {
-        this.advertisedRoutes = this.advertisedRoutes.filter(s => s !== subnet);
-      } else {
-        this.advertisedRoutes = [...this.advertisedRoutes, subnet];
-      }
-      this.subnetsChanged = true;
-    },
 
     toggleSelectAllSubnets(e) {
       if (e.target.checked) {
@@ -517,8 +503,10 @@ window.altTailSentry = function altTailSentry() {
     async applyExitNodeAdvanced() {
       // Use helpers for feedback and loading state
       const routes = [];
-      if (this.advertiseIPv4Exit) routes.push('0.0.0.0/0');
-      if (this.advertiseIPv6Exit) routes.push('::/0');
+      // Build routes based on isExitNode and advertisedRoutes
+      if (this.isExitNode) {
+        routes.push('0.0.0.0/0', '::/0');
+      }
       for (const r of this.advertisedRoutes) {
         if (!routes.includes(r) && r !== '0.0.0.0/0' && r !== '::/0') routes.push(r);
       }
@@ -552,9 +540,15 @@ window.altTailSentry = function altTailSentry() {
       this.loadStatus();
     },
   // Removed toggleExitNode: always use backend state
-    openSubnetModal() {
-      this.loadSubnets();
-      this.subnetModalOpen = true;
+    toggleExitNode() {
+      this.isExitNode = !this.isExitNode;
+      this.applyExitNodeAdvanced();
+    },
+    regenerateAuthKey() {
+      this.toastMsg('Auth key regeneration coming soon!');
+    },
+    saveDarkMode() {
+      localStorage.setItem('altDarkMode', this.darkMode);
     },
     openKeyModal() { this.toastMsg('Key management coming soon!'); },
     openLogsModal() { this.toastMsg('Logs coming soon!'); },
