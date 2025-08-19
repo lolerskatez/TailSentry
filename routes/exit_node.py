@@ -43,8 +43,8 @@ async def set_exit_node(request: Request):
         with open(SETTINGS_PATH, 'w') as f:
             json.dump(merged, f, indent=2)
     except Exception as e:
-        logger.error(f"Failed to write tailscale_settings.json: {e}")
-        return JSONResponse({"success": False, "error": "Failed to write settings."}, status_code=500)
+        logger.error(f"Failed to write tailscale_settings.json: {e}", exc_info=True)
+        return JSONResponse({"success": False, "error": f"Failed to write settings: {e}"}, status_code=500)
 
     # Actually apply exit node settings at the Tailscale service level
     try:
@@ -66,19 +66,25 @@ async def set_exit_node(request: Request):
         logger.info(f"TailscaleClient.set_exit_node result: {result}")
         # If result is not True, treat as error (result may be error string or False)
         if result is not True:
+            logger.error(f"Exit node operation failed: {result}")
             return JSONResponse({"success": False, "error": str(result)}, status_code=500)
     except Exception as e:
-        logger.error(f"Failed to set exit node via TailscaleClient: {e}")
+        logger.error(f"Failed to set exit node via TailscaleClient: {e}", exc_info=True)
         return JSONResponse({"success": False, "error": f"Failed to set exit node: {e}"}, status_code=500)
 
     # Call authenticate_tailscale with all settings (to ensure settings are applied)
-    fake_request = Request(request.scope, receive=request.receive)
-    fake_request._json = merged
-    resp = await authenticate_tailscale(fake_request)
+    try:
+        fake_request = Request(request.scope, receive=request.receive)
+        fake_request._json = merged
+        resp = await authenticate_tailscale(fake_request)
+    except Exception as e:
+        logger.error(f"Failed to authenticate tailscale after exit node change: {e}", exc_info=True)
+        return JSONResponse({"success": False, "error": f"Failed to authenticate tailscale: {e}"}, status_code=500)
     # Return new state for frontend sync
     try:
         with open(SETTINGS_PATH, 'r') as f:
             new_settings = json.load(f)
-    except Exception:
+    except Exception as e:
+        logger.error(f"Failed to reload settings after exit node change: {e}", exc_info=True)
         new_settings = merged
     return JSONResponse({"success": True, "settings": new_settings})
