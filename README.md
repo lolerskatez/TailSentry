@@ -1,3 +1,31 @@
+## Testing & Development
+
+### Running Tests
+TailSentry includes a robust test suite that works with both real Tailscale data and mock data.
+
+- **Live mode (default):**
+   - Runs tests against your actual Tailscale environment.
+   - To run:
+      ```bash
+      python -m unittest tests.py
+      ```
+- **Mock mode:**
+   - Uses mocked Tailscale responses for safe, repeatable tests.
+   - To enable, set the environment variable:
+      ```bash
+      set TAILSENTRY_FORCE_LIVE_DATA=false  # Windows
+      export TAILSENTRY_FORCE_LIVE_DATA=false  # Linux/macOS
+      python -m unittest tests.py
+      ```
+
+### Troubleshooting Platform Detection
+If you see errors like `TypeError: cannot use a string pattern on a bytes-like object` from the `platform` module, ensure you are not mocking `subprocess.check_output` globally. The codebase now includes robust fallbacks for platform detection, but avoid patching core Python internals in live mode.
+
+### Code Quality & Maintainability
+- Alpine.js frontend logic is DRY and uses reusable helpers for feedback/loading.
+- Backend Tailscale CLI integration is robust and always includes all required flags.
+- Tests are compatible with both real and mock data, and skip or relax assertions as needed.
+- All platform detection is robust to bytes/string mismatches and works on Windows, Linux, and macOS.
 # TailSentry: Lightweight Tailscale Dashboard
 
 A secure, minimal FastAPI + TailwindCSS dashboard for managing a Tailscale subnet router/exit node.
