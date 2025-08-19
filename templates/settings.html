@@ -9,6 +9,12 @@
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <script src="/static/alt_dashboard.js"></script>
   <script src="/static/alpine.min.js" defer></script>
+  <script src="https://unpkg.com/@alpinejs/focus@3.x.x/dist/cdn.min.js" defer></script>
+  <script>
+    document.addEventListener('alpine:init', () => {
+      window.Alpine.plugin(window.AlpineFocus);
+    });
+  </script>
   <meta name="description" content="TailSentry Settings for managing Tailscale controller features.">
   <meta name="keywords" content="TailSentry, Tailscale, Settings, Network, Security">
 </head>
