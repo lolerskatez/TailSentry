@@ -153,16 +153,20 @@
       </template>
     </div>
     <!-- Subnet Routing Card (moved outside settingsPage) -->
-    <div class="mb-4 p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-      <div class="flex items-center justify-between mb-2">
+    <!-- Subnet Routing Card (modern, single manage button) -->
+    <div class="mb-6 p-6 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      <div class="flex items-center justify-between mb-4">
         <div>
-          <div class="font-semibold">Subnet Routing</div>
-          <div class="text-xs text-gray-500 dark:text-gray-400">Advertise or remove subnets for this node.</div>
+          <div class="font-semibold text-lg flex items-center gap-2">
+            <svg class="h-5 w-5 text-green-500" x-show="isSubnetRouting" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="currentColor"/></svg>
+            <svg class="h-5 w-5 text-gray-400" x-show="!isSubnetRouting" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+            Subnet Routing
+          </div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Advertise or remove subnets for this node.</div>
         </div>
-        <button @click="subnetModalOpen = true" class="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600" title="Manage Subnets">Manage</button>
-  <button @click="openSubnetModal()" class="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600" title="Manage Subnets">Manage</button>
+        <button @click="openSubnetModal()" class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 font-semibold shadow" title="Manage Subnets">Manage</button>
       </div>
-      <div class="flex items-center gap-2 mb-1">
+      <div class="flex items-center gap-2 mb-2">
         <span :class="isSubnetRouting ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'" class="px-2 py-1 rounded text-xs font-semibold" x-text="isSubnetRouting ? 'Enabled' : 'Disabled'"></span>
         <template x-if="advertisedRoutes && advertisedRoutes.length">
           <span class="text-xs text-gray-700 dark:text-gray-200">Routes: <span x-text="advertisedRoutes.join(', ')"></span></span>
