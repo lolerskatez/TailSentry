@@ -161,6 +161,10 @@
             <svg class="h-5 w-5 text-green-500" x-show="isSubnetRouting" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="currentColor"/></svg>
             <svg class="h-5 w-5 text-gray-400" x-show="!isSubnetRouting" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>
             Subnet Routing
+            <span class="ml-2 cursor-pointer group relative" title="What is subnet routing?">
+              <svg class="h-4 w-4 text-gray-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><text x="12" y="16" text-anchor="middle" font-size="12" fill="currentColor">?</text></svg>
+              <span class="absolute left-1/2 -translate-x-1/2 mt-2 w-56 bg-white dark:bg-gray-900 text-xs text-gray-700 dark:text-gray-200 rounded shadow-lg p-2 z-10 hidden group-hover:block">Subnet routing allows this device to advertise local subnets to your Tailscale network. Peers can access devices on these subnets as if they were local.</span>
+            </span>
           </div>
           <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Advertise or remove subnets for this node.</div>
         </div>
@@ -168,8 +172,20 @@
       </div>
       <div class="flex items-center gap-2 mb-2">
         <span :class="isSubnetRouting ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'" class="px-2 py-1 rounded text-xs font-semibold" x-text="isSubnetRouting ? 'Enabled' : 'Disabled'"></span>
+      </div>
+      <div class="mb-2">
         <template x-if="advertisedRoutes && advertisedRoutes.length">
-          <span class="text-xs text-gray-700 dark:text-gray-200">Routes: <span x-text="advertisedRoutes.join(', ')"></span></span>
+          <div>
+            <div class="text-xs text-gray-600 dark:text-gray-300 mb-1">Advertised Subnets:</div>
+            <ul class="list-disc list-inside text-sm text-gray-800 dark:text-gray-100">
+              <template x-for="subnet in advertisedRoutes" :key="subnet">
+                <li x-text="subnet"></li>
+              </template>
+            </ul>
+          </div>
+        </template>
+        <template x-if="!advertisedRoutes || !advertisedRoutes.length">
+          <div class="text-xs text-gray-400 italic">No subnets advertised.</div>
         </template>
       </div>
       <!-- Subnet Modal -->
@@ -185,6 +201,9 @@
                 </label>
               </template>
             </div>
+          </template>
+          <template x-if="!allSubnets || !allSubnets.length">
+            <div class="text-xs text-gray-400 italic mb-4">No local subnets detected on this device.</div>
           </template>
           <div class="flex gap-2 justify-end">
             <button @click="applySubnets()" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">Apply</button>
