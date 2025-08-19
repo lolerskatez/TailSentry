@@ -563,34 +563,27 @@ class TailscaleClient:
         return TailscaleClient.up(extra_args=args)
 
     @staticmethod
-    def set_exit_node(enable=True):
-        """Enable or disable this device as an exit node, always including all non-default flags for robust tailscale up invocation."""
+    def set_exit_node(enable=True, settings=None):
+        """Enable or disable this device as an exit node, always including all non-default flags for robust tailscale up invocation. Accepts a settings dict."""
         import platform
-        settings_path = os.path.join(os.path.dirname(__file__), 'tailscale_settings.json')
-        try:
-            with open(settings_path, 'r') as f:
-                settings = json.load(f)
-        except Exception as e:
-            logger.error(f"Failed to read tailscale_settings.json: {e}")
-            settings = {}
+        if settings is None:
+            # Fallback: load from file if not provided
+            settings_path = os.path.join(os.path.dirname(__file__), 'tailscale_settings.json')
+            try:
+                with open(settings_path, 'r') as f:
+                    settings = json.load(f)
+            except Exception as e:
+                logger.error(f"Failed to read tailscale_settings.json: {e}")
+                settings = {}
 
         # Enforce defaults for all required settings
         hostname = settings.get("hostname") or platform.node()
         accept_routes = settings.get("accept_routes")
         if accept_routes is None:
             accept_routes = True
-            settings["accept_routes"] = True
         adv_routes = settings.get("advertise_routes")
         if not isinstance(adv_routes, list):
             adv_routes = []
-            settings["advertise_routes"] = []
-
-        # Persist updated settings (with defaults) before running tailscale up
-        try:
-            with open(settings_path, 'w') as f:
-                json.dump(settings, f, indent=2)
-        except Exception as e:
-            logger.error(f"Failed to write tailscale_settings.json: {e}")
 
         args = []
         # Always set hostname

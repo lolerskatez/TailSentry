@@ -57,12 +57,12 @@ async def set_exit_node(request: Request):
                 merged.get("hostname")
             )
         else:
-            # Fallback: use set_exit_node with IPv4/IPv6 detection
+            # Fallback: use set_exit_node with merged settings
             enable = False
             adv_routes = merged.get("advertise_routes", [])
             if adv_routes:
                 enable = '0.0.0.0/0' in adv_routes or '::/0' in adv_routes
-            result = TailscaleClient.set_exit_node(enable)
+            result = TailscaleClient.set_exit_node(enable, settings=merged)
         logger.info(f"TailscaleClient.set_exit_node result: {result}")
         # If result is not True, treat as error (result may be error string or False)
         if result is not True:
