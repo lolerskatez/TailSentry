@@ -578,19 +578,10 @@ class TailscaleClient:
         # Get current device info for all non-default flags
         status = TailscaleClient.status_json()
         self_obj = safe_get_dict(status, "Self")
-        hostname = self_obj.get("HostName") or TailscaleClient.get_hostname()
+        hostname = self_obj.get("HostName") or socket.gethostname()
         accept_routes = self_obj.get("AcceptRoutes", True)
         adv_routes = list(routes)  # Only subnets, not exit node
-        # Check if this device is currently an exit node
-        adv_exit = False
-        advertised = self_obj.get("AdvertisedRoutes", [])
-        # Always include --advertise-exit-node if device is a subnet router or has ever advertised exit node
-        capabilities = self_obj.get("Capabilities", {})
-        if not isinstance(capabilities, dict):
-            capabilities = {}
-        # If device is a subnet router or has ever advertised exit node, always include the flag
-        if capabilities.get("SubnetRouter", False) or capabilities.get("ExitNode", False) or "0.0.0.0/0" in advertised or "::/0" in advertised:
-            adv_exit = True
+        adv_exit = True  # Always include --advertise-exit-node for robust compatibility
 
         args = []
         if hostname:
