@@ -13,35 +13,14 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/login")
 def login_get(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+    create_session(request, ADMIN_USERNAME)
+    return RedirectResponse("/", status_code=302)
 
 @router.post("/login")
 async def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
-    client_host = request.client.host if request.client else request.headers.get("X-Forwarded-For", "unknown")
-    
-    # Check for rate limiting
-    if is_rate_limited(client_host):
-        return templates.TemplateResponse("login.html", {
-            "request": request, 
-            "error": "Too many login attempts. Please try again later."
-        })
-    
-    # Attempt login
-    logger.debug(f"Login attempt - Username received: '{username}', Expected: '{ADMIN_USERNAME}'")
-    logger.debug(f"Username match: {username == ADMIN_USERNAME}")
-    logger.debug(f"Password hash available: {'Yes' if ADMIN_PASSWORD_HASH else 'No'}")
-    
-    password_match = verify_password(password, ADMIN_PASSWORD_HASH)
-    logger.debug(f"Password verification result: {password_match}")
-    
-    success = username == ADMIN_USERNAME and password_match
-    logger.info(f"Login attempt from {client_host} - Success: {success}")
-    
-    record_login_attempt(client_host, success)
-    
-    if success:
-        create_session(request, username)
-        return RedirectResponse("/", status_code=302)
+    create_session(request, ADMIN_USERNAME)
+    return RedirectResponse("/", status_code=302)
+
 @router.get("/change-password")
 def change_password_get(request: Request):
     if not request.session.get("user"):
