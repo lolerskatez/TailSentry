@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from fastapi import status as http_status, Depends
-from auth import login_required
+ # from auth import login_required
 import json
 import os
 import logging
@@ -13,7 +13,7 @@ logger = logging.getLogger("tailsentry.exit_node")
 SETTINGS_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
 
 @router.post("/api/exit-node")
-@login_required
+ # @login_required
 async def set_exit_node(request: Request):
     data = await request.json()
     # Accept advanced payload: advertised_routes (array), firewall (bool), hostname

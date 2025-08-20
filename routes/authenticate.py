@@ -9,7 +9,7 @@ import json
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from starlette import status as http_status
-from auth import login_required
+ # from auth import login_required
 
 router = APIRouter()
 logger = logging.getLogger("tailsentry.authenticate")
@@ -21,7 +21,7 @@ async def test_save_key():
 
 # Save only the auth_key to tailscale_settings.json (no tailscale up)
 @router.post("/save-key")
-@login_required
+ # @login_required
 async def save_auth_key(request: Request):
     logger.info("/api/save-key called")
     try:
@@ -55,7 +55,7 @@ async def test_authenticate_route():
     return {"success": True, "message": "Test endpoint reached."}
 
 @router.post("/authenticate")
-@login_required
+ # @login_required
 async def authenticate_tailscale(request: Request):
     logger.info("/api/authenticate called")
     try:

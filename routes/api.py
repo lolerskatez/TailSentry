@@ -4,7 +4,7 @@ import time
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
-from auth import login_required
+ # from auth import login_required
 from services.tailscale_service import TailscaleClient
 import asyncio
 import json
@@ -19,7 +19,6 @@ active_connections = []
 
 # Logs & Diagnostics API endpoint (after all imports and router definition)
 @router.get("/logs")
-@login_required
 async def get_logs(request: Request):
     """Return the last N lines of the main log file for diagnostics."""
     try:
@@ -86,7 +85,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
 # API endpoints for status data
 @router.get("/status")
-@login_required
 async def get_status(request: Request):
     """Get current Tailscale status"""
     try:
@@ -106,7 +104,6 @@ async def get_status(request: Request):
         return {"error": f"Internal server error: {str(e)}"}
 
 @router.get("/device")
-@login_required
 async def get_device(request: Request):
     """Get information about this device"""
     try:
@@ -117,7 +114,6 @@ async def get_device(request: Request):
         return {"error": str(e)}
 
 @router.get("/peers")
-@login_required
 async def get_peers(request: Request):
     """Get list of peers"""
     try:
@@ -131,7 +127,6 @@ async def get_peers(request: Request):
         return {"error": str(e)}
 
 @router.get("/exit-node")
-@login_required
 async def get_exit_node(request: Request):
     """Get current exit node"""
     try:
@@ -141,7 +136,6 @@ async def get_exit_node(request: Request):
         return {"error": str(e)}
 
 @router.get("/subnet-routes")
-@login_required
 async def get_subnet_routes(request: Request):
     """Get advertised subnet routes"""
     try:
@@ -151,7 +145,6 @@ async def get_subnet_routes(request: Request):
         return {"error": str(e)}
 
 @router.get("/local-subnets")
-@login_required
 async def get_local_subnets(request: Request):
     """Get detected local subnets"""
     try:
@@ -165,7 +158,6 @@ async def get_local_subnets(request: Request):
 from fastapi import Body
 
 @router.post("/subnet-routes")
-@login_required
 async def set_subnet_routes(request: Request, payload: dict = Body(...)):
     """Set advertised subnet routes"""
     import ipaddress

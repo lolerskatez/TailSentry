@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 from fastapi.templating import Jinja2Templates
-from auth import login_required
+ # from auth import login_required
 from services.tailscale_service import TailscaleClient
 
 router = APIRouter()
