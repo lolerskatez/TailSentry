@@ -108,9 +108,10 @@ csrf_exempt_paths = {"/login", "/", "/api/*", "/health"}
 app.add_middleware(CSRFMiddleware, exempt_paths=csrf_exempt_paths)
 
 # Add rate limiting in production
-if not os.getenv("DEVELOPMENT", "false").lower() == "true":
-    from middleware.rate_limit import RateLimitMiddleware
-    app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
+# DISABLED for development/demo to avoid 429 errors
+# if not os.getenv("DEVELOPMENT", "false").lower() == "true":
+#     from middleware.rate_limit import RateLimitMiddleware
+#     app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
 
 # Add compression for better performance
 from fastapi.middleware.gzip import GZipMiddleware
