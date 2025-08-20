@@ -16,7 +16,7 @@ SETTINGS_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailsca
  # @login_required
 async def set_exit_node(request: Request):
     data = await request.json()
-    # Accept advanced payload: advertised_routes (array), firewall (bool), hostname
+    # Accept advanced payload: advertised_routes (array), firewall (bool), hostname, exit_node_enable (bool)
     # Load current settings
     try:
         with open(SETTINGS_PATH, 'r') as f:
@@ -38,6 +38,26 @@ async def set_exit_node(request: Request):
     # Clean up: ensure advertise_routes is a list
     if not isinstance(merged["advertise_routes"], list):
         merged["advertise_routes"] = []
+
+    # Robustly handle exit node intent
+    exit_node_enable = data.get("exit_node_enable")
+    # If not explicitly set, infer from advertised_routes
+    if exit_node_enable is None:
+        adv_routes = merged["advertise_routes"]
+        exit_node_enable = ("0.0.0.0/0" in adv_routes) or ("::/0" in adv_routes)
+
+    # Ensure advertise_routes includes or excludes exit node routes as needed
+    adv_routes = [r for r in merged["advertise_routes"] if r not in ("0.0.0.0/0", "::/0")]
+    if exit_node_enable:
+        # Add exit node routes if not present
+        if "0.0.0.0/0" not in adv_routes:
+            adv_routes.append("0.0.0.0/0")
+        # Optionally add "::/0" for IPv6 exit node
+        # if "::/0" not in adv_routes:
+        #     adv_routes.append("::/0")
+    # If disabling, ensure exit node routes are not present
+    merged["advertise_routes"] = adv_routes
+
     # Save merged settings
     try:
         with open(SETTINGS_PATH, 'w') as f:
@@ -58,11 +78,7 @@ async def set_exit_node(request: Request):
             )
         else:
             # Fallback: use set_exit_node with merged settings
-            enable = False
-            adv_routes = merged.get("advertise_routes", [])
-            if adv_routes:
-                enable = '0.0.0.0/0' in adv_routes or '::/0' in adv_routes
-            result = TailscaleClient.set_exit_node(enable, settings=merged)
+            result = TailscaleClient.set_exit_node(exit_node_enable, settings=merged)
         logger.info(f"TailscaleClient.set_exit_node result: {result}")
         # Always return the latest status and any error
         status = TailscaleClient.status_json()
