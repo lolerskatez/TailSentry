@@ -16,6 +16,9 @@ if not env_path.exists():
 load_dotenv()
 
 import logging
+import secrets
+GENERATED_ADMIN_PASSWORD = None
+FORCE_PASSWORD_CHANGE = False
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD_HASH = os.getenv("ADMIN_PASSWORD_HASH")
 if not ADMIN_USERNAME or not ADMIN_PASSWORD_HASH:
@@ -23,6 +26,11 @@ if not ADMIN_USERNAME or not ADMIN_PASSWORD_HASH:
     ADMIN_USERNAME = "admin"
     # Precomputed bcrypt hash for 'admin123'
     ADMIN_PASSWORD_HASH = "$2b$12$wI6QwQwQwQwQwQwQwQwQwOQwQwQwQwQwQwQwQwQwQwQwQwQwQwQw"
+    GENERATED_ADMIN_PASSWORD = secrets.token_urlsafe(12)
+    import bcrypt
+    ADMIN_PASSWORD_HASH = bcrypt.hashpw(GENERATED_ADMIN_PASSWORD.encode(), bcrypt.gensalt()).decode()
+    logging.warning(f"No admin credentials set in .env. Generated admin password: {GENERATED_ADMIN_PASSWORD}\nPlease log in and change your password immediately.")
+    FORCE_PASSWORD_CHANGE = True
 SESSION_SECRET = os.getenv("SESSION_SECRET", "changeme")
 SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT_MINUTES", 30))
 

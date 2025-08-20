@@ -2,11 +2,8 @@ from fastapi import APIRouter, Request, Form
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 import logging
-from auth import (
-    verify_password, create_session, logout, 
-    ADMIN_USERNAME, ADMIN_PASSWORD_HASH, SESSION_SECRET,
-    is_rate_limited, record_login_attempt
-)
+from auth import verify_password, create_session, logout, ADMIN_USERNAME, ADMIN_PASSWORD_HASH, SESSION_SECRET, is_rate_limited, record_login_attempt
+from auth import FORCE_PASSWORD_CHANGE, GENERATED_ADMIN_PASSWORD
 
 logger = logging.getLogger("tailsentry")
 
