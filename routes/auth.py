@@ -3,7 +3,6 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 import logging
 from auth import verify_password, create_session, logout, ADMIN_USERNAME, ADMIN_PASSWORD_HASH, SESSION_SECRET, is_rate_limited, record_login_attempt
-from auth import FORCE_PASSWORD_CHANGE, GENERATED_ADMIN_PASSWORD
 from pathlib import Path
 
 logger = logging.getLogger("tailsentry")
@@ -42,10 +41,6 @@ async def login_post(request: Request, username: str = Form(...), password: str 
     
     if success:
         create_session(request, username)
-        # If using generated password, set flag to require password change
-        if FORCE_PASSWORD_CHANGE and password == GENERATED_ADMIN_PASSWORD:
-            request.session["force_password_change"] = True
-            return RedirectResponse("/change-password", status_code=302)
         return RedirectResponse("/", status_code=302)
 @router.get("/change-password")
 def change_password_get(request: Request):
