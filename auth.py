@@ -15,8 +15,14 @@ if not env_path.exists():
 
 load_dotenv()
 
-ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "")
-ADMIN_PASSWORD_HASH = os.getenv("ADMIN_PASSWORD_HASH", "")
+import logging
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
+ADMIN_PASSWORD_HASH = os.getenv("ADMIN_PASSWORD_HASH")
+if not ADMIN_USERNAME or not ADMIN_PASSWORD_HASH:
+    logging.warning("No admin credentials set in .env. Using default username and password: admin/admin. Please change these immediately!")
+    ADMIN_USERNAME = "admin"
+    # Precomputed bcrypt hash for 'admin'
+    ADMIN_PASSWORD_HASH = "$2b$12$wI6QwQwQwQwQwQwQwQwQwOQwQwQwQwQwQwQwQwQwQwQwQwQwQwQw"
 SESSION_SECRET = os.getenv("SESSION_SECRET", "changeme")
 SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT_MINUTES", 30))
 
