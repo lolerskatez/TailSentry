@@ -235,11 +235,7 @@ async def favicon():
 # Root route
 @app.get("/", include_in_schema=False)
 async def root(request: Request):
-    """Root endpoint, serves index page or redirects to login"""
-    # Check if user is logged in
-    if not request.session.get("user"):
-        return templates.TemplateResponse("login.html", {"request": request})
-    
+    """Root endpoint, always serves the dashboard (index.html) without login"""
     return templates.TemplateResponse("index.html", {"request": request})
 
 # Test route for debugging
