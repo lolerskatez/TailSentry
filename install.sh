@@ -61,17 +61,12 @@ echo ""
 echo "🔗 Get your Tailscale Authentication Key at: https://login.tailscale.com/admin/settings/keys"
 echo ""
 read -s -p "🔑 Enter Tailscale Authentication Key (or press Enter to skip): " TS_PAT
-read -s -p "🔑 Enter Tailscale Authentication Key (or press Enter to skip): " TS_PAT
 echo
 # Save the Tailscale Authentication Key as 'auth_key' in config/tailscale_settings.json
 mkdir -p config
 python3 << EOF
 import os
-read -s -p "🔑 Enter Tailscale Authentication Key (or press Enter to skip): " TS_PAT
-echo
-mkdir -p config
-python3 << EOF
-import os
+import json
 tskey = os.environ.get('TS_PAT', '') or '''$TS_PAT'''
 config_dir = os.path.join(os.getcwd(), 'config')
 settings_path = os.path.join(config_dir, 'tailscale_settings.json')
