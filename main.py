@@ -76,12 +76,9 @@ app = FastAPI(
 )
 
 # Session config
-SESSION_SECRET = os.getenv("SESSION_SECRET")
-if not SESSION_SECRET:
-    # Generate a secure secret key if not provided
-    SESSION_SECRET = secrets.token_hex(32)
-    logger.warning("Generated random session secret. For persistent sessions, set SESSION_SECRET in .env")
-    
+SESSION_SECRET = os.getenv("SESSION_SECRET", "changeme")
+if SESSION_SECRET == "changeme":
+    logger.warning("SESSION_SECRET is using the default value 'changeme'. Set SESSION_SECRET in your .env for production!")
 SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT_MINUTES", 30)) * 60
 app.add_middleware(
     SessionMiddleware,

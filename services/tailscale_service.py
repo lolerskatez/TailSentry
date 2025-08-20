@@ -50,6 +50,8 @@ load_dotenv()
 
 # Configuration from environment
 TAILSCALE_PAT = os.getenv("TAILSCALE_PAT")
+if not TAILSCALE_PAT:
+    logger.warning("TAILSCALE_PAT is not set. Tailscale integration will be disabled until a key is provided.")
 TAILNET = os.getenv("TAILSCALE_TAILNET", "-")  # Default to "-" for personal tailnet
 API_TIMEOUT = int(os.getenv("TAILSCALE_API_TIMEOUT", "10"))  # API timeout in seconds
 DATA_DIR = os.getenv("TAILSENTRY_DATA_DIR", os.path.join(os.path.dirname(__file__), "data"))
