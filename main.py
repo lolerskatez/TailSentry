@@ -247,10 +247,13 @@ async def favicon():
     return FileResponse("static/favicon.ico")
 
 # Root route
+
+from routes.user import get_current_user
+
 @app.get("/", include_in_schema=False)
 async def root(request: Request):
     """Root endpoint, requires login to access dashboard"""
-    user = request.session.get("user")
+    user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=302)
     return templates.TemplateResponse("index.html", {"request": request, "user": user})
