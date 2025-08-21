@@ -16,7 +16,6 @@ from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv, set_key, find_dotenv
-from routes.user import get_current_user
 
 logger = logging.getLogger("tailsentry.settings")
 
@@ -238,6 +237,7 @@ def save_config_to_json(config: TailSentryConfig) -> bool:
 @router.get("/api/tailsentry-settings")
 async def get_tailsentry_settings(request: Request):
     """Get current TailSentry configuration"""
+    from routes.user import get_current_user
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -283,6 +283,7 @@ async def get_tailsentry_settings(request: Request):
 @router.post("/api/tailsentry-settings")
 async def update_tailsentry_settings(request: Request, config: TailSentryConfig):
     """Update TailSentry configuration"""
+    from routes.user import get_current_user
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -321,6 +322,7 @@ async def update_tailsentry_settings(request: Request, config: TailSentryConfig)
 @router.post("/api/tailsentry-settings/generate-secret")
 async def generate_session_secret(request: Request):
     """Generate a new session secret"""
+    from routes.user import get_current_user
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -341,6 +343,7 @@ async def generate_session_secret(request: Request):
 @router.post("/api/tailsentry-settings/test-webhook")
 async def test_webhook(request: Request):
     """Test webhook configuration"""
+    from routes.user import get_current_user
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -382,6 +385,7 @@ async def test_webhook(request: Request):
 @router.post("/api/tailsentry-settings/test-smtp")
 async def test_smtp(request: Request, smtp_config: SMTPSettings):
     """Test SMTP configuration"""
+    from routes.user import get_current_user
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -433,6 +437,7 @@ async def test_smtp(request: Request, smtp_config: SMTPSettings):
 @router.get("/api/tailsentry-settings/system-info")
 async def get_system_info(request: Request):
     """Get system information for diagnostics"""
+    from routes.user import get_current_user
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -487,6 +492,7 @@ async def get_system_info(request: Request):
 @router.post("/api/tailsentry-settings/backup-config")
 async def backup_config(request: Request):
     """Create a backup of current configuration"""
+    from routes.user import get_current_user
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -521,6 +527,7 @@ async def backup_config(request: Request):
 @router.get("/api/tailsentry-settings/export")
 async def export_settings(request: Request):
     """Export settings for backup/sharing (sanitized)"""
+    from routes.user import get_current_user
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -570,6 +577,7 @@ async def export_settings(request: Request):
 @router.post("/api/tailsentry-settings/import")
 async def import_settings(request: Request, settings_data: dict):
     """Import settings from backup/export"""
+    from routes.user import get_current_user
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")

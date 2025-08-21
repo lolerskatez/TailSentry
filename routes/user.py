@@ -8,7 +8,6 @@ from typing import Optional
 import aiosmtplib
 from email_validator import validate_email, EmailNotValidError
 import os
-from routes.tailsentry_settings import is_smtp_configured
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -156,6 +155,7 @@ def change_password(request: Request, old_password: str = Form(...), new_passwor
 
 @router.get("/reset-password-request")
 def reset_password_request_form(request: Request):
+    from routes.tailsentry_settings import is_smtp_configured
     smtp_warning = None if is_smtp_configured() else "SMTP is not configured. Please contact your administrator for password reset assistance."
     return templates.TemplateResponse("reset_password_request.html", {
         "request": request, 
@@ -167,6 +167,7 @@ def reset_password_request_form(request: Request):
 @router.post("/reset-password-request")
 async def reset_password_request(request: Request, email: str = Form(...)):
     from auth_user import get_user_by_email
+    from routes.tailsentry_settings import is_smtp_configured
     
     # Check if SMTP is configured
     if not is_smtp_configured():
