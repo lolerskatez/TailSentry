@@ -50,6 +50,7 @@
           <button id="refresh-logs" type="button" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">Refresh</button>
           <button id="download-logs" type="button" class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">Download</button>
           <button id="download-logs-zip" type="button" class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">Download Zip</button>
+          <button id="download-diagnostics" type="button" class="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600">Download Diagnostics</button>
         </div>
         <div class="flex items-center gap-2 ml-auto">
           <input id="auto-refresh" type="checkbox" class="h-5 w-5">
@@ -107,6 +108,9 @@
     };
     document.getElementById('download-logs-zip').onclick = async function() {
       window.location.href = '/api/logs/download?zip=true';
+    };
+    document.getElementById('download-diagnostics').onclick = async function() {
+      window.location.href = '/api/diagnostics/download';
     };
   let ws = null;
     document.getElementById('auto-refresh').onchange = function() {
