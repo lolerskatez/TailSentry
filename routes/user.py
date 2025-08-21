@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from auth_user import create_user, verify_user, get_user, list_users, delete_user, init_db, get_user_activity_log, append_user_activity
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+from typing import Optional
 import aiosmtplib
 from email_validator import validate_email, EmailNotValidError
 import os
@@ -196,16 +197,26 @@ def reset_password(request: Request, new_password: str = Form(...), token: str =
 
 @router.get("/profile")
 def profile_form(request: Request, user=Depends(get_current_user)):
+    from auth_user import get_user_notification_preferences
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    # Attach activity log
+    # Attach activity log and notification preferences
     user = dict(user)
     user["activity_log"] = get_user_activity_log(user["username"])
+    user["notification_preferences"] = get_user_notification_preferences(user["username"])
     return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": None, "success": None, "active_nav": "profile"})
 
 @router.post("/profile")
-def profile_update(request: Request, email: str = Form(...), display_name: str = Form(""), current_password: str = Form(""), new_password: str = Form(""), user=Depends(get_current_user)):
-    from auth_user import set_user_email, set_user_display_name, verify_user, get_db, pwd_context
+def profile_update(request: Request, 
+                   email: str = Form(...), 
+                   display_name: str = Form(""), 
+                   current_password: str = Form(""), 
+                   new_password: str = Form(""),
+                   email_notifications: Optional[str] = Form(None),
+                   system_alerts: Optional[str] = Form(None),
+                   maintenance: Optional[str] = Form(None),
+                   user=Depends(get_current_user)):
+    from auth_user import set_user_email, set_user_display_name, verify_user, get_db, pwd_context, set_user_notification_preferences, get_user_notification_preferences
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     error = None
@@ -237,12 +248,26 @@ def profile_update(request: Request, email: str = Form(...), display_name: str =
             conn.close()
             append_user_activity(user["username"], "Changed password")
             success = (success or "") + "Password updated."
+    
+    # Update notification preferences
+    notification_prefs = {
+        "email": email_notifications == "on",
+        "system_alerts": system_alerts == "on", 
+        "maintenance": maintenance == "on"
+    }
+    current_prefs = get_user_notification_preferences(user["username"])
+    if notification_prefs != current_prefs:
+        set_user_notification_preferences(user["username"], notification_prefs)
+        append_user_activity(user["username"], "Updated notification preferences")
+        success = (success or "") + "Notification preferences updated."
+    
     # Reload user
     from auth_user import get_user
     user = get_user(user["username"])
     if user:
         user = dict(user)
         user["activity_log"] = get_user_activity_log(str(user["username"]))
+        user["notification_preferences"] = get_user_notification_preferences(user["username"])
     return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": error, "success": success, "active_nav": "profile"})
 
 @router.post("/users/role")
