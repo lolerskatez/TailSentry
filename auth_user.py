@@ -1,3 +1,46 @@
+def add_activity_log_column():
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        c.execute('ALTER TABLE users ADD COLUMN activity_log TEXT')
+    except Exception:
+        pass  # Ignore if already exists
+    conn.commit()
+    conn.close()
+
+import json
+
+def append_user_activity(username: str, activity: str):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT activity_log FROM users WHERE username = ?', (username,))
+    row = c.fetchone()
+    if row and row[0]:
+        try:
+            log = json.loads(row[0])
+        except Exception:
+            log = []
+    else:
+        log = []
+    log.append(activity)
+    # Keep only last 20 entries
+    log = log[-20:]
+    c.execute('UPDATE users SET activity_log = ? WHERE username = ?', (json.dumps(log), username))
+    conn.commit()
+    conn.close()
+
+def get_user_activity_log(username: str):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT activity_log FROM users WHERE username = ?', (username,))
+    row = c.fetchone()
+    conn.close()
+    if row and row[0]:
+        try:
+            return json.loads(row[0])
+        except Exception:
+            return []
+    return []
 def add_active_column():
     conn = get_db()
     c = conn.cursor()
@@ -189,4 +232,5 @@ init_db()
 add_email_column()
 add_display_name_column()
 add_active_column()
+add_activity_log_column()
 ensure_default_admin()

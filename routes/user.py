@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Form, Depends, Response, status
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
-from auth_user import create_user, verify_user, get_user, list_users, delete_user, init_db
+from auth_user import create_user, verify_user, get_user, list_users, delete_user, init_db, get_user_activity_log, append_user_activity
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 import aiosmtplib
 from email_validator import validate_email, EmailNotValidError
@@ -153,6 +153,9 @@ def reset_password(request: Request, new_password: str = Form(...), token: str =
 def profile_form(request: Request, user=Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    # Attach activity log
+    user = dict(user)
+    user["activity_log"] = get_user_activity_log(user["username"])
     return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": None, "success": None})
 
 @router.post("/profile")
@@ -168,10 +171,12 @@ def profile_update(request: Request, email: str = Form(...), display_name: str =
             error = "Current password required to change email."
         else:
             set_user_email(user["username"], email)
+            append_user_activity(user["username"], f"Changed email to {email}")
             success = "Email updated. "
     # Update display name
     if display_name != user.get("display_name"):
         set_user_display_name(user["username"], display_name)
+        append_user_activity(user["username"], f"Changed display name to {display_name}")
         success = (success or "") + "Display name updated. "
     # Update password
     if new_password:
@@ -183,10 +188,14 @@ def profile_update(request: Request, email: str = Form(...), display_name: str =
             c.execute('UPDATE users SET password_hash = ? WHERE username = ?', (pwd_context.hash(new_password), user["username"]))
             conn.commit()
             conn.close()
+            append_user_activity(user["username"], "Changed password")
             success = (success or "") + "Password updated."
     # Reload user
     from auth_user import get_user
     user = get_user(user["username"])
+    if user:
+        user = dict(user)
+        user["activity_log"] = get_user_activity_log(str(user["username"]))
     return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": error, "success": success})
 
 @router.post("/users/role")
