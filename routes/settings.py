@@ -31,7 +31,7 @@ async def notifications_settings(request: Request):
         return RedirectResponse(url="/login", status_code=302)
     return templates.TemplateResponse("notifications.html", {
         "request": request, 
-        "active_nav": "settings", 
+        "active_nav": "notifications", 
         "user": user,
         "current_user": user
     })
