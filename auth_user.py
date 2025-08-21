@@ -1,3 +1,12 @@
+def add_active_column():
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        c.execute('ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1')
+    except Exception:
+        pass  # Ignore if already exists
+    conn.commit()
+    conn.close()
 import os
 import sqlite3
 from passlib.context import CryptContext
@@ -179,4 +188,5 @@ def ensure_default_admin():
 init_db()
 add_email_column()
 add_display_name_column()
+add_active_column()
 ensure_default_admin()
