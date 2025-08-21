@@ -97,13 +97,36 @@ def register(request: Request, username: str = Form(...), password: str = Form(.
 def users(request: Request, user=Depends(get_current_user)):
     if not user or user["role"] != "admin":
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse("users.html", {"request": request, "users": list_users()})
+    return templates.TemplateResponse("users.html", {
+        "request": request, 
+        "users": list_users(), 
+        "current_user": user
+    })
 
 @router.post("/users/delete")
 def delete_user_route(request: Request, username: str = Form(...), user=Depends(get_current_user)):
+    import logging
+    logger = logging.getLogger("tailsentry")
+    
     if not user or user["role"] != "admin":
+        logger.warning(f"[DELETE USER] Access denied - user: {user}")
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    # Prevent admin from deleting their own account
+    if user["username"] == username:
+        logger.warning(f"[DELETE USER] Admin {user['username']} attempted to delete their own account")
+        # Return to users page with error message
+        from auth_user import list_users
+        return templates.TemplateResponse("users.html", {
+            "request": request, 
+            "users": list_users(), 
+            "current_user": user,
+            "error": "You cannot delete your own account. Use another admin account to delete this one if needed."
+        })
+    
+    logger.info(f"[DELETE USER] Admin {user['username']} deleting user: {username}")
     delete_user(username)
+    logger.info(f"[DELETE USER] Successfully deleted user: {username}")
     return RedirectResponse(url="/settings/users", status_code=status.HTTP_302_FOUND)
 
 # Change password endpoints
@@ -270,11 +293,11 @@ def add_user(request: Request, name: str = Form(""), username: str = Form(...), 
         # If CSRF or other error, show in modal
         logger.error(f"[ADD USER] HTTPException: {e}")
         error = e.detail if hasattr(e, 'detail') else str(e)
-        return templates.TemplateResponse("users.html", {"request": request, "users": list_users(), "error": error})
+        return templates.TemplateResponse("users.html", {"request": request, "users": list_users(), "current_user": user, "error": error})
     except Exception as e:
         logger.error(f"[ADD USER] General Exception: {type(e).__name__}: {e}")
         error = f"User creation failed: {str(e)}"
-        return templates.TemplateResponse("users.html", {"request": request, "users": list_users(), "error": error})
+        return templates.TemplateResponse("users.html", {"request": request, "users": list_users(), "current_user": user, "error": error})
 
 # Edit user
 @router.post("/users/edit")

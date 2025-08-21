@@ -117,6 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <!-- Heroicon: Pencil -->
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6-6 3 3-6 6zm2 2h2v2a2 2 0 01-2 2H7a2 2 0 01-2-2v-2a2 2 0 012-2h2v2z" /></svg>
                                 </button>
+                                {% if current_user.username != user.username %}
                                 <form method="post" action="/users/delete" onsubmit="return confirm('Delete user {{ user.username }}?');">
                                     <input type="hidden" name="username" value="{{ user.username }}">
                                     <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
@@ -125,6 +126,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                     </button>
                                 </form>
+                                {% else %}
+                                <div title="You cannot delete your own account" class="p-2 rounded text-gray-400 dark:text-gray-600 cursor-not-allowed">
+                                    <!-- Disabled Trash Icon -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                </div>
+                                {% endif %}
                                 <form method="post" action="/users/active">
                                     <input type="hidden" name="username" value="{{ user.username }}">
                                     <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
