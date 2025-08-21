@@ -3,7 +3,9 @@ import sqlite3
 from passlib.context import CryptContext
 from typing import Optional
 
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'users.db')
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(PROJECT_ROOT, 'data', 'users.db')
+print(f"[DEBUG] Using DB_PATH: {DB_PATH}")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_db():
@@ -175,6 +177,7 @@ def ensure_default_admin():
         conn.commit()
     conn.close()
 
-add_email_column()
-add_display_name_column()
-ensure_default_admin()
+    init_db()
+    add_email_column()
+    add_display_name_column()
+    ensure_default_admin()
