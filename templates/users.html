@@ -167,10 +167,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var addUserForm = document.querySelector('form[action="/users/add"]');
     if (addUserForm) {
         addUserForm.addEventListener('submit', function(e) {
-            var token = document.cookie.split('; ').find(row => row.startsWith('csrf_token='))?.split('=')[1] || '';
-            this.querySelector('input[name="csrf_token"]').value = token;
+            var token = this.querySelector('input[name="csrf_token"]').value;
+            console.log('[CSRF DEBUG] CSRF input value before submit (AJAX):', token);
             var formData = new URLSearchParams(new FormData(this));
-            console.log('[CSRF DEBUG] CSRF input value before submit (AJAX):', this.querySelector('input[name="csrf_token"]').value);
             console.log('[CSRF DEBUG] Form data being sent:', formData.toString());
             var xhr = new XMLHttpRequest();
             xhr.open('POST', this.action, true);
