@@ -222,16 +222,29 @@ function patchAJAXForm(selector, url) {
         form.addEventListener('submit', function(e) {
             setCSRFOnForm(this);
             var token = this._csrf_token || getCSRFToken();
-            var formData = new URLSearchParams(new FormData(this));
+            
+            // Properly serialize form data
+            var formData = new FormData(this);
+            var encodedData = new URLSearchParams();
+            for (let [key, value] of formData.entries()) {
+                encodedData.append(key, value);
+            }
+            
+            console.log('[FORM DEBUG] Sending data:', encodedData.toString());
+            
             var xhr = new XMLHttpRequest();
             xhr.open('POST', url, true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.setRequestHeader('X-CSRF-Token', token);
             xhr.onload = function() {
-                if (xhr.status === 200) { window.location.reload(); }
-                else { alert('CSRF failed'); }
+                if (xhr.status === 200 || xhr.status === 302) { 
+                    window.location.reload(); 
+                } else { 
+                    console.error('Form submission failed:', xhr.status, xhr.responseText);
+                    alert('Form submission failed: ' + xhr.status); 
+                }
             };
-            xhr.send(formData);
+            xhr.send(encodedData.toString());
             e.preventDefault();
         });
     }
