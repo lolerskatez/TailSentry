@@ -1,3 +1,46 @@
+import os
+import time
+from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Body
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import JSONResponse
+# from auth import login_required
+from services.tailscale_service import TailscaleClient
+import asyncio
+import json
+import logging
+
+router = APIRouter()
+templates = Jinja2Templates(directory="templates")
+logger = logging.getLogger("tailsentry.ws")
+
+# ...existing code...
+
+# Settings export/import endpoints
+@router.get("/settings/export")
+async def export_settings(request: Request):
+    """Export current settings as JSON."""
+    config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
+    try:
+        if not os.path.exists(config_path):
+            return JSONResponse(content={}, status_code=200)
+        with open(config_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return JSONResponse(content=data, status_code=200)
+    except Exception as e:
+        logger.error(f"Failed to export settings: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@router.post("/settings/import")
+async def import_settings(request: Request, payload: dict = Body(...)):
+    """Import settings from JSON and overwrite config file."""
+    config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
+    try:
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, indent=2)
+        return JSONResponse(content={"success": True}, status_code=200)
+    except Exception as e:
+        logger.error(f"Failed to import settings: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 import os
 import time
