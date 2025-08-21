@@ -1,0 +1,29 @@
+{
+  "security": {
+    "session_timeout_minutes": 30,
+    "force_https": true,
+    "cors_origins": [
+      "*"
+    ]
+  },
+  "tailscale": {
+    "tailscale_tailnet": "-",
+    "api_timeout": 10,
+    "force_live_data": true
+  },
+  "application": {
+    "development": false,
+    "data_dir": "/app/data",
+    "log_level": "INFO",
+    "log_format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  },
+  "monitoring": {
+    "health_check_enabled": true,
+    "health_check_interval": 300,
+    "alert_email": null
+  },
+  "backup": {
+    "backup_enabled": true,
+    "backup_retention_days": 30
+  }
+}

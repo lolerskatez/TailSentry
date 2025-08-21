@@ -49,6 +49,15 @@ class MonitoringSettings(BaseModel):
     alert_email: Optional[str] = None
     webhook_url: Optional[str] = None
 
+class SMTPSettings(BaseModel):
+    smtp_enabled: bool = False
+    smtp_host: Optional[str] = None
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_from: Optional[str] = None
+    smtp_tls: bool = True
+
 class BackupSettings(BaseModel):
     backup_enabled: bool = True
     backup_retention_days: int = Field(default=30, ge=1, le=365)
@@ -58,6 +67,7 @@ class TailSentryConfig(BaseModel):
     tailscale: TailscaleSettings = TailscaleSettings()
     application: ApplicationSettings = ApplicationSettings()
     monitoring: MonitoringSettings = MonitoringSettings()
+    smtp: SMTPSettings = SMTPSettings()
     backup: BackupSettings = BackupSettings()
 
 # Configuration file paths
@@ -92,6 +102,14 @@ def get_current_config() -> TailSentryConfig:
     config.monitoring.health_check_interval = int(os.getenv("HEALTH_CHECK_INTERVAL", "300"))
     config.monitoring.alert_email = os.getenv("ALERT_EMAIL")
     config.monitoring.webhook_url = os.getenv("WEBHOOK_URL")
+    
+    config.smtp.smtp_enabled = os.getenv("SMTP_ENABLED", "false").lower() == "true"
+    config.smtp.smtp_host = os.getenv("SMTP_HOST")
+    config.smtp.smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    config.smtp.smtp_user = os.getenv("SMTP_USER")
+    config.smtp.smtp_password = os.getenv("SMTP_PASSWORD")
+    config.smtp.smtp_from = os.getenv("SMTP_FROM")
+    config.smtp.smtp_tls = os.getenv("SMTP_TLS", "true").lower() == "true"
     
     config.backup.backup_enabled = os.getenv("BACKUP_ENABLED", "true").lower() == "true"
     config.backup.backup_retention_days = int(os.getenv("BACKUP_RETENTION_DAYS", "30"))
@@ -146,6 +164,19 @@ def save_config_to_env(config: TailSentryConfig) -> bool:
             env_vars["ALERT_EMAIL"] = config.monitoring.alert_email
         if config.monitoring.webhook_url:
             env_vars["WEBHOOK_URL"] = config.monitoring.webhook_url
+        
+        # Add SMTP configuration
+        env_vars["SMTP_ENABLED"] = str(config.smtp.smtp_enabled).lower()
+        if config.smtp.smtp_host:
+            env_vars["SMTP_HOST"] = config.smtp.smtp_host
+        env_vars["SMTP_PORT"] = str(config.smtp.smtp_port)
+        if config.smtp.smtp_user:
+            env_vars["SMTP_USER"] = config.smtp.smtp_user
+        if config.smtp.smtp_password:
+            env_vars["SMTP_PASSWORD"] = config.smtp.smtp_password
+        if config.smtp.smtp_from:
+            env_vars["SMTP_FROM"] = config.smtp.smtp_from
+        env_vars["SMTP_TLS"] = str(config.smtp.smtp_tls).lower()
         
         # Handle CORS origins
         if config.security.cors_origins and config.security.cors_origins != ["*"]:
@@ -348,6 +379,57 @@ async def test_webhook(request: Request):
         logger.error(f"Webhook test failed: {e}")
         return {"success": False, "message": f"Webhook test failed: {str(e)}"}
 
+@router.post("/api/tailsentry-settings/test-smtp")
+async def test_smtp(request: Request, smtp_config: SMTPSettings):
+    """Test SMTP configuration"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        import aiosmtplib
+        from email.mime.text import MIMEText
+        
+        if not smtp_config.smtp_enabled:
+            return {"success": False, "message": "SMTP is not enabled"}
+        
+        # Validate required fields
+        required_fields = {
+            "smtp_host": smtp_config.smtp_host,
+            "smtp_port": smtp_config.smtp_port,
+            "smtp_user": smtp_config.smtp_user,
+            "smtp_password": smtp_config.smtp_password,
+            "smtp_from": smtp_config.smtp_from
+        }
+        
+        missing_fields = [field for field, value in required_fields.items() if not value or (isinstance(value, str) and not value.strip())]
+        if missing_fields:
+            return {"success": False, "message": f"Missing required fields: {', '.join(missing_fields)}"}
+        
+        # Create test message
+        message = MIMEText("This is a test message from TailSentry SMTP configuration.")
+        message["Subject"] = "TailSentry SMTP Test"
+        message["From"] = str(smtp_config.smtp_from)
+        message["To"] = str(smtp_config.smtp_from)  # Send to self for testing
+        
+        # Test SMTP connection
+        smtp = aiosmtplib.SMTP(
+            hostname=smtp_config.smtp_host,
+            port=smtp_config.smtp_port,
+            use_tls=smtp_config.smtp_tls
+        )
+        
+        await smtp.connect()
+        await smtp.login(str(smtp_config.smtp_user), str(smtp_config.smtp_password))
+        await smtp.send_message(message)
+        await smtp.quit()
+        
+        return {"success": True, "message": "SMTP test successful! Check your inbox for the test message."}
+        
+    except Exception as e:
+        logger.error(f"SMTP test failed: {e}")
+        return {"success": False, "message": f"SMTP test failed: {str(e)}"}
+
 @router.get("/api/tailsentry-settings/system-info")
 async def get_system_info(request: Request):
     """Get system information for diagnostics"""
@@ -546,3 +628,28 @@ async def import_settings(request: Request, settings_data: dict):
     except Exception as e:
         logger.error(f"Failed to import settings: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to import settings: {str(e)}")
+
+
+def is_smtp_configured() -> bool:
+    """Check if SMTP is properly configured for sending emails."""
+    try:
+        config = get_current_config()
+        smtp_settings = config.smtp
+        
+        # Check if SMTP is enabled and all required fields are configured
+        if not smtp_settings.smtp_enabled:
+            return False
+            
+        # Check required fields
+        required_fields = [
+            smtp_settings.smtp_host,
+            smtp_settings.smtp_port,
+            smtp_settings.smtp_user,
+            smtp_settings.smtp_password,
+            smtp_settings.smtp_from
+        ]
+        
+        return all(field and str(field).strip() for field in required_fields)
+    except Exception as e:
+        logger.error(f"Error checking SMTP configuration: {e}")
+        return False

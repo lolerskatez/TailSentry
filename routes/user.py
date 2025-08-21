@@ -8,6 +8,7 @@ from typing import Optional
 import aiosmtplib
 from email_validator import validate_email, EmailNotValidError
 import os
+from routes.tailsentry_settings import is_smtp_configured
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -155,22 +156,55 @@ def change_password(request: Request, old_password: str = Form(...), new_passwor
 
 @router.get("/reset-password-request")
 def reset_password_request_form(request: Request):
-    return templates.TemplateResponse("reset_password_request.html", {"request": request, "error": None, "success": None})
+    smtp_warning = None if is_smtp_configured() else "SMTP is not configured. Please contact your administrator for password reset assistance."
+    return templates.TemplateResponse("reset_password_request.html", {
+        "request": request, 
+        "error": None, 
+        "success": None,
+        "smtp_warning": smtp_warning
+    })
 
 @router.post("/reset-password-request")
 async def reset_password_request(request: Request, email: str = Form(...)):
     from auth_user import get_user_by_email
+    
+    # Check if SMTP is configured
+    if not is_smtp_configured():
+        return templates.TemplateResponse("reset_password_request.html", {
+            "request": request, 
+            "error": "Password reset is not available. SMTP is not configured. Please contact your administrator for assistance.", 
+            "success": None,
+            "smtp_warning": "SMTP is not configured. Please contact your administrator for password reset assistance."
+        })
+    
     try:
         valid = validate_email(email)
         email = valid.email
     except EmailNotValidError:
-        return templates.TemplateResponse("reset_password_request.html", {"request": request, "error": "Invalid email address.", "success": None})
+        return templates.TemplateResponse("reset_password_request.html", {
+            "request": request, 
+            "error": "Invalid email address.", 
+            "success": None,
+            "smtp_warning": None
+        })
+    
     user = get_user_by_email(email)
     if not user:
-        return templates.TemplateResponse("reset_password_request.html", {"request": request, "error": "No user with that email.", "success": None})
+        return templates.TemplateResponse("reset_password_request.html", {
+            "request": request, 
+            "error": "No user with that email.", 
+            "success": None,
+            "smtp_warning": None
+        })
+    
     token = serializer.dumps(email, salt="reset-password")
     await send_reset_email(email, token)
-    return templates.TemplateResponse("reset_password_request.html", {"request": request, "error": None, "success": "Password reset link sent!"})
+    return templates.TemplateResponse("reset_password_request.html", {
+        "request": request, 
+        "error": None, 
+        "success": "Password reset link sent!",
+        "smtp_warning": None
+    })
 
 @router.get("/reset-password")
 def reset_password_form(request: Request, token: str = ""):
