@@ -361,35 +361,61 @@ class NotificationService:
         try:
             if not MimeText or not MimeMultipart:
                 return {"success": False, "error": "Email modules not available"}
+            
+            # Get admin emails from database
+            from auth_user import get_admin_emails
+            admin_emails = get_admin_emails()
+            
+            # Fallback to environment variable if no admin emails in database
+            if not admin_emails:
+                fallback_email = os.getenv("ALERT_EMAIL", smtp_config.from_email)
+                admin_emails = [fallback_email] if fallback_email else []
+            
+            if not admin_emails:
+                return {"success": False, "error": "No recipient emails configured"}
+            
+            results = []
+            for recipient_email in admin_emails:
+                # Create message for each recipient
+                msg = MimeMultipart('alternative')
+                msg['Subject'] = title
+                msg['From'] = f"{smtp_config.from_name} <{smtp_config.from_email}>"
+                msg['To'] = recipient_email
                 
-            # Create message
-            msg = MimeMultipart('alternative')
-            msg['Subject'] = title
-            msg['From'] = f"{smtp_config.from_name} <{smtp_config.from_email}>"
-            msg['To'] = os.getenv("ALERT_EMAIL", smtp_config.from_email)
+                # Create HTML and text versions
+                text_part = MimeText(message, 'plain')
+                html_part = MimeText(f"<html><body><h3>{title}</h3><p>{message}</p></body></html>", 'html')
+                
+                msg.attach(text_part)
+                msg.attach(html_part)
+                
+                # Send email to this recipient
+                try:
+                    if smtp_config.use_ssl:
+                        server = smtplib.SMTP_SSL(smtp_config.smtp_server, smtp_config.smtp_port)
+                    else:
+                        server = smtplib.SMTP(smtp_config.smtp_server, smtp_config.smtp_port)
+                        if smtp_config.use_tls:
+                            server.starttls()
+                    
+                    if smtp_config.username and smtp_config.password:
+                        server.login(smtp_config.username, smtp_config.password)
+                    
+                    server.send_message(msg)
+                    server.quit()
+                    
+                    results.append(f"Email sent to {recipient_email}")
+                except Exception as email_error:
+                    logger.error(f"Failed to send email to {recipient_email}: {email_error}")
+                    results.append(f"Failed to send to {recipient_email}: {str(email_error)}")
             
-            # Create HTML and text versions
-            text_part = MimeText(message, 'plain')
-            html_part = MimeText(f"<html><body><h3>{title}</h3><p>{message}</p></body></html>", 'html')
+            success_count = len([r for r in results if "sent to" in r])
+            total_count = len(admin_emails)
             
-            msg.attach(text_part)
-            msg.attach(html_part)
-            
-            # Send email
-            if smtp_config.use_ssl:
-                server = smtplib.SMTP_SSL(smtp_config.smtp_server, smtp_config.smtp_port)
+            if success_count > 0:
+                return {"success": True, "message": f"Email sent to {success_count}/{total_count} recipients", "details": results}
             else:
-                server = smtplib.SMTP(smtp_config.smtp_server, smtp_config.smtp_port)
-                if smtp_config.use_tls:
-                    server.starttls()
-            
-            if smtp_config.username and smtp_config.password:
-                server.login(smtp_config.username, smtp_config.password)
-            
-            server.send_message(msg)
-            server.quit()
-            
-            return {"success": True, "message": "Email sent successfully"}
+                return {"success": False, "error": f"Failed to send to all {total_count} recipients", "details": results}
         except Exception as e:
             logger.error(f"SMTP notification failed: {e}")
             return {"success": False, "error": str(e)}

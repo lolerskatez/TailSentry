@@ -186,6 +186,15 @@ def get_user_by_email(email: str) -> Optional[dict]:
         return dict(user)
     return None
 
+def get_admin_emails() -> list:
+    """Get email addresses of all active admin users for notifications"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT email FROM users WHERE role = ? AND COALESCE(active, 1) = 1 AND email IS NOT NULL AND email != ""', ("admin",))
+    emails = c.fetchall()
+    conn.close()
+    return [email[0] for email in emails if email[0]]
+
 def set_user_display_name(username: str, display_name: str) -> bool:
     conn = get_db()
     c = conn.cursor()
