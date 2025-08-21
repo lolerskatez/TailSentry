@@ -11,7 +11,7 @@ from routes.user import get_current_user
 @router.get("/dashboard")
 async def dashboard(request: Request):
     user = get_current_user(request)
-    return templates.TemplateResponse("index.html", {
+    return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user,
     })

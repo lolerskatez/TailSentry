@@ -291,7 +291,7 @@ async def root(request: Request):
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    return templates.TemplateResponse("index.html", {"request": request, "user": user})
+    return templates.TemplateResponse("dashboard.html", {"request": request, "user": user})
 
 # Test route for debugging
 @app.get("/test", include_in_schema=False)
