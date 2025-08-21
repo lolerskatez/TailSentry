@@ -63,6 +63,9 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             form = await request.form()
             csrf_form = form.get("csrf_token")
 
+
+        logger.debug(f"CSRF DEBUG | Path: {request.url.path} | Method: {request.method} | Cookie: {csrf_cookie} | Header: {csrf_header} | Form: {csrf_form}")
+
         valid_token = False
         if csrf_cookie and (csrf_header == csrf_cookie or csrf_form == csrf_cookie):
             valid_token = True
