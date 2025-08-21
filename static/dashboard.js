@@ -562,9 +562,9 @@ window.dashboard = function dashboard() {
         if (!routes.includes(r) && r !== '0.0.0.0/0' && r !== '::/0') routes.push(r);
       }
       const payload = {
-        advertised_routes: routes,
+        advertise_routes: routes,
         hostname: this.device.hostname,
-        firewall: this.exitNodeFirewall
+        exit_node_firewall: this.exitNodeFirewall
       };
       this.setFeedback('exitNode', '');
       this.setLoading('exitNode', true);
