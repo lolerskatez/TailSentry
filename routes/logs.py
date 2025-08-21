@@ -5,6 +5,7 @@ import io
 import asyncio
 import tempfile
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 
@@ -12,18 +13,24 @@ router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 logger = logging.getLogger("tailsentry.logs")
 
-# Helper: check admin session
+# Helper: check admin session using user role
+from routes.user import get_current_user
 def require_admin(request: Request):
-    user = request.session.get('user')
-    is_admin = request.session.get('is_admin')
-    if not user or not is_admin:
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    if user.get('role') != 'admin':
         raise HTTPException(status_code=403, detail="Forbidden")
+    return user
 
 # Page route
 @router.get("/logs")
 async def logs_page(request: Request):
-    require_admin(request)
-    return templates.TemplateResponse("logs.html", {"request": request})
+    result = require_admin(request)
+    if isinstance(result, RedirectResponse):
+        return result
+    user = result
+    return templates.TemplateResponse("logs.html", {"request": request, "user": user})
 
 # API endpoint for logs with server-side filtering
 
