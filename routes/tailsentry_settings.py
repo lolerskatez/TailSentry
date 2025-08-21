@@ -28,7 +28,6 @@ load_dotenv()
 class SecuritySettings(BaseModel):
     session_timeout_minutes: int = Field(default=30, ge=5, le=1440)
     session_secret: Optional[str] = None
-    admin_username: str = Field(default="admin", min_length=3)
     force_https: bool = False
     cors_origins: List[str] = ["*"]
 
@@ -74,7 +73,6 @@ def get_current_config() -> TailSentryConfig:
     # Load from environment variables
     config.security.session_timeout_minutes = int(os.getenv("SESSION_TIMEOUT_MINUTES", "30"))
     config.security.session_secret = os.getenv("SESSION_SECRET")
-    config.security.admin_username = os.getenv("ADMIN_USERNAME", "admin")
     config.security.force_https = os.getenv("DEVELOPMENT", "false").lower() == "false"
     
     cors_origins = os.getenv("ALLOWED_ORIGIN", "*")
@@ -126,7 +124,6 @@ def save_config_to_env(config: TailSentryConfig) -> bool:
         # Update environment variables
         env_vars = {
             "SESSION_TIMEOUT_MINUTES": str(config.security.session_timeout_minutes),
-            "ADMIN_USERNAME": config.security.admin_username,
             "DEVELOPMENT": str(config.application.development).lower(),
             "TAILSCALE_TAILNET": config.tailscale.tailscale_tailnet,
             "TAILSCALE_API_TIMEOUT": str(config.tailscale.api_timeout),
@@ -174,7 +171,6 @@ def save_config_to_json(config: TailSentryConfig) -> bool:
         safe_config = {
             "security": {
                 "session_timeout_minutes": config.security.session_timeout_minutes,
-                "admin_username": config.security.admin_username,
                 "force_https": config.security.force_https,
                 "cors_origins": config.security.cors_origins
             },
@@ -222,7 +218,6 @@ async def get_tailsentry_settings(request: Request):
         return {
             "security": {
                 "session_timeout_minutes": config.security.session_timeout_minutes,
-                "admin_username": config.security.admin_username,
                 "force_https": config.security.force_https,
                 "cors_origins": config.security.cors_origins,
                 "has_session_secret": bool(config.security.session_secret)
@@ -459,7 +454,6 @@ async def export_settings(request: Request):
             "settings": {
                 "security": {
                     "session_timeout_minutes": config.security.session_timeout_minutes,
-                    "admin_username": config.security.admin_username,
                     "force_https": config.security.force_https,
                     "cors_origins": config.security.cors_origins
                 },
@@ -511,7 +505,6 @@ async def import_settings(request: Request, settings_data: dict):
         if "security" in settings:
             sec = settings["security"]
             config.security.session_timeout_minutes = sec.get("session_timeout_minutes", 30)
-            config.security.admin_username = sec.get("admin_username", "admin")
             config.security.force_https = sec.get("force_https", False)
             config.security.cors_origins = sec.get("cors_origins", ["*"])
         
