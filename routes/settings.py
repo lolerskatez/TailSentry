@@ -36,6 +36,18 @@ async def notifications_settings(request: Request):
         "current_user": user
     })
 
+@router.get("/settings/appearance")
+async def appearance_settings(request: Request):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    return templates.TemplateResponse("appearance.html", {
+        "request": request, 
+        "active_nav": "settings", 
+        "user": user,
+        "current_user": user
+    })
+
 @router.get("/settings/users")
 async def manage_users(request: Request):
     user = get_current_user(request)
