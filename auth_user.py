@@ -114,9 +114,11 @@ def verify_user(username: str, password: str) -> Optional[dict]:
     conn.close()
     if user and pwd_context.verify(password, user['password_hash']):
         # Check if user is active
-        if user.get('active', 1) == 1:  # Default to active if column doesn't exist
+        # Convert Row to dict first, then check active status
+        user_dict = dict(user)
+        if user_dict.get('active', 1) == 1:  # Default to active if column doesn't exist
             logger.info(f"[VERIFY USER] Authentication successful for active user: {username}")
-            return dict(user)
+            return user_dict
         else:
             # User exists and password is correct, but account is disabled
             logger.warning(f"[VERIFY USER] Authentication denied for disabled user: {username}")

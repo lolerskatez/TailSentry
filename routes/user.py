@@ -65,8 +65,10 @@ def login(request: Request, response: Response, username: str = Form(...), passw
     else:
         # Check if it's a disabled account vs invalid credentials
         if existing_user:
+            # Convert Row to dict first
+            existing_user_dict = dict(existing_user)
             # User exists, check if account is disabled
-            if existing_user.get('active', 1) == 0:
+            if existing_user_dict.get('active', 1) == 0:
                 logger.warning(f"[LOGIN] Login attempt for disabled account: {username}")
                 return templates.TemplateResponse("login.html", {"request": request, "error": "Account is disabled. Please contact an administrator."})
             else:
