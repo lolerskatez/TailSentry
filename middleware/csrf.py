@@ -57,14 +57,23 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         # For unsafe methods, verify CSRF token
         csrf_cookie = request.cookies.get(self.csrf_cookie_name)
         csrf_header = request.headers.get(self.csrf_header_name)
+        # Accept CSRF token from form field as fallback (for standard form posts)
+        csrf_form = None
+        if request.headers.get("content-type", "").startswith("application/x-www-form-urlencoded"):
+            form = await request.form()
+            csrf_form = form.get("csrf_token")
 
-        if not csrf_cookie or not csrf_header or csrf_cookie != csrf_header:
+        valid_token = False
+        if csrf_cookie and (csrf_header == csrf_cookie or csrf_form == csrf_cookie):
+            valid_token = True
+
+        if not valid_token:
             logger.warning(
                 f"CSRF validation failed for {request.url.path} "
                 f"from {request.client.host if request.client else 'unknown'} | "
                 f"Exempt paths: {self.exempt_paths} | "
                 f"Method: {request.method} | "
-                f"CSRF cookie: {csrf_cookie} | CSRF header: {csrf_header}"
+                f"CSRF cookie: {csrf_cookie} | CSRF header: {csrf_header} | CSRF form: {csrf_form}"
             )
             raise HTTPException(
                 status_code=403,
