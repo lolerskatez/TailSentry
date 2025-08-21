@@ -1,3 +1,33 @@
+
+# Diagnostics export endpoint: logs, Tailscale status, config
+@router.get("/api/diagnostics/download")
+async def download_diagnostics():
+    # TODO: Restrict to authenticated/admin users only
+    import tempfile
+    from services.tailscale_service import TailscaleClient
+    config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
+    log_path = os.path.join(os.path.dirname(__file__), '..', 'logs', 'tailsentry.log')
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Write Tailscale status
+        status_file = os.path.join(tmpdir, 'tailscale_status.json')
+        try:
+            status = TailscaleClient.status_json()
+            with open(status_file, 'w', encoding='utf-8') as f:
+                import json
+                json.dump(status, f, indent=2)
+        except Exception as e:
+            with open(status_file, 'w', encoding='utf-8') as f:
+                f.write(f'Error getting status: {e}')
+        # Prepare zip
+        mem_zip = io.BytesIO()
+        with zipfile.ZipFile(mem_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+            if os.path.exists(log_path):
+                zf.write(log_path, arcname="tailsentry.log")
+            if os.path.exists(config_path):
+                zf.write(config_path, arcname="tailscale_settings.json")
+            zf.write(status_file, arcname="tailscale_status.json")
+        mem_zip.seek(0)
+        return StreamingResponse(mem_zip, media_type="application/zip", headers={"Content-Disposition": "attachment; filename=diagnostics_bundle.zip"})
 # Real-time log streaming via WebSocket
 import asyncio
 from fastapi import WebSocket, WebSocketDisconnect

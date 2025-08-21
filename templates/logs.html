@@ -58,12 +58,22 @@
           <label for="live-stream" class="text-sm">Live stream</label>
         </div>
       </form>
-  <pre id="logs-output" class="bg-gray-100 dark:bg-gray-900 rounded p-4 text-xs font-mono overflow-x-auto h-96">Loading logs...</pre>
+  <pre id="logs-output" class="bg-gray-100 dark:bg-gray-900 rounded p-4 text-xs font-mono overflow-x-auto h-96 whitespace-pre-wrap"><span id="logs-output-inner">Loading logs...</span></pre>
   <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">To download the full log file or a zipped archive, use the buttons above. Zipped download includes the entire current log file.</div>
     </div>
   </main>
   <script>
     let autoRefreshInterval = null;
+    function colorizeLogs(raw) {
+      if (!raw) return 'No logs found.';
+      return raw.split('\n').map(line => {
+        if (line.includes('- ERROR -')) return `<span style="color:#dc2626;font-weight:bold;">${line}</span>`;
+        if (line.includes('- WARNING -')) return `<span style="color:#f59e42;">${line}</span>`;
+        if (line.includes('- CRITICAL -')) return `<span style="color:#b91c1c;font-weight:bold;background:#fee2e2;">${line}</span>`;
+        if (line.includes('- INFO -')) return `<span style="color:#2563eb;">${line}</span>`;
+        return line;
+      }).join('\n');
+    }
     async function loadLogs() {
       const lines = document.getElementById('log-lines').value || 100;
       const level = document.getElementById('log-level').value;
@@ -71,7 +81,7 @@
       const params = new URLSearchParams({ lines, level, search });
       const res = await fetch(`/api/logs?${params.toString()}`);
       const data = await res.json();
-      document.getElementById('logs-output').textContent = data.logs || 'No logs found.';
+      document.getElementById('logs-output-inner').innerHTML = colorizeLogs(data.logs);
     }
     document.getElementById('refresh-logs').onclick = loadLogs;
     document.getElementById('log-level').onchange = loadLogs;
@@ -98,7 +108,7 @@
     document.getElementById('download-logs-zip').onclick = async function() {
       window.location.href = '/api/logs/download?zip=true';
     };
-    let ws = null;
+  let ws = null;
     document.getElementById('auto-refresh').onchange = function() {
       if (this.checked) {
         loadLogs();
@@ -111,12 +121,12 @@
       if (this.checked) {
         document.getElementById('auto-refresh').checked = false;
         clearInterval(autoRefreshInterval);
-        document.getElementById('logs-output').textContent = '';
+        document.getElementById('logs-output-inner').innerHTML = '';
         ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/logs');
         ws.onmessage = function(event) {
-          const pre = document.getElementById('logs-output');
-          pre.textContent += event.data;
-          pre.scrollTop = pre.scrollHeight;
+          const inner = document.getElementById('logs-output-inner');
+          inner.innerHTML += colorizeLogs(event.data);
+          inner.parentElement.scrollTop = inner.parentElement.scrollHeight;
         };
         ws.onclose = function() {
           ws = null;
