@@ -71,6 +71,7 @@ A secure, minimal FastAPI + TailwindCSS dashboard for managing a Tailscale subne
 - Device list, service controls
 - Config file management
 - Tailscale key management (API)
+- **🔔 Multi-channel notifications (SMTP, Telegram, Discord)**
 - Modular, production-ready code
 
 ## Quick Start
@@ -113,6 +114,17 @@ uvicorn main:app --host 0.0.0.0 --port 8080
 ## Configuration
 
 All environment and config files are now in the `config/` directory. Update your `.env` and `tailscale_settings.json` there. Scripts and services reference these new paths.
+
+### Notifications Setup
+
+TailSentry includes a comprehensive notifications system supporting SMTP email, Telegram, and Discord. See [NOTIFICATIONS.md](NOTIFICATIONS.md) for detailed setup instructions.
+
+Quick setup:
+1. Go to **Settings > Notifications** in the web interface
+2. Configure your preferred notification channels
+3. Test notifications to ensure proper delivery
+
+Supported events include system startup/shutdown, Tailscale network changes, security alerts, and configuration updates.
 
 ## Running Tests
 
