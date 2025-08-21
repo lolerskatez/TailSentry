@@ -8,67 +8,6 @@
   <link rel="stylesheet" href="/static/dark-mode-addon.css">
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <script src="/static/dashboard.js"></script>
-    <script>
-      function downloadFile(filename, content) {
-        const blob = new Blob([content], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 100);
-      }
-      window.altTailSentry = function() {
-        return {
-          exportSettings() {
-            fetch('/api/settings/export', { credentials: 'same-origin' })
-              .then(r => r.json())
-              .then(data => {
-                downloadFile('tailsentry-settings-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(data, null, 2));
-                this.showToast('Settings exported.', 'success');
-              })
-              .catch(() => this.showToast('Failed to export settings.', 'error'));
-          },
-          importSettings(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-              try {
-                const settings = JSON.parse(evt.target.result);
-                fetch('/api/settings/import', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  credentials: 'same-origin',
-                  body: JSON.stringify(settings)
-                })
-                  .then(r => r.ok ? r.json() : Promise.reject())
-                  .then(() => this.showToast('Settings imported.', 'success'))
-                  .catch(() => this.showToast('Failed to import settings.', 'error'));
-              } catch {
-                this.showToast('Invalid settings file.', 'error');
-              }
-            };
-            reader.readAsText(file);
-          },
-          showToast(message, type) {
-            const toast = document.querySelector('[x-data]');
-            if (toast && toast.__x) {
-              toast.__x.$data.show = true;
-              toast.__x.$data.message = message;
-              toast.__x.$data.type = type;
-              setTimeout(() => { toast.__x.$data.show = false; }, 3000);
-            }
-            const aria = document.getElementById('aria-feedback');
-            if (aria) aria.textContent = message;
-          },
-        }
-      }
-    </script>
   
     <!-- Settings Export/Import Section -->
     <section class="p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex flex-col gap-4" aria-labelledby="settings-export-import-title">
@@ -105,6 +44,22 @@
       <button @click="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded" aria-label="Logout" title="Logout">Logout</button>
     </div>
   </nav>
+
+  <!-- Settings Export/Import Section (moved below nav) -->
+  <section class="p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex flex-col gap-4 mt-4" aria-labelledby="settings-export-import-title">
+    <h2 class="font-semibold mb-2 text-indigo-700 text-lg flex items-center gap-2" id="settings-export-import-title">
+      <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+      Export / Import Settings
+    </h2>
+    <div class="flex gap-4 flex-wrap">
+      <button @click="exportSettings()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" aria-label="Export Settings" title="Download current settings as JSON">Export Settings</button>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <span class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" aria-label="Import Settings" title="Import settings from a JSON file">Import Settings</span>
+        <input type="file" accept="application/json" class="hidden" @change="importSettings($event)">
+      </label>
+    </div>
+    <div class="text-xs text-gray-500 dark:text-gray-400">Export your current settings for backup, or import settings to restore or migrate configuration. Importing will overwrite current settings.</div>
+  </section>
 
   <main class="max-w-6xl mx-auto py-8 px-4">
     <!-- Toast notification container -->

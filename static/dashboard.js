@@ -1,6 +1,57 @@
 // --- Alpine.js state and methods ---
 window.dashboard = function dashboard() {
   return {
+    // --- Settings Export/Import Methods ---
+    exportSettings() {
+      fetch('/api/settings/export', { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+          this.downloadFile('tailsentry-settings-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(data, null, 2));
+          this.showToast('Settings exported.', 'success');
+        })
+        .catch(() => this.showToast('Failed to export settings.', 'error'));
+    },
+    importSettings(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const settings = JSON.parse(evt.target.result);
+          fetch('/api/settings/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(settings)
+          })
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(() => this.showToast('Settings imported.', 'success'))
+            .catch(() => this.showToast('Failed to import settings.', 'error'));
+        } catch {
+          this.showToast('Invalid settings file.', 'error');
+        }
+      };
+      reader.readAsText(file);
+    },
+    downloadFile(filename, content) {
+      const blob = new Blob([content], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    },
+    showToast(message, type) {
+      this.toast = message;
+      setTimeout(() => { this.toast = ''; }, 3000);
+      const aria = document.getElementById('aria-feedback');
+      if (aria) aria.textContent = message;
+    },
     // --- Helper methods for feedback and loading ---
     setFeedback(type, msg) {
       if (type === 'exitNode') {
