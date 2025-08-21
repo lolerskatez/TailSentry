@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Form, Depends, Response, status
+from fastapi import APIRouter, Request, Form, Depends, Response, status, HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -225,15 +225,20 @@ def add_user(request: Request, name: str = Form(""), username: str = Form(...), 
     if not user or user["role"] != "admin":
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     from auth_user import create_user, get_db
-    created = create_user(username, password, role)
-    if created and name:
-        # Set display name if provided
-        conn = get_db()
-        c = conn.cursor()
-        c.execute('UPDATE users SET display_name = ? WHERE username = ?', (name, username))
-        conn.commit()
-        conn.close()
-    return RedirectResponse(url="/settings/users", status_code=status.HTTP_302_FOUND)
+    try:
+        created = create_user(username, password, role)
+        if created and name:
+            # Set display name if provided
+            conn = get_db()
+            c = conn.cursor()
+            c.execute('UPDATE users SET display_name = ? WHERE username = ?', (name, username))
+            conn.commit()
+            conn.close()
+        return RedirectResponse(url="/settings/users", status_code=status.HTTP_302_FOUND)
+    except HTTPException as e:
+        # If CSRF or other error, show in modal
+        error = e.detail if hasattr(e, 'detail') else str(e)
+        return templates.TemplateResponse("users.html", {"request": request, "users": list_users(), "error": error})
 
 # Edit user
 @router.post("/users/edit")

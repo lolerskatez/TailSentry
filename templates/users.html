@@ -24,8 +24,46 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                         <h2 class="text-xl font-bold mb-4 text-indigo-800 dark:text-indigo-200">Add User</h2>
-                        <form method="post" action="/users/add">
-                            <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
+                        {% if error %}
+                        <div class="mb-4 p-2 bg-red-100 text-red-800 rounded border border-red-300 text-sm">{{ error }}</div>
+                        {% endif %}
+                        <form method="post" action="/users/add" id="add-user-form">
+                            <input type="hidden" name="csrf_token" id="add-user-csrf-token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
+<script>
+// Show CSRF or form errors in the Add User modal if present in the URL
+document.addEventListener('DOMContentLoaded', function() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('error')) {
+        const modalBtn = document.querySelector('button[@click]');
+        if (modalBtn) modalBtn.click();
+    }
+});
+</script>
+<script>
+// Ensure CSRF token is always up-to-date in the Add User modal form
+document.addEventListener('alpine:init', () => {
+    document.addEventListener('click', function(e) {
+        // Listen for opening the Add User modal
+        if (e.target && e.target.closest('[x-data] [@click]')) {
+            // Wait for modal to appear in DOM
+            setTimeout(() => {
+                const modal = document.querySelector('form#add-user-form');
+                if (modal) {
+                    // Get latest CSRF token from cookie
+                    function getCookie(name) {
+                        const value = `; ${document.cookie}`;
+                        const parts = value.split(`; ${name}=`);
+                        if (parts.length === 2) return parts.pop().split(';').shift();
+                    }
+                    const csrf = getCookie('csrf_token') || window.__CSRF_TOKEN__ || '';
+                    const input = document.getElementById('add-user-csrf-token');
+                    if (input) input.value = csrf;
+                }
+            }, 50);
+        }
+    });
+});
+</script>
                             <div class="mb-4">
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Name</label>
                                 <input type="text" name="name" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100" required>
