@@ -104,14 +104,29 @@ def create_user(username: str, password: str, role: str = 'user') -> bool:
         conn.close()
 
 def verify_user(username: str, password: str) -> Optional[dict]:
+    import logging
+    logger = logging.getLogger("tailsentry")
+    
     conn = get_db()
     c = conn.cursor()
     c.execute('SELECT * FROM users WHERE username = ?', (username,))
     user = c.fetchone()
     conn.close()
     if user and pwd_context.verify(password, user['password_hash']):
-        return dict(user)
-    return None
+        # Check if user is active
+        if user.get('active', 1) == 1:  # Default to active if column doesn't exist
+            logger.info(f"[VERIFY USER] Authentication successful for active user: {username}")
+            return dict(user)
+        else:
+            # User exists and password is correct, but account is disabled
+            logger.warning(f"[VERIFY USER] Authentication denied for disabled user: {username}")
+            return None
+    else:
+        if user:
+            logger.warning(f"[VERIFY USER] Invalid password for user: {username}")
+        else:
+            logger.warning(f"[VERIFY USER] User not found: {username}")
+        return None
 
 def get_user(username: str) -> Optional[dict]:
     conn = get_db()

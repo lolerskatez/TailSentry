@@ -217,14 +217,24 @@ document.addEventListener('submit', function(e) {
 }, true);
 // Patch AJAX submit for add/edit user forms
 function patchAJAXForm(selector, url) {
-    var form = document.querySelector(selector);
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            setCSRFOnForm(this);
-            var token = this._csrf_token || getCSRFToken();
+    console.log('[PATCH DEBUG] Setting up form handler for:', selector);
+    
+    // Use event delegation to handle dynamically created forms
+    document.addEventListener('submit', function(e) {
+        var form = e.target;
+        if (form.matches && form.matches(selector)) {
+            console.log('[PATCH DEBUG] Form submit intercepted:', form);
+            
+            setCSRFOnForm(form);
+            var token = form._csrf_token || getCSRFToken();
             
             // Properly serialize form data
-            var formData = new FormData(this);
+            var formData = new FormData(form);
+            console.log('[FORM DEBUG] FormData entries:');
+            for (let [key, value] of formData.entries()) {
+                console.log('  ', key, '=', value);
+            }
+            
             var encodedData = new URLSearchParams();
             for (let [key, value] of formData.entries()) {
                 encodedData.append(key, value);
@@ -246,8 +256,8 @@ function patchAJAXForm(selector, url) {
             };
             xhr.send(encodedData.toString());
             e.preventDefault();
-        });
-    }
+        }
+    });
 }
 document.addEventListener('DOMContentLoaded', function() {
     patchAJAXForm('form[action="/users/add"]', '/users/add');

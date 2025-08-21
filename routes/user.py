@@ -44,8 +44,16 @@ def login_form(request: Request):
 
 @router.post("/login")
 def login(request: Request, response: Response, username: str = Form(...), password: str = Form(...), remember_me: str = Form(None)):
+    import logging
+    logger = logging.getLogger("tailsentry")
+    
+    # First check if user exists and get their status
+    from auth_user import get_user
+    existing_user = get_user(username)
+    
     user = verify_user(username, password)
     if user:
+        logger.info(f"[LOGIN] Successful login for active user: {username}")
         request.session["user"] = user["username"]
         if remember_me:
             request.session["remember_me"] = True
@@ -54,7 +62,19 @@ def login(request: Request, response: Response, username: str = Form(...), passw
             request.session["remember_me"] = False
             request.session["max_age"] = None
         return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+    else:
+        # Check if it's a disabled account vs invalid credentials
+        if existing_user:
+            # User exists, check if account is disabled
+            if existing_user.get('active', 1) == 0:
+                logger.warning(f"[LOGIN] Login attempt for disabled account: {username}")
+                return templates.TemplateResponse("login.html", {"request": request, "error": "Account is disabled. Please contact an administrator."})
+            else:
+                logger.warning(f"[LOGIN] Invalid password for user: {username}")
+                return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+        else:
+            logger.warning(f"[LOGIN] Login attempt for non-existent user: {username}")
+            return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
 
 @router.get("/logout")
 def logout(request: Request, response: Response):

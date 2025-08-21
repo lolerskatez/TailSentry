@@ -70,19 +70,44 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         # For unsafe methods, verify CSRF token
         csrf_cookie = request.cookies.get(self.csrf_cookie_name)
         csrf_header = request.headers.get(self.csrf_header_name)
-        # Accept CSRF token from form field as fallback (for standard form posts)
+        
+        # Check header token first (this doesn't consume the body)
+        valid_token = False
+        if csrf_cookie and csrf_header == csrf_cookie:
+            valid_token = True
+        
+        # If no valid header token, we need to check the form token
+        # But we can't consume the request body here, so we'll use a workaround
         csrf_form = None
-        try:
-            form = await request.form()
-            csrf_form = form.get("csrf_token")
-        except Exception:
-            csrf_form = None
+        if not valid_token:
+            # Try to peek at the form data without fully consuming it
+            content_type = request.headers.get("content-type", "")
+            if "application/x-www-form-urlencoded" in content_type:
+                try:
+                    # Read the body and store it for later use
+                    body = await request.body()
+                    if body:
+                        # Parse the form data manually
+                        from urllib.parse import parse_qs
+                        body_str = body.decode("utf-8")
+                        parsed_data = parse_qs(body_str)
+                        csrf_form = parsed_data.get("csrf_token", [None])[0]
+                        
+                        # Create a new request with the body restored
+                        async def receive():
+                            return {"type": "http.request", "body": body}
+                        
+                        # Replace the receive callable so the route can still read the body
+                        request._receive = receive
+                except Exception as e:
+                    logger.error(f"[CSRF DEBUG] Error parsing form data: {e}")
+                    csrf_form = None
 
         # Enhanced debug logging for CSRF validation
         logger.warning(f"[CSRF DEBUG] Path: {request.url.path} | Method: {request.method} | CSRF cookie: {csrf_cookie} | CSRF header: {csrf_header} | CSRF form: {csrf_form}")
         print(f"[CSRF DEBUG] Path: {request.url.path} | Method: {request.method} | CSRF cookie: {csrf_cookie} | CSRF header: {csrf_header} | CSRF form: {csrf_form}")
 
-        valid_token = False
+        # Validate token
         if csrf_cookie and (csrf_header == csrf_cookie or csrf_form == csrf_cookie):
             valid_token = True
 
