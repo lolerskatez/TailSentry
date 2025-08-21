@@ -10,15 +10,15 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/settings")
 async def settings(request: Request):
-    return templates.TemplateResponse("settings.html", {"request": request})
+    return templates.TemplateResponse("settings.html", {"request": request, "active_nav": "settings"})
 
 @router.get("/settings/users")
 async def manage_users(request: Request):
     from auth_user import list_users
     users = list_users()
-    return templates.TemplateResponse("users.html", {"request": request, "users": users})
+    return templates.TemplateResponse("users.html", {"request": request, "users": users, "active_nav": "settings"})
 
 
 @router.get("/settings/tailscale")
 async def tailscale_settings_page(request: Request):
-    return templates.TemplateResponse("tailscale_settings.html", {"request": request})
+    return templates.TemplateResponse("tailscale_settings.html", {"request": request, "active_nav": "settings"})

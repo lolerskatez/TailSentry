@@ -156,7 +156,7 @@ def profile_form(request: Request, user=Depends(get_current_user)):
     # Attach activity log
     user = dict(user)
     user["activity_log"] = get_user_activity_log(user["username"])
-    return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": None, "success": None})
+    return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": None, "success": None, "active_nav": "profile"})
 
 @router.post("/profile")
 def profile_update(request: Request, email: str = Form(...), display_name: str = Form(""), current_password: str = Form(""), new_password: str = Form(""), user=Depends(get_current_user)):
@@ -196,7 +196,7 @@ def profile_update(request: Request, email: str = Form(...), display_name: str =
     if user:
         user = dict(user)
         user["activity_log"] = get_user_activity_log(str(user["username"]))
-    return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": error, "success": success})
+    return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": error, "success": success, "active_nav": "profile"})
 
 @router.post("/users/role")
 def set_role(request: Request, username: str = Form(...), role: str = Form(...), user=Depends(get_current_user)):

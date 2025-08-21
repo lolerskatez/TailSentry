@@ -1,43 +1,16 @@
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Users - TailSentry</title>
-    <link rel="stylesheet" href="/static/tailwind.min.css">
-    <link rel="stylesheet" href="/static/dark-mode-addon.css">
-    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-    <script src="/static/dashboard.js"></script>
-    <script src="/static/alpine-focus.min.js" defer></script>
-    <script src="/static/alpine.min.js" defer></script>
-</head>
-<body x-data="window.dashboard()" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <!-- Navigation -->
-    <nav class="flex items-center justify-between px-6 py-4 bg-indigo-700 text-white shadow" role="navigation" aria-label="Main Navigation">
-        <div class="flex items-center gap-3">
-            <img src="/static/favicon.svg" class="h-8 w-8" alt="TailSentry logo">
-            <span class="font-bold text-xl tracking-tight">TailSentry</span>
-        </div>
-        <div class="flex items-center gap-4">
-            <a href="/" class="hover:bg-indigo-800 px-3 py-1 rounded transition" aria-label="Dashboard" title="Dashboard">Dashboard</a>
-            <a href="/settings" class="hover:bg-indigo-800 px-3 py-1 rounded transition" aria-label="Settings" title="Settings">Settings</a>
-            <a href="/logs" class="hover:bg-indigo-800 px-3 py-1 rounded transition" aria-label="Logs" title="Logs">Logs</a>
-            <button @click="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded" aria-label="Logout" title="Logout">Logout</button>
-        </div>
-    </nav>
-
-    <!-- Settings Subnavigation -->
-    <nav class="flex gap-4 mb-8 mt-4 max-w-6xl mx-auto" aria-label="Settings Subnavigation">
-        <a href="/settings" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-indigo-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">General</a>
-        <a href="/settings/users" class="px-3 py-1 rounded font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-current="page">Manage Users</a>
-    </nav>
-
-    <main class="max-w-6xl mx-auto py-8 px-4">
-        <h1 class="text-2xl font-bold mb-6 text-indigo-800">User Management</h1>
-        <div class="overflow-x-auto">
-            <table class="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow">
-                <thead>
+{% extends "base.html" %}
+{% block title %}Manage Users - TailSentry{% endblock %}
+{% block content %}
+<nav class="flex gap-4 mb-8 mt-4 max-w-6xl mx-auto" aria-label="Settings Subnavigation">
+    <a href="/settings" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-indigo-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">General</a>
+    <a href="/settings/users" class="px-3 py-1 rounded font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-current="page">Manage Users</a>
+</nav>
+<main class="max-w-6xl mx-auto py-8 px-4">
+    <h1 class="text-2xl font-bold mb-6 text-indigo-800">User Management</h1>
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow">
+            <thead>
                     <tr>
                         <th class="px-4 py-2">Username</th>
                         <th class="px-4 py-2">Role</th>

@@ -1,146 +1,126 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TailSentry - Logs & Diagnostics</title>
-  <link rel="stylesheet" href="/static/tailwind.min.css">
-  <link rel="stylesheet" href="/static/dark-mode-addon.css">
-  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <script src="/static/alpine-focus.min.js" defer></script>
-  <script src="/static/alpine.min.js" defer></script>
-</head>
-<body class="min-h-screen bg-gray-50 dark:bg-gray-900">
-  <nav class="flex items-center justify-between px-6 py-4 bg-indigo-700 text-white shadow">
-    <div class="flex items-center gap-3">
-      <img src="/static/favicon.svg" class="h-8 w-8" alt="TailSentry logo">
-      <span class="font-bold text-xl tracking-tight">TailSentry</span>
-    </div>
-    <div class="flex items-center gap-4">
-      <a href="/" class="hover:bg-indigo-800 px-3 py-1 rounded transition" aria-label="Dashboard" title="Dashboard">Dashboard</a>
-      <a href="/settings" class="hover:bg-indigo-800 px-3 py-1 rounded transition" aria-label="Settings" title="Settings">Settings</a>
-      <a href="/logs" class="bg-indigo-900 px-3 py-1 rounded font-semibold" aria-label="Logs" title="Logs">Logs</a>
-      <button onclick="window.location.href='/logout'" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded" aria-label="Logout" title="Logout">Logout</button>
-    </div>
-  </nav>
-  <main class="max-w-3xl mx-auto py-8 px-4">
-    <div class="mb-8 p-6 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-      <div class="font-semibold text-2xl mb-2 text-indigo-700">Logs & Diagnostics</div>
-      <div class="text-sm text-gray-600 dark:text-gray-300 mb-4">Access logs and diagnostic information for troubleshooting.</div>
-      <form id="logs-controls" class="flex flex-wrap gap-4 mb-4 items-end">
-        <div>
-          <label class="block mb-1 font-medium" for="log-lines">Lines to show</label>
-          <input id="log-lines" type="number" min="10" max="1000" value="100" class="w-32 px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100">
-        </div>
-        <div>
-          <label class="block mb-1 font-medium" for="log-level">Level</label>
-          <select id="log-level" class="w-32 px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100">
-            <option value="">All</option>
-            <option value="INFO">INFO</option>
-            <option value="WARNING">WARNING</option>
-            <option value="ERROR">ERROR</option>
-            <option value="CRITICAL">CRITICAL</option>
-          </select>
-        </div>
-        <div>
-          <label class="block mb-1 font-medium" for="log-search">Search</label>
-          <input id="log-search" type="text" placeholder="Search logs..." class="w-48 px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100">
-        </div>
-        <div class="flex gap-2">
-          <button id="refresh-logs" type="button" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">Refresh</button>
-          <button id="download-logs" type="button" class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">Download</button>
-          <button id="download-logs-zip" type="button" class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">Download Zip</button>
-          <button id="download-diagnostics" type="button" class="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600">Download Diagnostics</button>
-        </div>
-        <div class="flex items-center gap-2 ml-auto">
-          <input id="auto-refresh" type="checkbox" class="h-5 w-5">
-          <label for="auto-refresh" class="text-sm">Auto-refresh</label>
-          <input id="live-stream" type="checkbox" class="h-5 w-5 ml-4">
-          <label for="live-stream" class="text-sm">Live stream</label>
-        </div>
-      </form>
-  <pre id="logs-output" class="bg-gray-100 dark:bg-gray-900 rounded p-4 text-xs font-mono overflow-x-auto h-96 whitespace-pre-wrap"><span id="logs-output-inner">Loading logs...</span></pre>
-  <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">To download the full log file or a zipped archive, use the buttons above. Zipped download includes the entire current log file.</div>
-    </div>
-  </main>
-  <script>
-    let autoRefreshInterval = null;
-    function colorizeLogs(raw) {
-      if (!raw) return 'No logs found.';
-      return raw.split('\n').map(line => {
-        if (line.includes('- ERROR -')) return `<span style="color:#dc2626;font-weight:bold;">${line}</span>`;
-        if (line.includes('- WARNING -')) return `<span style="color:#f59e42;">${line}</span>`;
-        if (line.includes('- CRITICAL -')) return `<span style="color:#b91c1c;font-weight:bold;background:#fee2e2;">${line}</span>`;
-        if (line.includes('- INFO -')) return `<span style="color:#2563eb;">${line}</span>`;
-        return line;
-      }).join('\n');
-    }
-    async function loadLogs() {
-      const lines = document.getElementById('log-lines').value || 100;
-      const level = document.getElementById('log-level').value;
-      const search = document.getElementById('log-search').value;
-      const params = new URLSearchParams({ lines, level, search });
-      const res = await fetch(`/api/logs?${params.toString()}`);
-      const data = await res.json();
-      document.getElementById('logs-output-inner').innerHTML = colorizeLogs(data.logs);
-    }
-    document.getElementById('refresh-logs').onclick = loadLogs;
-    document.getElementById('log-level').onchange = loadLogs;
-    document.getElementById('log-search').oninput = loadLogs;
-    document.getElementById('log-lines').onchange = loadLogs;
-    document.getElementById('download-logs').onclick = async function() {
-      const lines = document.getElementById('log-lines').value || 100;
-      const level = document.getElementById('log-level').value;
-      const search = document.getElementById('log-search').value;
-      const params = new URLSearchParams({ lines, level, search });
-      const res = await fetch(`/api/logs?${params.toString()}`);
-      const data = await res.json();
-      const logs = data.logs || '';
-      const blob = new Blob([logs], {type: 'text/plain'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'tailsentry.log';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+{% extends "base.html" %}
+{% block title %}TailSentry - Logs & Diagnostics{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto py-8 px-4">
+  <div class="mb-8 p-6 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+    <div class="font-semibold text-2xl mb-2 text-indigo-700">Logs & Diagnostics</div>
+    <div class="text-sm text-gray-600 dark:text-gray-300 mb-4">Access logs and diagnostic information for troubleshooting.</div>
+    <form id="logs-controls" class="flex flex-wrap gap-4 mb-4 items-end">
+      <div>
+        <label class="block mb-1 font-medium" for="log-lines">Lines to show</label>
+        <input id="log-lines" type="number" min="10" max="1000" value="100" class="w-32 px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100">
+      </div>
+      <div>
+        <label class="block mb-1 font-medium" for="log-level">Level</label>
+        <select id="log-level" class="w-32 px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100">
+          <option value="">All</option>
+          <option value="INFO">INFO</option>
+          <option value="WARNING">WARNING</option>
+          <option value="ERROR">ERROR</option>
+          <option value="CRITICAL">CRITICAL</option>
+        </select>
+      </div>
+      <div>
+        <label class="block mb-1 font-medium" for="log-search">Search</label>
+        <input id="log-search" type="text" placeholder="Search logs..." class="w-48 px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100">
+      </div>
+      <div class="flex gap-2">
+        <button id="refresh-logs" type="button" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">Refresh</button>
+        <button id="download-logs" type="button" class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">Download</button>
+        <button id="download-logs-zip" type="button" class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">Download Zip</button>
+        <button id="download-diagnostics" type="button" class="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600">Download Diagnostics</button>
+      </div>
+      <div class="flex items-center gap-2 ml-auto">
+        <input id="auto-refresh" type="checkbox" class="h-5 w-5">
+        <label for="auto-refresh" class="text-sm">Auto-refresh</label>
+        <input id="live-stream" type="checkbox" class="h-5 w-5 ml-4">
+        <label for="live-stream" class="text-sm">Live stream</label>
+      </div>
+    </form>
+    <pre id="logs-output" class="bg-gray-100 dark:bg-gray-900 rounded p-4 text-xs font-mono overflow-x-auto h-96 whitespace-pre-wrap"><span id="logs-output-inner">Loading logs...</span></pre>
+    <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">To download the full log file or a zipped archive, use the buttons above. Zipped download includes the entire current log file.</div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+// ...existing code for logs page JS...
+let autoRefreshInterval = null;
+function colorizeLogs(raw) {
+  if (!raw) return 'No logs found.';
+  return raw.split('\n').map(line => {
+    if (line.includes('- ERROR -')) return `<span style="color:#dc2626;font-weight:bold;">${line}</span>`;
+    if (line.includes('- WARNING -')) return `<span style="color:#f59e42;">${line}</span>`;
+    if (line.includes('- CRITICAL -')) return `<span style="color:#b91c1c;font-weight:bold;background:#fee2e2;">${line}</span>`;
+    if (line.includes('- INFO -')) return `<span style="color:#2563eb;">${line}</span>`;
+    return line;
+  }).join('\n');
+}
+async function loadLogs() {
+  const lines = document.getElementById('log-lines').value || 100;
+  const level = document.getElementById('log-level').value;
+  const search = document.getElementById('log-search').value;
+  const params = new URLSearchParams({ lines, level, search });
+  const res = await fetch(`/api/logs?${params.toString()}`);
+  const data = await res.json();
+  document.getElementById('logs-output-inner').innerHTML = colorizeLogs(data.logs);
+}
+document.getElementById('refresh-logs').onclick = loadLogs;
+document.getElementById('log-level').onchange = loadLogs;
+document.getElementById('log-search').oninput = loadLogs;
+document.getElementById('log-lines').onchange = loadLogs;
+document.getElementById('download-logs').onclick = async function() {
+  const lines = document.getElementById('log-lines').value || 100;
+  const level = document.getElementById('log-level').value;
+  const search = document.getElementById('log-search').value;
+  const params = new URLSearchParams({ lines, level, search });
+  const res = await fetch(`/api/logs?${params.toString()}`);
+  const data = await res.json();
+  const logs = data.logs || '';
+  const blob = new Blob([logs], {type: 'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tailsentry.log';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+document.getElementById('download-logs-zip').onclick = async function() {
+  window.location.href = '/api/logs/download?zip=true';
+};
+document.getElementById('download-diagnostics').onclick = async function() {
+  window.location.href = '/api/diagnostics/download';
+};
+let ws = null;
+document.getElementById('auto-refresh').onchange = function() {
+  if (this.checked) {
+    loadLogs();
+    autoRefreshInterval = setInterval(loadLogs, 5000);
+  } else {
+    clearInterval(autoRefreshInterval);
+  }
+};
+document.getElementById('live-stream').onchange = function() {
+  if (this.checked) {
+    document.getElementById('auto-refresh').checked = false;
+    clearInterval(autoRefreshInterval);
+    document.getElementById('logs-output-inner').innerHTML = '';
+    ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/logs');
+    ws.onmessage = function(event) {
+      const inner = document.getElementById('logs-output-inner');
+      inner.innerHTML += colorizeLogs(event.data);
+      inner.parentElement.scrollTop = inner.parentElement.scrollHeight;
     };
-    document.getElementById('download-logs-zip').onclick = async function() {
-      window.location.href = '/api/logs/download?zip=true';
+    ws.onclose = function() {
+      ws = null;
     };
-    document.getElementById('download-diagnostics').onclick = async function() {
-      window.location.href = '/api/diagnostics/download';
-    };
-  let ws = null;
-    document.getElementById('auto-refresh').onchange = function() {
-      if (this.checked) {
-        loadLogs();
-        autoRefreshInterval = setInterval(loadLogs, 5000);
-      } else {
-        clearInterval(autoRefreshInterval);
-      }
-    };
-    document.getElementById('live-stream').onchange = function() {
-      if (this.checked) {
-        document.getElementById('auto-refresh').checked = false;
-        clearInterval(autoRefreshInterval);
-        document.getElementById('logs-output-inner').innerHTML = '';
-        ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/logs');
-        ws.onmessage = function(event) {
-          const inner = document.getElementById('logs-output-inner');
-          inner.innerHTML += colorizeLogs(event.data);
-          inner.parentElement.scrollTop = inner.parentElement.scrollHeight;
-        };
-        ws.onclose = function() {
-          ws = null;
-        };
-      } else {
-        if (ws) { ws.close(); ws = null; }
-        loadLogs();
-      }
-    };
-    window.onload = loadLogs;
-  </script>
-</body>
-</html>
+  } else {
+    if (ws) { ws.close(); ws = null; }
+    loadLogs();
+  }
+};
+window.onload = loadLogs;
+</script>
+{% endblock %}
