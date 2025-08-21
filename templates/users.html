@@ -182,31 +182,49 @@ document.addEventListener('DOMContentLoaded', function() {
     </main>
     <!-- CSRF JS: Place at end of file to ensure it attaches after DOM is ready -->
     <script>
+// Utility to get CSRF token from cookie or window
+function getCSRFToken() {
+    const name = 'csrf_token=';
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const ca = decodedCookie.split(';');
+    for(let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) === 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return window.__CSRF_TOKEN__ || '';
+}
+// Always set CSRF token in form and header before submit
+function setCSRFOnForm(form) {
+    var token = getCSRFToken();
+    var csrfInput = form.querySelector('input[name="csrf_token"]');
+    if (csrfInput) {
+        csrfInput.value = token;
+        console.log('[CSRF PATCH] Set CSRF input value:', token);
+    }
+    // For AJAX, set header if possible
+    form._csrf_token = token;
+}
 document.addEventListener('submit', function(e) {
     var form = e.target;
     if (form.tagName === 'FORM') {
-        var token = document.cookie.split('; ').find(row => row.startsWith('csrf_token='))?.split('=')[1] || '';
-        var csrfInput = form.querySelector('input[name="csrf_token"]');
-        if (csrfInput) {
-            csrfInput.value = token;
-            console.log('[CSRF DEBUG] Setting token for form', form.action, 'token:', token);
-            console.log('[CSRF DEBUG] CSRF input value before submit (normal):', csrfInput.value);
-        } else {
-            console.log('[CSRF DEBUG] No CSRF input found in form', form.action);
-        }
+        setCSRFOnForm(form);
     }
 }, true);
-// AJAX submit logic for add/edit user forms
-document.addEventListener('DOMContentLoaded', function() {
-    var addUserForm = document.querySelector('form[action="/users/add"]');
-    if (addUserForm) {
-        addUserForm.addEventListener('submit', function(e) {
-            var token = this.querySelector('input[name="csrf_token"]').value;
-            console.log('[CSRF DEBUG] CSRF input value before submit (AJAX):', token);
+// Patch AJAX submit for add/edit user forms
+function patchAJAXForm(selector, url) {
+    var form = document.querySelector(selector);
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            setCSRFOnForm(this);
+            var token = this._csrf_token || getCSRFToken();
             var formData = new URLSearchParams(new FormData(this));
-            console.log('[CSRF DEBUG] Form data being sent:', formData.toString());
             var xhr = new XMLHttpRequest();
-            xhr.open('POST', this.action, true);
+            xhr.open('POST', url, true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.setRequestHeader('X-CSRF-Token', token);
             xhr.onload = function() {
@@ -217,23 +235,10 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
         });
     }
-    var editUserForm = document.querySelector('form[action="/users/edit"]');
-    if (editUserForm) {
-        editUserForm.addEventListener('submit', function(e) {
-            var token = document.cookie.split('; ').find(row => row.startsWith('csrf_token='))?.split('=')[1] || '';
-            this.querySelector('input[name="csrf_token"]').value = token;
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', this.action, true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.setRequestHeader('X-CSRF-Token', token);
-            xhr.onload = function() {
-                if (xhr.status === 200) { window.location.reload(); }
-                else { alert('CSRF failed'); }
-            };
-            xhr.send(new URLSearchParams(new FormData(this)));
-            e.preventDefault();
-        });
-    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    patchAJAXForm('form[action="/users/add"]', '/users/add');
+    patchAJAXForm('form[action="/users/edit"]', '/users/edit');
 });
-</script>
+    </script>
 {% endblock %}
