@@ -4,7 +4,7 @@ import zipfile
 import io
 import asyncio
 import tempfile
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 
@@ -12,9 +12,17 @@ router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 logger = logging.getLogger("tailsentry.logs")
 
+# Helper: check admin session
+def require_admin(request: Request):
+    user = request.session.get('user')
+    is_admin = request.session.get('is_admin')
+    if not user or not is_admin:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
 # Page route
 @router.get("/logs")
 async def logs_page(request: Request):
+    require_admin(request)
     return templates.TemplateResponse("logs.html", {"request": request})
 
 # API endpoint for logs with server-side filtering
@@ -60,6 +68,7 @@ async def logs_websocket(websocket: WebSocket):
 # API endpoint for logs with server-side filtering
 @router.get("/api/logs")
 async def get_logs(request: Request):
+    require_admin(request)
     """Return the last N lines of the main log file for diagnostics, with server-side filtering."""
     try:
         lines = int(request.query_params.get('lines', 100))
@@ -91,7 +100,8 @@ async def get_logs(request: Request):
 
 # Download full log file endpoint (for authenticated users)
 @router.get("/api/logs/download")
-async def download_logs(zip: bool = False):
+async def download_logs(request: Request, zip: bool = False):
+    require_admin(request)
     """Download the full current log file or a zipped archive."""
     # TODO: Add authentication check here
     log_path = os.path.join(os.path.dirname(__file__), '..', 'logs', 'tailsentry.log')
@@ -106,3 +116,32 @@ async def download_logs(zip: bool = False):
         return StreamingResponse(mem_zip, media_type="application/zip", headers={"Content-Disposition": "attachment; filename=tailsentry_logs.zip"})
     else:
         return FileResponse(log_path, filename="tailsentry.log", media_type="text/plain")
+
+@router.get("/api/diagnostics/download")
+async def download_diagnostics(request: Request):
+    require_admin(request)
+    import tempfile
+    from services.tailscale_service import TailscaleClient
+    config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
+    log_path = os.path.join(os.path.dirname(__file__), '..', 'logs', 'tailsentry.log')
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Write Tailscale status
+        status_file = os.path.join(tmpdir, 'tailscale_status.json')
+        try:
+            status = TailscaleClient.status_json()
+            with open(status_file, 'w', encoding='utf-8') as f:
+                import json
+                json.dump(status, f, indent=2)
+        except Exception as e:
+            with open(status_file, 'w', encoding='utf-8') as f:
+                f.write(f'Error getting status: {e}')
+        # Prepare zip
+        mem_zip = io.BytesIO()
+        with zipfile.ZipFile(mem_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+            if os.path.exists(log_path):
+                zf.write(log_path, arcname="tailsentry.log")
+            if os.path.exists(config_path):
+                zf.write(config_path, arcname="tailscale_settings.json")
+            zf.write(status_file, arcname="tailscale_status.json")
+        mem_zip.seek(0)
+        return StreamingResponse(mem_zip, media_type="application/zip", headers={"Content-Disposition": "attachment; filename=diagnostics_bundle.zip"})
