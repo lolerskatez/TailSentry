@@ -149,6 +149,16 @@
     <!-- CSRF JS: Place at end of file to ensure it attaches after DOM is ready -->
     <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Always set CSRF token in all forms with a csrf_token input before submit
+    document.querySelectorAll('form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            var token = document.cookie.split('; ').find(row => row.startsWith('csrf_token='))?.split('=')[1] || '';
+            var csrfInput = form.querySelector('input[name="csrf_token"]');
+            if (csrfInput) {
+                csrfInput.value = token;
+            }
+        });
+    });
     var addUserForm = document.querySelector('form[action="/users/add"]');
     if (addUserForm) {
         addUserForm.addEventListener('submit', function(e) {
