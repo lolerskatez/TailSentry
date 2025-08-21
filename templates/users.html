@@ -156,6 +156,7 @@ document.addEventListener('submit', function(e) {
         if (csrfInput) {
             csrfInput.value = token;
             console.log('[CSRF DEBUG] Setting token for form', form.action, 'token:', token);
+            console.log('[CSRF DEBUG] CSRF input value before submit (normal):', csrfInput.value);
         } else {
             console.log('[CSRF DEBUG] No CSRF input found in form', form.action);
         }
@@ -168,6 +169,9 @@ document.addEventListener('DOMContentLoaded', function() {
         addUserForm.addEventListener('submit', function(e) {
             var token = document.cookie.split('; ').find(row => row.startsWith('csrf_token='))?.split('=')[1] || '';
             this.querySelector('input[name="csrf_token"]').value = token;
+            var formData = new URLSearchParams(new FormData(this));
+            console.log('[CSRF DEBUG] CSRF input value before submit (AJAX):', this.querySelector('input[name="csrf_token"]').value);
+            console.log('[CSRF DEBUG] Form data being sent:', formData.toString());
             var xhr = new XMLHttpRequest();
             xhr.open('POST', this.action, true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -176,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (xhr.status === 200) { window.location.reload(); }
                 else { alert('CSRF failed'); }
             };
-            xhr.send(new URLSearchParams(new FormData(this)));
+            xhr.send(formData);
             e.preventDefault();
         });
     }
