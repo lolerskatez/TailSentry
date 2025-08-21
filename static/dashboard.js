@@ -1,5 +1,5 @@
 // --- Alpine.js state and methods ---
-window.altTailSentry = function altTailSentry() {
+window.dashboard = function dashboard() {
   return {
     // --- Helper methods for feedback and loading ---
     setFeedback(type, msg) {
