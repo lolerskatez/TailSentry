@@ -58,10 +58,25 @@ async def lifespan(app: FastAPI):
     start_scheduler()
     logger.info(f"TailSentry started successfully")
     
+    # Send startup notification
+    try:
+        from notifications_manager import notify_system_startup
+        await notify_system_startup()
+    except Exception as e:
+        logger.warning(f"Failed to send startup notification: {e}")
+    
     yield
     
     # Shutdown
     logger.info("Shutting down TailSentry...")
+    
+    # Send shutdown notification
+    try:
+        from notifications_manager import notify_system_shutdown
+        await notify_system_shutdown()
+    except Exception as e:
+        logger.warning(f"Failed to send shutdown notification: {e}")
+    
     shutdown_scheduler()
     uptime = time.time() - app.state.start_time
     logger.info(f"TailSentry shutdown complete. Uptime: {uptime:.2f} seconds")
@@ -233,6 +248,10 @@ app.include_router(tailscale_settings.tailscale_settings_router)
 # Register TailSentry settings API
 from routes import tailsentry_settings
 app.include_router(tailsentry_settings.router)
+
+# Register Notifications API
+from routes import notifications
+app.include_router(notifications.router)
 
 # Global context processor for all templates
 @app.middleware("http")

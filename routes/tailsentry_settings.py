@@ -280,6 +280,14 @@ async def update_tailsentry_settings(request: Request, config: TailSentryConfig)
         
         if env_success:
             logger.info(f"TailSentry settings updated by user: {user.get('username', 'unknown')}")
+            
+            # Send configuration change notification
+            try:
+                from notifications_manager import notify_configuration_change
+                await notify_configuration_change(user.get('username', 'unknown'))
+            except Exception as notify_error:
+                logger.warning(f"Failed to send configuration change notification: {notify_error}")
+            
             return {
                 "success": True,
                 "message": "Settings updated successfully",

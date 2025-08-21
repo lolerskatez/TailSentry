@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Settings - TailSentry</title>
+    <link href="../static/tailwind.min.css" rel="stylesheet">
+    <script src="../static/alpine.min.js" defer></script>
+    <style>
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900" x-data="notificationSettings()">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Notification Settings</h1>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">Configure SMTP, Telegram, and Discord notifications</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button @click="testNotification()" 
+                            :disabled="loading"
+                            class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors">
+                        <span x-show="!loading">🧪 Test Notifications</span>
+                        <span x-show="loading">Testing...</span>
+                    </button>
+                    <a href="/settings" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        ← Back to Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Alert -->
+        <div x-show="alert.show" x-transition 
+             :class="alert.type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'"
+             class="border px-4 py-3 rounded mb-6">
+            <span x-text="alert.message"></span>
+        </div>
+
+        <!-- Global Settings Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md mb-6">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Global Settings</h2>
+                <p class="text-gray-600 dark:text-gray-400 mt-1">Master controls for the notification system</p>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" x-model="settings.global_enabled" class="rounded">
+                            <span class="ml-2 text-gray-700 dark:text-gray-300">Enable Notifications</span>
+                        </label>
+                        <p class="text-sm text-gray-500 mt-1">Master switch for all notifications</p>
+                    </div>
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" x-model="settings.rate_limit_enabled" class="rounded">
+                            <span class="ml-2 text-gray-700 dark:text-gray-300">Enable Rate Limiting</span>
+                        </label>
+                        <p class="text-sm text-gray-500 mt-1">Prevent notification spam</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Retry Attempts</label>
+                        <input type="number" x-model="settings.retry_attempts" min="1" max="10"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <p class="text-sm text-gray-500 mt-1">Failed delivery retry attempts</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rate Limit (per hour)</label>
+                        <input type="number" x-model="settings.rate_limit_per_hour" min="1" max="1000"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <p class="text-sm text-gray-500 mt-1">Maximum notifications per hour</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Channels Tabs -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+            <div class="border-b border-gray-200 dark:border-gray-700">
+                <nav class="-mb-px flex space-x-8 px-6">
+                    <button @click="activeTab = 'smtp'" 
+                            :class="activeTab === 'smtp' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        📧 SMTP Email
+                    </button>
+                    <button @click="activeTab = 'telegram'" 
+                            :class="activeTab === 'telegram' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        📱 Telegram
+                    </button>
+                    <button @click="activeTab = 'discord'" 
+                            :class="activeTab === 'discord' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        💬 Discord
+                    </button>
+                    <button @click="activeTab = 'templates'" 
+                            :class="activeTab === 'templates' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        📝 Templates
+                    </button>
+                </nav>
+            </div>
+
+            <!-- SMTP Settings Tab -->
+            <div x-show="activeTab === 'smtp'" class="p-6">
+                <div class="mb-6">
+                    <label class="flex items-center">
+                        <input type="checkbox" x-model="settings.smtp.enabled" class="rounded">
+                        <span class="ml-2 text-lg font-medium text-gray-900 dark:text-white">Enable SMTP Email Notifications</span>
+                    </label>
+                </div>
+                
+                <div x-show="settings.smtp.enabled" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">SMTP Server</label>
+                            <input type="text" x-model="settings.smtp.smtp_server" placeholder="smtp.gmail.com"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Port</label>
+                            <select x-model="settings.smtp.smtp_port" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                <option value="25">25 (Standard)</option>
+                                <option value="465">465 (SSL)</option>
+                                <option value="587">587 (TLS)</option>
+                                <option value="993">993 (IMAP SSL)</option>
+                                <option value="995">995 (POP3 SSL)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Username</label>
+                            <input type="text" x-model="settings.smtp.username" placeholder="your-email@domain.com"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                            <input type="password" x-model="smtpPassword" placeholder="Enter password"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <p class="text-sm text-gray-500 mt-1" x-show="settings.smtp.has_password">Password is currently set</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">From Email</label>
+                            <input type="email" x-model="settings.smtp.from_email" placeholder="noreply@yourdomain.com"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">From Name</label>
+                            <input type="text" x-model="settings.smtp.from_name" placeholder="TailSentry"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" x-model="settings.smtp.use_tls" class="rounded">
+                            <span class="ml-2 text-gray-700 dark:text-gray-300">Use TLS</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" x-model="settings.smtp.use_ssl" class="rounded">
+                            <span class="ml-2 text-gray-700 dark:text-gray-300">Use SSL</span>
+                        </label>
+                    </div>
+                    
+                    <button @click="testChannel('smtp')" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                        Test SMTP Connection
+                    </button>
+                </div>
+            </div>
+
+            <!-- Telegram Settings Tab -->
+            <div x-show="activeTab === 'telegram'" class="p-6">
+                <div class="mb-6">
+                    <label class="flex items-center">
+                        <input type="checkbox" x-model="settings.telegram.enabled" class="rounded">
+                        <span class="ml-2 text-lg font-medium text-gray-900 dark:text-white">Enable Telegram Notifications</span>
+                    </label>
+                </div>
+                
+                <div x-show="settings.telegram.enabled" class="space-y-6">
+                    <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                        <h4 class="font-medium text-blue-900 dark:text-blue-300">Setup Instructions:</h4>
+                        <ol class="mt-2 text-sm text-blue-800 dark:text-blue-400 list-decimal list-inside space-y-1">
+                            <li>Create a bot by messaging @BotFather on Telegram</li>
+                            <li>Send /newbot and follow the instructions</li>
+                            <li>Copy the bot token provided</li>
+                            <li>Add your bot to a group or get your personal chat ID</li>
+                            <li>Message @userinfobot to get your chat ID</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bot Token</label>
+                            <input type="password" x-model="telegramBotToken" placeholder="123456789:ABCDEF..."
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <p class="text-sm text-gray-500 mt-1" x-show="settings.telegram.has_bot_token">Token is currently set</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Chat ID</label>
+                            <input type="text" x-model="telegramChatId" placeholder="-123456789 or 123456789"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <p class="text-sm text-gray-500 mt-1" x-show="settings.telegram.has_chat_id">Chat ID is currently set</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Parse Mode</label>
+                            <select x-model="settings.telegram.parse_mode" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                <option value="HTML">HTML</option>
+                                <option value="Markdown">Markdown</option>
+                                <option value="MarkdownV2">MarkdownV2</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="flex items-center">
+                                <input type="checkbox" x-model="settings.telegram.disable_web_page_preview" class="rounded">
+                                <span class="ml-2 text-gray-700 dark:text-gray-300">Disable Web Page Preview</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button @click="testChannel('telegram')" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                        Test Telegram Bot
+                    </button>
+                </div>
+            </div>
+
+            <!-- Discord Settings Tab -->
+            <div x-show="activeTab === 'discord'" class="p-6">
+                <div class="mb-6">
+                    <label class="flex items-center">
+                        <input type="checkbox" x-model="settings.discord.enabled" class="rounded">
+                        <span class="ml-2 text-lg font-medium text-gray-900 dark:text-white">Enable Discord Notifications</span>
+                    </label>
+                </div>
+                
+                <div x-show="settings.discord.enabled" class="space-y-6">
+                    <div class="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-700 rounded-lg p-4">
+                        <h4 class="font-medium text-purple-900 dark:text-purple-300">Setup Instructions:</h4>
+                        <ol class="mt-2 text-sm text-purple-800 dark:text-purple-400 list-decimal list-inside space-y-1">
+                            <li>Go to your Discord server settings</li>
+                            <li>Navigate to Integrations → Webhooks</li>
+                            <li>Click "New Webhook" or "Create Webhook"</li>
+                            <li>Set a name and select a channel</li>
+                            <li>Copy the webhook URL</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Webhook URL</label>
+                            <input type="password" x-model="discordWebhookUrl" placeholder="https://discord.com/api/webhooks/..."
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <p class="text-sm text-gray-500 mt-1" x-show="settings.discord.has_webhook_url">Webhook URL is currently set</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Username</label>
+                            <input type="text" x-model="settings.discord.username" placeholder="TailSentry"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Avatar URL (Optional)</label>
+                            <input type="url" x-model="settings.discord.avatar_url" placeholder="https://example.com/avatar.png"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Embed Color</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="color" x-model="discordColorHex" class="h-10 w-16 rounded border">
+                                <input type="text" x-model="discordColorHex" placeholder="#3498db"
+                                       class="flex-1 border-gray-300 rounded-md shadow-sm">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button @click="testChannel('discord')" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                        Test Discord Webhook
+                    </button>
+                </div>
+            </div>
+
+            <!-- Templates Tab -->
+            <div x-show="activeTab === 'templates'" class="p-6">
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">Notification Templates</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Customize notification messages for different events</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <template x-for="(template, eventType) in templates" :key="eventType">
+                        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="font-medium text-gray-900 dark:text-white" x-text="formatEventType(eventType)"></h4>
+                                <label class="flex items-center">
+                                    <input type="checkbox" x-model="template.enabled" class="rounded">
+                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Enabled</span>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+                                    <input type="text" x-model="template.title" 
+                                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Message</label>
+                                    <textarea x-model="template.message" rows="2"
+                                              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm text-sm"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                
+                <button @click="saveTemplates()" 
+                        class="mt-6 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+                    Save Templates
+                </button>
+            </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="mt-8 flex justify-center">
+            <button @click="saveSettings()" 
+                    :disabled="loading"
+                    class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-8 py-3 rounded-lg text-lg font-medium transition-colors">
+                <span x-show="!loading">💾 Save Notification Settings</span>
+                <span x-show="loading">Saving...</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function notificationSettings() {
+            return {
+                loading: false,
+                activeTab: 'smtp',
+                alert: {
+                    show: false,
+                    type: 'success',
+                    message: ''
+                },
+                settings: {
+                    global_enabled: true,
+                    retry_attempts: 3,
+                    retry_delay: 60,
+                    rate_limit_enabled: true,
+                    rate_limit_per_hour: 100,
+                    smtp: {
+                        enabled: false,
+                        smtp_server: '',
+                        smtp_port: 587,
+                        use_tls: true,
+                        use_ssl: false,
+                        username: '',
+                        from_email: 'noreply@tailsentry.local',
+                        from_name: 'TailSentry',
+                        has_password: false
+                    },
+                    telegram: {
+                        enabled: false,
+                        parse_mode: 'HTML',
+                        disable_web_page_preview: true,
+                        has_bot_token: false,
+                        has_chat_id: false
+                    },
+                    discord: {
+                        enabled: false,
+                        username: 'TailSentry',
+                        embed_color: 3447003,
+                        avatar_url: '',
+                        has_webhook_url: false
+                    }
+                },
+                templates: {},
+                smtpPassword: '',
+                telegramBotToken: '',
+                telegramChatId: '',
+                discordWebhookUrl: '',
+                
+                get discordColorHex() {
+                    return '#' + this.settings.discord.embed_color.toString(16).padStart(6, '0');
+                },
+                
+                set discordColorHex(value) {
+                    this.settings.discord.embed_color = parseInt(value.replace('#', ''), 16);
+                },
+                
+                init() {
+                    this.loadSettings();
+                    this.loadTemplates();
+                },
+                
+                async loadSettings() {
+                    try {
+                        const response = await fetch('/api/notification-settings');
+                        const data = await response.json();
+                        this.settings = data;
+                    } catch (error) {
+                        this.showAlert('error', 'Failed to load notification settings');
+                    }
+                },
+                
+                async loadTemplates() {
+                    try {
+                        const response = await fetch('/api/notification-templates');
+                        const data = await response.json();
+                        this.templates = data.templates;
+                    } catch (error) {
+                        this.showAlert('error', 'Failed to load notification templates');
+                    }
+                },
+                
+                async saveSettings() {
+                    this.loading = true;
+                    try {
+                        // Prepare settings with sensitive data
+                        const settingsToSave = JSON.parse(JSON.stringify(this.settings));
+                        
+                        // Add sensitive fields if provided
+                        if (this.smtpPassword) {
+                            settingsToSave.smtp.password = this.smtpPassword;
+                        }
+                        if (this.telegramBotToken) {
+                            settingsToSave.telegram.bot_token = this.telegramBotToken;
+                        }
+                        if (this.telegramChatId) {
+                            settingsToSave.telegram.chat_id = this.telegramChatId;
+                        }
+                        if (this.discordWebhookUrl) {
+                            settingsToSave.discord.webhook_url = this.discordWebhookUrl;
+                        }
+                        
+                        const response = await fetch('/api/notification-settings', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(settingsToSave)
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            this.showAlert('success', 'Notification settings saved successfully');
+                            // Clear sensitive input fields
+                            this.smtpPassword = '';
+                            this.telegramBotToken = '';
+                            this.telegramChatId = '';
+                            this.discordWebhookUrl = '';
+                            // Reload to get updated has_* flags
+                            this.loadSettings();
+                        } else {
+                            this.showAlert('error', result.detail || 'Failed to save settings');
+                        }
+                    } catch (error) {
+                        this.showAlert('error', 'Failed to save notification settings');
+                    }
+                    this.loading = false;
+                },
+                
+                async saveTemplates() {
+                    try {
+                        const response = await fetch('/api/notification-templates', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({templates: this.templates})
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            this.showAlert('success', 'Templates saved successfully');
+                        } else {
+                            this.showAlert('error', result.detail || 'Failed to save templates');
+                        }
+                    } catch (error) {
+                        this.showAlert('error', 'Failed to save templates');
+                    }
+                },
+                
+                async testNotification() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch('/api/test-notification', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({channel: 'all'})
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            this.showAlert('success', 'Test notifications sent! Check your configured channels.');
+                        } else {
+                            this.showAlert('error', result.detail || 'Failed to send test notifications');
+                        }
+                    } catch (error) {
+                        this.showAlert('error', 'Failed to send test notifications');
+                    }
+                    this.loading = false;
+                },
+                
+                async testChannel(channel) {
+                    try {
+                        const response = await fetch('/api/test-notification', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({channel: channel})
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            this.showAlert('success', `Test ${channel} notification sent!`);
+                        } else {
+                            this.showAlert('error', result.detail || `Failed to send ${channel} test`);
+                        }
+                    } catch (error) {
+                        this.showAlert('error', `Failed to test ${channel} notification`);
+                    }
+                },
+                
+                formatEventType(eventType) {
+                    return eventType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                },
+                
+                showAlert(type, message) {
+                    this.alert = {show: true, type, message};
+                    setTimeout(() => {
+                        this.alert.show = false;
+                    }, 5000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
