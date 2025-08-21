@@ -230,6 +230,10 @@ app.include_router(logs.router)
 # Register the new Tailscale settings API
 app.include_router(tailscale_settings.tailscale_settings_router)
 
+# Register TailSentry settings API
+from routes import tailsentry_settings
+app.include_router(tailsentry_settings.router)
+
 # Global context processor for all templates
 @app.middleware("http")
 async def add_global_template_vars(request: Request, call_next):

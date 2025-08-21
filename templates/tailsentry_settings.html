@@ -1,0 +1,682 @@
+{% extends "base.html" %}
+{% block title %}TailSentry Configuration{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto py-8 px-4" x-data="tailsentrySettings()">
+  <!-- Settings Subnavigation -->
+  <nav class="flex gap-4 mb-8 max-w-6xl mx-auto" aria-label="Settings Subnavigation">
+    <a href="/settings" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-indigo-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">General</a>
+    <a href="/settings/users" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-indigo-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">Manage Users</a>
+    <a href="/settings/tailscale" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-indigo-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">Tailscale Settings</a>
+    <a href="/settings/tailsentry" class="px-3 py-1 rounded font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-current="page">TailSentry Config</a>
+    <a href="/logs" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-gray-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">Logs</a>
+  </nav>
+
+  <!-- Page Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">TailSentry Configuration</h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-400">Manage your TailSentry application settings, security, and system configuration.</p>
+  </div>
+
+  <!-- Success/Error Messages -->
+  <div x-show="message" x-transition class="mb-6">
+    <div :class="messageType === 'success' ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900 dark:border-green-700 dark:text-green-100' : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900 dark:border-red-700 dark:text-red-100'" 
+         class="border px-4 py-3 rounded-md">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg x-show="messageType === 'success'" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          <svg x-show="messageType === 'error'" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium" x-text="message"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
+    <nav class="-mb-px flex space-x-8" aria-label="Configuration Tabs">
+      <button @click="activeTab = 'security'" 
+              :class="activeTab === 'security' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
+              class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+        🔒 Security
+      </button>
+      <button @click="activeTab = 'tailscale'" 
+              :class="activeTab === 'tailscale' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
+              class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+        🌐 Tailscale
+      </button>
+      <button @click="activeTab = 'application'" 
+              :class="activeTab === 'application' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
+              class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+        ⚙️ Application
+      </button>
+      <button @click="activeTab = 'monitoring'" 
+              :class="activeTab === 'monitoring' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
+              class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+        📊 Monitoring
+      </button>
+      <button @click="activeTab = 'backup'" 
+              :class="activeTab === 'backup' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
+              class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+        💾 Backup
+      </button>
+      <button @click="activeTab = 'system'" 
+              :class="activeTab === 'system' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
+              class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+        🖥️ System
+      </button>
+    </nav>
+  </div>
+
+  <!-- Security Settings Tab -->
+  <div x-show="activeTab === 'security'" class="space-y-6">
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Security Configuration</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Admin Username
+          </label>
+          <input type="text" x-model="config.security.admin_username" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Session Timeout (minutes)
+          </label>
+          <input type="number" x-model.number="config.security.session_timeout_minutes" min="5" max="1440"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            New Admin Password (optional)
+          </label>
+          <input type="password" x-model="config.security.admin_password" placeholder="Leave blank to keep current"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Session Secret
+          </label>
+          <div class="flex gap-2">
+            <input type="password" :value="config.security.has_session_secret ? '••••••••••••••••' : ''" readonly
+                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 dark:bg-gray-600 dark:border-gray-600 dark:text-white">
+            <button @click="generateSessionSecret()" 
+                    class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500">
+              Generate New
+            </button>
+          </div>
+        </div>
+        
+        <div class="flex items-center">
+          <input type="checkbox" x-model="config.security.force_https" id="force_https"
+                 class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+          <label for="force_https" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+            Force HTTPS (disable for local development)
+          </label>
+        </div>
+      </div>
+      
+      <div class="mt-6">
+        <button @click="saveSecuritySettings()" :disabled="loading"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
+          <span x-show="!loading">Save Security Settings</span>
+          <span x-show="loading">Saving...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tailscale Settings Tab -->
+  <div x-show="activeTab === 'tailscale'" class="space-y-6">
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Tailscale Integration</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Personal Access Token
+          </label>
+          <input type="password" x-model="config.tailscale.tailscale_pat" 
+                 placeholder="Enter Tailscale PAT"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Get your PAT from <a href="https://login.tailscale.com/admin/settings/keys" target="_blank" class="text-indigo-600 hover:text-indigo-500">Tailscale Admin Console</a>
+          </p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Tailnet Name
+          </label>
+          <input type="text" x-model="config.tailscale.tailscale_tailnet" 
+                 placeholder="-" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Use "-" for personal tailnet</p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            API Timeout (seconds)
+          </label>
+          <input type="number" x-model.number="config.tailscale.api_timeout" min="1" max="60"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+        
+        <div class="flex items-center">
+          <input type="checkbox" x-model="config.tailscale.force_live_data" id="force_live_data"
+                 class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+          <label for="force_live_data" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+            Force Live Data (disable caching)
+          </label>
+        </div>
+      </div>
+      
+      <div class="mt-6">
+        <button @click="saveTailscaleSettings()" :disabled="loading"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
+          <span x-show="!loading">Save Tailscale Settings</span>
+          <span x-show="loading">Saving...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Settings Tab -->
+  <div x-show="activeTab === 'application'" class="space-y-6">
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Application Configuration</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Data Directory
+          </label>
+          <input type="text" x-model="config.application.data_dir" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Log Level
+          </label>
+          <select x-model="config.application.log_level"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <option value="DEBUG">DEBUG</option>
+            <option value="INFO">INFO</option>
+            <option value="WARNING">WARNING</option>
+            <option value="ERROR">ERROR</option>
+            <option value="CRITICAL">CRITICAL</option>
+          </select>
+        </div>
+        
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Log Format
+          </label>
+          <textarea x-model="config.application.log_format" rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+        </div>
+        
+        <div class="flex items-center">
+          <input type="checkbox" x-model="config.application.development" id="development"
+                 class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+          <label for="development" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+            Development Mode
+          </label>
+        </div>
+      </div>
+      
+      <div class="mt-6">
+        <button @click="saveApplicationSettings()" :disabled="loading"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
+          <span x-show="!loading">Save Application Settings</span>
+          <span x-show="loading">Saving...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monitoring Settings Tab -->
+  <div x-show="activeTab === 'monitoring'" class="space-y-6">
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Monitoring & Alerts</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex items-center">
+          <input type="checkbox" x-model="config.monitoring.health_check_enabled" id="health_check"
+                 class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+          <label for="health_check" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+            Enable Health Checks
+          </label>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Health Check Interval (seconds)
+          </label>
+          <input type="number" x-model.number="config.monitoring.health_check_interval" min="60" max="3600"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Alert Email
+          </label>
+          <input type="email" x-model="config.monitoring.alert_email" placeholder="admin@example.com"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Webhook URL
+          </label>
+          <div class="flex gap-2">
+            <input type="url" x-model="config.monitoring.webhook_url" placeholder="https://hooks.slack.com/..."
+                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <button @click="testWebhook()" :disabled="!config.monitoring.webhook_url || loading"
+                    class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 disabled:opacity-50">
+              Test
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-6">
+        <button @click="saveMonitoringSettings()" :disabled="loading"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
+          <span x-show="!loading">Save Monitoring Settings</span>
+          <span x-show="loading">Saving...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup Settings Tab -->
+  <div x-show="activeTab === 'backup'" class="space-y-6">
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Backup & Export</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex items-center">
+          <input type="checkbox" x-model="config.backup.backup_enabled" id="backup_enabled"
+                 class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+          <label for="backup_enabled" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+            Enable Automatic Backups
+          </label>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Backup Retention (days)
+          </label>
+          <input type="number" x-model.number="config.backup.backup_retention_days" min="1" max="365"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+      </div>
+      
+      <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+        <h4 class="text-md font-medium text-gray-900 dark:text-white mb-4">Manual Backup & Export</h4>
+        <div class="flex flex-wrap gap-3">
+          <button @click="backupConfig()" :disabled="loading"
+                  class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+            Create Backup
+          </button>
+          
+          <button @click="exportSettings()" :disabled="loading"
+                  class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 disabled:opacity-50">
+            Export Settings
+          </button>
+          
+          <div class="relative">
+            <input type="file" @change="importSettings($event)" accept=".json" class="hidden" id="import-file">
+            <button @click="$refs.importFile.click()" :disabled="loading"
+                    class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 disabled:opacity-50">
+              Import Settings
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-6">
+        <button @click="saveBackupSettings()" :disabled="loading"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
+          <span x-show="!loading">Save Backup Settings</span>
+          <span x-show="loading">Saving...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Information Tab -->
+  <div x-show="activeTab === 'system'" class="space-y-6">
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">System Information</h3>
+      
+      <div x-show="systemInfo">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div>
+            <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Platform</h4>
+            <div class="space-y-1 text-sm">
+              <div><span class="font-medium">System:</span> <span x-text="systemInfo?.platform?.system"></span></div>
+              <div><span class="font-medium">Release:</span> <span x-text="systemInfo?.platform?.release"></span></div>
+              <div><span class="font-medium">Machine:</span> <span x-text="systemInfo?.platform?.machine"></span></div>
+              <div><span class="font-medium">Python:</span> <span x-text="systemInfo?.platform?.python_version"></span></div>
+            </div>
+          </div>
+          
+          <div>
+            <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Memory</h4>
+            <div class="space-y-1 text-sm">
+              <div><span class="font-medium">Total:</span> <span x-text="formatBytes(systemInfo?.memory?.total)"></span></div>
+              <div><span class="font-medium">Available:</span> <span x-text="formatBytes(systemInfo?.memory?.available)"></span></div>
+              <div><span class="font-medium">Used:</span> <span x-text="systemInfo?.memory?.percent + '%'"></span></div>
+            </div>
+          </div>
+          
+          <div>
+            <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Storage</h4>
+            <div class="space-y-1 text-sm">
+              <div><span class="font-medium">Total:</span> <span x-text="formatBytes(systemInfo?.disk?.total)"></span></div>
+              <div><span class="font-medium">Free:</span> <span x-text="formatBytes(systemInfo?.disk?.free)"></span></div>
+              <div><span class="font-medium">Used:</span> <span x-text="formatBytes(systemInfo?.disk?.used)"></span></div>
+            </div>
+          </div>
+          
+          <div>
+            <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Configuration Files</h4>
+            <div class="space-y-1 text-sm">
+              <div>
+                <span class="font-medium">.env:</span> 
+                <span :class="systemInfo?.env_file?.exists ? 'text-green-600' : 'text-red-600'">
+                  <span x-text="systemInfo?.env_file?.exists ? '✓ Found' : '✗ Missing'"></span>
+                  <span x-show="systemInfo?.env_file?.exists" x-text="'(' + formatBytes(systemInfo?.env_file?.size) + ')'"></span>
+                </span>
+              </div>
+              <div>
+                <span class="font-medium">Config:</span> 
+                <span :class="systemInfo?.config_file?.exists ? 'text-green-600' : 'text-yellow-600'">
+                  <span x-text="systemInfo?.config_file?.exists ? '✓ Found' : '○ Optional'"></span>
+                  <span x-show="systemInfo?.config_file?.exists" x-text="'(' + formatBytes(systemInfo?.config_file?.size) + ')'"></span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-6">
+        <button @click="loadSystemInfo()" :disabled="loading"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
+          <span x-show="!loading">Refresh System Info</span>
+          <span x-show="loading">Loading...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function tailsentrySettings() {
+    return {
+        activeTab: 'security',
+        loading: false,
+        message: '',
+        messageType: 'success',
+        config: {
+            security: {
+                admin_username: 'admin',
+                session_timeout_minutes: 30,
+                admin_password: '',
+                force_https: false,
+                cors_origins: ['*'],
+                has_session_secret: false
+            },
+            tailscale: {
+                tailscale_pat: '',
+                tailscale_tailnet: '-',
+                api_timeout: 10,
+                force_live_data: true,
+                has_pat: false
+            },
+            application: {
+                development: false,
+                data_dir: '/app/data',
+                log_level: 'INFO',
+                log_format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            },
+            monitoring: {
+                health_check_enabled: true,
+                health_check_interval: 300,
+                alert_email: '',
+                webhook_url: '',
+                has_webhook_url: false
+            },
+            backup: {
+                backup_enabled: true,
+                backup_retention_days: 30
+            }
+        },
+        systemInfo: null,
+
+        init() {
+            this.loadSettings();
+            this.loadSystemInfo();
+        },
+
+        async loadSettings() {
+            try {
+                const response = await fetch('/api/tailsentry-settings');
+                if (response.ok) {
+                    const data = await response.json();
+                    this.config = { ...this.config, ...data };
+                }
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+                this.showMessage('Failed to load settings', 'error');
+            }
+        },
+
+        async saveSecuritySettings() {
+            await this.saveSettings('security');
+        },
+
+        async saveTailscaleSettings() {
+            await this.saveSettings('tailscale');
+        },
+
+        async saveApplicationSettings() {
+            await this.saveSettings('application');
+        },
+
+        async saveMonitoringSettings() {
+            await this.saveSettings('monitoring');
+        },
+
+        async saveBackupSettings() {
+            await this.saveSettings('backup');
+        },
+
+        async saveSettings(section = null) {
+            this.loading = true;
+            try {
+                const response = await fetch('/api/tailsentry-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.config)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    this.showMessage(`${section ? section.charAt(0).toUpperCase() + section.slice(1) + ' s' : 'S'}ettings saved successfully${result.restart_required ? ' (restart required)' : ''}`, 'success');
+                    if (this.config.security.admin_password) {
+                        this.config.security.admin_password = ''; // Clear password field
+                    }
+                    this.loadSettings(); // Reload to get updated state
+                } else {
+                    this.showMessage('Error: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                this.showMessage('Network error: ' + error.message, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async generateSessionSecret() {
+            this.loading = true;
+            try {
+                const response = await fetch('/api/tailsentry-settings/generate-secret', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    this.showMessage('New session secret generated', 'success');
+                    this.config.security.has_session_secret = true;
+                } else {
+                    this.showMessage('Failed to generate session secret', 'error');
+                }
+            } catch (error) {
+                this.showMessage('Error generating session secret', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async testWebhook() {
+            this.loading = true;
+            try {
+                const response = await fetch('/api/tailsentry-settings/test-webhook', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                this.showMessage(result.message, result.success ? 'success' : 'error');
+            } catch (error) {
+                this.showMessage('Webhook test failed', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async backupConfig() {
+            this.loading = true;
+            try {
+                const response = await fetch('/api/tailsentry-settings/backup-config', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    this.showMessage('Configuration backed up successfully', 'success');
+                } else {
+                    this.showMessage('Backup failed', 'error');
+                }
+            } catch (error) {
+                this.showMessage('Backup failed', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async exportSettings() {
+            try {
+                const response = await fetch('/api/tailsentry-settings/export');
+                if (response.ok) {
+                    const data = await response.json();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `tailsentry-settings-${new Date().toISOString().slice(0, 10)}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    this.showMessage('Settings exported successfully', 'success');
+                } else {
+                    this.showMessage('Export failed', 'error');
+                }
+            } catch (error) {
+                this.showMessage('Export failed', 'error');
+            }
+        },
+
+        async importSettings(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const settings = JSON.parse(e.target.result);
+                    
+                    const response = await fetch('/api/tailsentry-settings/import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(settings)
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        this.showMessage('Settings imported successfully (restart required)', 'success');
+                        this.loadSettings();
+                    } else {
+                        this.showMessage('Import failed: ' + (result.message || 'Unknown error'), 'error');
+                    }
+                } catch (error) {
+                    this.showMessage('Invalid settings file', 'error');
+                }
+            };
+            reader.readAsText(file);
+            
+            // Clear the file input
+            event.target.value = '';
+        },
+
+        async loadSystemInfo() {
+            this.loading = true;
+            try {
+                const response = await fetch('/api/tailsentry-settings/system-info');
+                if (response.ok) {
+                    this.systemInfo = await response.json();
+                } else {
+                    this.showMessage('Failed to load system information', 'error');
+                }
+            } catch (error) {
+                this.showMessage('Failed to load system information', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        formatBytes(bytes) {
+            if (!bytes) return 'N/A';
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            if (bytes === 0) return '0 Bytes';
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+        },
+
+        showMessage(text, type = 'success') {
+            this.message = text;
+            this.messageType = type;
+            setTimeout(() => {
+                this.message = '';
+            }, 5000);
+        }
+    }
+}
+</script>
+{% endblock %}

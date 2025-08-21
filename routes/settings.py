@@ -17,7 +17,12 @@ async def settings(request: Request):
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    return templates.TemplateResponse("settings.html", {"request": request, "active_nav": "settings", "user": user})
+    return templates.TemplateResponse("settings.html", {
+        "request": request, 
+        "active_nav": "settings", 
+        "user": user,
+        "current_user": user
+    })
 
 @router.get("/settings/users")
 async def manage_users(request: Request):
@@ -26,7 +31,13 @@ async def manage_users(request: Request):
         return RedirectResponse(url="/login", status_code=302)
     from auth_user import list_users
     users = list_users()
-    return templates.TemplateResponse("users.html", {"request": request, "users": users, "active_nav": "settings", "user": user, "current_user": user})
+    return templates.TemplateResponse("users.html", {
+        "request": request, 
+        "users": users, 
+        "active_nav": "settings", 
+        "user": user, 
+        "current_user": user
+    })
 
 
 @router.get("/settings/tailscale")
@@ -34,4 +45,21 @@ async def tailscale_settings_page(request: Request):
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    return templates.TemplateResponse("tailscale_settings.html", {"request": request, "active_nav": "settings", "user": user})
+    return templates.TemplateResponse("tailscale_settings.html", {
+        "request": request, 
+        "active_nav": "settings", 
+        "user": user,
+        "current_user": user
+    })
+
+@router.get("/settings/tailsentry")
+async def tailsentry_settings_page(request: Request):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    return templates.TemplateResponse("tailsentry_settings.html", {
+        "request": request, 
+        "active_nav": "settings", 
+        "user": user,
+        "current_user": user
+    })
