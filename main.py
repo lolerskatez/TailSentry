@@ -77,7 +77,12 @@ app = FastAPI(
     redoc_url=None if not os.getenv("DEVELOPMENT", "false").lower() == "true" else "/redoc",
 )
 
+
 # Session config
+from routes import user as user_routes
+SESSION_SECRET = os.environ.get("SESSION_SECRET", "changeme")
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
+app.include_router(user_routes.router)
 SESSION_SECRET = os.getenv("SESSION_SECRET", "changeme")
 if SESSION_SECRET == "changeme":
     logger.warning("SESSION_SECRET is using the default value 'changeme'. Set SESSION_SECRET in your .env for production!")
