@@ -178,12 +178,17 @@ async def internal_error_handler(request: Request, exc: Exception):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Handle validation errors with a proper error page"""
+    """Handle validation errors with detailed logging and proper error page"""
+    import traceback
+    error_id = str(uuid.uuid4())[:8]
+    logger.error(f"Validation error {error_id}: {str(exc)} | Path: {request.url.path} | Method: {request.method} | User-Agent: {request.headers.get('user-agent')} | Remote: {request.client.host if request.client else 'unknown'}\nValidation details: {exc.errors()}\nTraceback:\n{traceback.format_exc()}")
     return templates.TemplateResponse("error.html", {
         "request": request,
         "status_code": 400,
         "title": "Invalid Request",
-        "message": "The request contains invalid data. Please check your input and try again."
+        "message": "The request contains invalid data. Please check your input and try again.",
+        "error_id": error_id,
+        "detail": str(exc)
     }, status_code=400)
 
 @app.exception_handler(Exception)

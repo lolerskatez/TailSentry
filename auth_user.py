@@ -81,14 +81,24 @@ def init_db():
     conn.close()
 
 def create_user(username: str, password: str, role: str = 'user') -> bool:
+    import logging
+    logger = logging.getLogger("tailsentry")
+    logger.info(f"[CREATE USER] Starting creation - username: {username} | role: {role} | password_len: {len(password) if password else 0}")
+    
     conn = get_db()
     c = conn.cursor()
     try:
+        logger.info(f"[CREATE USER] Executing INSERT for {username}")
         c.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
                   (username, pwd_context.hash(password), role))
         conn.commit()
+        logger.info(f"[CREATE USER] Success - user {username} created")
         return True
-    except sqlite3.IntegrityError:
+    except sqlite3.IntegrityError as e:
+        logger.error(f"[CREATE USER] IntegrityError for {username}: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"[CREATE USER] General Exception for {username}: {type(e).__name__}: {e}")
         return False
     finally:
         conn.close()

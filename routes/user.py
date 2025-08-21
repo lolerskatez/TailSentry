@@ -222,11 +222,18 @@ def set_active(request: Request, username: str = Form(...), active: int = Form(N
 # Add user
 @router.post("/users/add")
 def add_user(request: Request, name: str = Form(""), username: str = Form(...), role: str = Form("user"), password: str = Form(...), user=Depends(get_current_user)):
+    import logging
+    logger = logging.getLogger("tailsentry")
+    logger.info(f"[ADD USER] Request from {request.client.host if request.client else 'unknown'} | name: {name} | username: {username} | role: {role} | password_len: {len(password) if password else 0}")
+    
     if not user or user["role"] != "admin":
+        logger.warning(f"[ADD USER] Access denied - user: {user}")
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     from auth_user import create_user, get_db
     try:
+        logger.info(f"[ADD USER] Attempting to create user: {username}")
         created = create_user(username, password, role)
+        logger.info(f"[ADD USER] User creation result: {created}")
         if created and name:
             # Set display name if provided
             conn = get_db()
@@ -234,10 +241,17 @@ def add_user(request: Request, name: str = Form(""), username: str = Form(...), 
             c.execute('UPDATE users SET display_name = ? WHERE username = ?', (name, username))
             conn.commit()
             conn.close()
+            logger.info(f"[ADD USER] Display name set for {username}: {name}")
+        logger.info(f"[ADD USER] Success - redirecting to /settings/users")
         return RedirectResponse(url="/settings/users", status_code=status.HTTP_302_FOUND)
     except HTTPException as e:
         # If CSRF or other error, show in modal
+        logger.error(f"[ADD USER] HTTPException: {e}")
         error = e.detail if hasattr(e, 'detail') else str(e)
+        return templates.TemplateResponse("users.html", {"request": request, "users": list_users(), "error": error})
+    except Exception as e:
+        logger.error(f"[ADD USER] General Exception: {type(e).__name__}: {e}")
+        error = f"User creation failed: {str(e)}"
         return templates.TemplateResponse("users.html", {"request": request, "users": list_users(), "error": error})
 
 # Edit user
