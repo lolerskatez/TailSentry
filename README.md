@@ -1,3 +1,91 @@
+# TailSentry 🛡️
+
+TailSentry is a secure, web-based management dashboard for Tailscale networks. It provides an intuitive interface for managing devices, users, and network configurations while maintaining enterprise-grade security standards.
+
+## ✨ Features
+
+- **Device Management**: View, organize, and control all Tailscale devices
+- **User Management**: Comprehensive user administration with RBAC
+- **Security Monitoring**: Real-time security alerts and audit logging
+- **Network Analytics**: Traffic insights and performance monitoring
+- **Multi-platform**: Runs on Linux bare metal or Docker containers
+- **API Integration**: Full REST API for automation and integration
+
+## 🚀 Quick Installation
+
+### Option 1: Quick Install (Recommended)
+```bash
+curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/quick-install.sh | sudo bash
+```
+
+### Option 2: Docker Deployment
+```bash
+git clone https://github.com/lolerskatez/TailSentry.git
+cd TailSentry
+cp .env.example .env  # Configure your settings
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### Option 3: Manual Installation
+```bash
+# Download installer
+curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/tailsentry-installer -o tailsentry-installer
+chmod +x tailsentry-installer
+
+# Install
+sudo ./tailsentry-installer install
+```
+
+## 📋 Prerequisites
+
+- **Linux system** (Ubuntu 20.04+, Debian 11+, CentOS 8+, RHEL 8+)
+- **Python 3.9+** with pip and venv
+- **Tailscale** installed and configured
+- **512MB+ RAM** and **1GB+ disk space**
+
+### Pre-installation Check
+```bash
+# Validate your system is ready
+curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/validate-system.sh | bash
+```
+
+## ⚙️ Configuration
+
+After installation:
+
+1. **Access TailSentry**: http://localhost:8080
+2. **Default login**: admin/admin (⚠️ change immediately!)
+3. **Configure Tailscale**: Add your PAT in settings
+4. **Set up notifications**: Configure email/webhook alerts
+
+For detailed configuration options, see [INSTALLATION.md](INSTALLATION.md).
+
+## 🔧 Management Commands
+
+### Bare Metal Installation
+```bash
+tailsentry-installer status        # Check status
+tailsentry-installer update        # Update application
+tailsentry-installer backup        # Create backup
+tailsentry-installer restart       # Restart service
+tailsentry-installer logs          # View logs
+```
+
+### Docker Installation
+```bash
+./docker-deploy.sh status         # Check status
+./docker-deploy.sh update         # Update containers
+./docker-deploy.sh logs           # View logs
+./docker-deploy.sh restart        # Restart containers
+```
+
+## 📖 Documentation
+
+- **[Installation Guide](INSTALLATION.md)** - Complete installation instructions
+- **[Deployment Guide](DEPLOYMENT.md)** - Production deployment best practices
+- **[Security Guide](SECURITY.md)** - Security configuration and hardening
+- **[API Documentation](routes/)** - REST API reference
+
 ## Contributing & Developer Onboarding
 
 ### Quick Setup
