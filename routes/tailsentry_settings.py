@@ -29,7 +29,6 @@ class SecuritySettings(BaseModel):
     session_timeout_minutes: int = Field(default=30, ge=5, le=1440)
     session_secret: Optional[str] = None
     admin_username: str = Field(default="admin", min_length=3)
-    admin_password: Optional[str] = None  # Will be hashed
     force_https: bool = False
     cors_origins: List[str] = ["*"]
 
@@ -263,13 +262,6 @@ async def update_tailsentry_settings(request: Request, config: TailSentryConfig)
         raise HTTPException(status_code=401, detail="Authentication required")
     
     try:
-        # Validate configuration
-        if config.security.admin_password:
-            # Hash the password if provided
-            hashed = bcrypt.hashpw(config.security.admin_password.encode(), bcrypt.gensalt())
-            # Save hashed password to env
-            set_key(ENV_FILE, "ADMIN_PASSWORD_HASH", hashed.decode())
-        
         # Generate session secret if not provided
         if not config.security.session_secret:
             config.security.session_secret = secrets.token_hex(32)
