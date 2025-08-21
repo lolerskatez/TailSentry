@@ -210,18 +210,20 @@ def profile_update(request: Request, email: str = Form(...), display_name: str =
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     error = None
     success = None
+    # Convert user Row to dict for safe attribute access
+    user_dict = dict(user)
     # Update email
-    if email and email != user.get("email"):
-        if not current_password or not verify_user(user["username"], current_password):
+    if email and email != user_dict.get("email"):
+        if not current_password or not verify_user(user_dict["username"], current_password):
             error = "Current password required to change email."
         else:
-            set_user_email(user["username"], email)
-            append_user_activity(user["username"], f"Changed email to {email}")
+            set_user_email(user_dict["username"], email)
+            append_user_activity(user_dict["username"], f"Changed email to {email}")
             success = "Email updated. "
     # Update display name
-    if display_name != user.get("display_name"):
-        set_user_display_name(user["username"], display_name)
-        append_user_activity(user["username"], f"Changed display name to {display_name}")
+    if display_name != user_dict.get("display_name"):
+        set_user_display_name(user_dict["username"], display_name)
+        append_user_activity(user_dict["username"], f"Changed display name to {display_name}")
         success = (success or "") + "Display name updated. "
     # Update password
     if new_password:

@@ -26,7 +26,7 @@ async def manage_users(request: Request):
         return RedirectResponse(url="/login", status_code=302)
     from auth_user import list_users
     users = list_users()
-    return templates.TemplateResponse("users.html", {"request": request, "users": users, "active_nav": "settings", "user": user})
+    return templates.TemplateResponse("users.html", {"request": request, "users": users, "active_nav": "settings", "user": user, "current_user": user})
 
 
 @router.get("/settings/tailscale")
