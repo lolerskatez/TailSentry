@@ -30,6 +30,16 @@
   </nav>
 
   <main class="max-w-6xl mx-auto py-8 px-4">
+    <!-- Toast notification container -->
+    <div x-data="{ show: false, message: '', type: '' }" x-show="show" x-transition class="fixed top-6 right-6 z-50">
+      <div :class="type === 'success' ? 'bg-green-600' : 'bg-red-600'" class="text-white px-6 py-3 rounded shadow-lg flex items-center gap-2">
+        <svg x-show="type === 'success'" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+        <svg x-show="type === 'error'" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        <span x-text="message"></span>
+      </div>
+    </div>
+    <!-- ARIA live region for inline feedback -->
+    <div aria-live="polite" class="sr-only" id="aria-feedback"></div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <!-- Left Column -->
       <div class="flex flex-col gap-8">
@@ -40,7 +50,7 @@
             <div>Hostname:</div>
             <div class="flex gap-2 items-center">
               <input type="text" x-model="device.hostname" class="px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100 w-40" />
-              <button @click="saveHostname()" class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs">Save</button>
+              <button @click="saveHostname()" class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs" aria-label="Save Hostname" title="Save Hostname">Save</button>
             </div>
             <div>Tailscale IP:</div>
             <div x-text="device.ip"></div>
@@ -64,8 +74,8 @@
         <div class="p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <div class="font-semibold mb-2 text-indigo-700" id="tailscale-controls-title">Tailscale Controls</div>
           <div class="flex gap-4 items-center">
-            <button @click="tailscaleUp()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Tailscale Up</button>
-            <button @click="tailscaleDown()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Tailscale Down</button>
+            <button @click="tailscaleUp()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" aria-label="Bring Tailscale Up" title="Bring Tailscale Up">Tailscale Up</button>
+            <button @click="tailscaleDown()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" aria-label="Bring Tailscale Down" title="Bring Tailscale Down">Tailscale Down</button>
             <span class="text-sm font-semibold" x-text="tailscaleCtlFeedback"></span>
           </div>
         </div>
@@ -94,7 +104,7 @@
             </div>
             <div class="flex gap-2">
               <input id="auth-key" type="text" x-model="authKey" class="w-full px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100" placeholder="Enter your Tailscale Auth Key">
-              <button @click="saveAuthKey()" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600" title="Save">Save</button>
+              <button @click="saveAuthKey()" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600" aria-label="Save Auth Key" title="Save Tailscale Authentication Key">Save</button>
             </div>
             <template x-if="authKey">
               <div class="flex items-center gap-2 mt-2">
@@ -108,56 +118,57 @@
           </div>
         </div>
         <!-- Exit Node Card (moved outside settingsPage) -->
-        <div class="mb-6 p-6 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <section class="mb-6 p-6 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700" aria-labelledby="exit-node-title">
           <div class="flex items-center justify-between mb-4">
             <div>
-              <div class="font-semibold text-lg flex items-center gap-2" id="exit-node-title">
+              <h2 class="font-semibold text-lg flex items-center gap-2" id="exit-node-title">
                 <svg x-show="isExitNode" class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="currentColor"/></svg>
                 <svg x-show="!isExitNode" class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                 Exit Node
-              </div>
+                <span class="ml-1 text-xs text-gray-400" title="Allow this device to route traffic for other peers.">?</span>
+              </h2>
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Enable or disable exit node for this device. All traffic from peers can route through this node when enabled.</div>
             </div>
             <label class="inline-flex items-center cursor-pointer" aria-label="Toggle Exit Node" tabindex="0">
               <input type="checkbox" x-model="isExitNode" class="sr-only peer" aria-checked="isExitNode" aria-labelledby="exit-node-title">
               <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 dark:bg-gray-700 rounded-full peer peer-checked:bg-green-500 transition-all" tabindex="-1"></div>
-          <span class="ml-3 text-sm font-medium" x-text="isExitNode ? 'Enabled' : 'Disabled'"></span>
-        </label>
-      </div>
-      <div class="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <div class="text-xs text-gray-600 dark:text-gray-300">Host</div>
-          <div class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" x-text="device.hostname"></div>
-        </div>
-        <div>
-          <div class="text-xs text-gray-600 dark:text-gray-300">IP</div>
-          <div class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" x-text="device.ip"></div>
-        </div>
-        <div>
-          <div class="text-xs text-gray-600 dark:text-gray-300">Advertised Routes</div>
-          <div class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" x-text="advertisedRoutes.length ? advertisedRoutes.join(', ') : 'None'"></div>
-        </div>
-        <div>
-          <div class="text-xs text-gray-600 dark:text-gray-300">Peers using as exit node</div>
-          <div class="font-semibold text-sm" x-text="exitNodePeerCount"></div>
-        </div>
-      </div>
-      <div class="flex items-center gap-4 mb-2">
-        <label class="flex items-center gap-2 text-xs font-semibold">
-          <input type="checkbox" x-model="exitNodeFirewall" class="h-4 w-4"> Firewall
-        </label>
-    <button @click="applyExitNodeAdvanced()" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold shadow" :aria-busy="exitNodeLoading" :disabled="exitNodeLoading">Apply</button>
-      </div>
-      <div class="flex flex-col gap-1 mt-2">
-        <span class="text-xs text-gray-600 dark:text-gray-300">Last changed:</span>
-        <span class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" x-text="exitNodeLastChanged"></span>
-        <span class="text-xs text-gray-600 dark:text-gray-300">Last error/log:</span>
-        <span class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" x-text="exitNodeLastError"></span>
-      </div>
-      <template x-if="exitNodeFeedback">
-        <div class="mt-2 text-xs font-semibold" :class="exitNodeFeedback.includes('applied') ? 'text-green-600' : 'text-red-600'" x-text="exitNodeFeedback"></div>
-      </template>
-    </div>
+              <span class="ml-3 text-sm font-medium" x-text="isExitNode ? 'Enabled' : 'Disabled'"></span>
+            </label>
+          </div>
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <div class="text-xs text-gray-600 dark:text-gray-300">Host</div>
+              <div class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" x-text="device.hostname"></div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-600 dark:text-gray-300">IP</div>
+              <div class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" x-text="device.ip"></div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-600 dark:text-gray-300">Advertised Routes <span class='ml-1 text-xs text-gray-400' title='Routes this device advertises to the Tailscale network.'>?</span></div>
+              <div class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" x-text="advertisedRoutes.length ? advertisedRoutes.join(', ') : 'None'"></div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-600 dark:text-gray-300">Peers using as exit node <span class='ml-1 text-xs text-gray-400' title='Number of peers routing through this exit node.'>?</span></div>
+              <div class="font-semibold text-sm" x-text="exitNodePeerCount"></div>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 mb-2">
+            <label class="flex items-center gap-2 text-xs font-semibold" title="Enable firewall for exit node traffic.">
+              <input type="checkbox" x-model="exitNodeFirewall" class="h-4 w-4"> Firewall
+            </label>
+            <button @click="applyExitNodeAdvanced()" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold shadow" :aria-busy="exitNodeLoading" :disabled="exitNodeLoading" aria-label="Apply Exit Node Settings" title="Apply Exit Node Settings">Apply</button>
+          </div>
+          <div class="flex flex-col gap-1 mt-2">
+            <span class="text-xs text-gray-600 dark:text-gray-300">Last changed:</span>
+            <span class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" x-text="exitNodeLastChanged"></span>
+            <span class="text-xs text-gray-600 dark:text-gray-300">Last error/log:</span>
+            <span class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" x-text="exitNodeLastError"></span>
+          </div>
+          <template x-if="exitNodeFeedback">
+            <div class="mt-2 text-xs font-semibold" :class="exitNodeFeedback.includes('applied') ? 'text-green-600' : 'text-red-600'" x-text="exitNodeFeedback"></div>
+          </template>
+        </section>
     <!-- Subnet Routing Card (moved outside settingsPage) -->
     <!-- Subnet Routing Card (modern, single manage button) -->
     <div class="mb-6 p-6 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
