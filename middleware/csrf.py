@@ -48,7 +48,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 response.set_cookie(
                     key=self.csrf_cookie_name,
                     value=self._generate_csrf_token(),
-                    httponly=True,
+                    # Allow client-side scripts to read the CSRF cookie so forms/JS can send it back
+                    httponly=False,
                     secure=not request.url.scheme == "http",
                     samesite="strict"
                 )

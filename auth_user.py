@@ -116,7 +116,16 @@ def get_user(username: str) -> Optional[dict]:
 def list_users() -> list:
     conn = get_db()
     c = conn.cursor()
-    c.execute('SELECT id, username, role, created_at FROM users')
+    # Include active and display_name for UI
+    try:
+        c.execute('ALTER TABLE users ADD COLUMN display_name TEXT')
+    except Exception:
+        pass
+    try:
+        c.execute('ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1')
+    except Exception:
+        pass
+    c.execute('SELECT id, username, role, created_at, COALESCE(active,1) AS active, COALESCE(display_name, "") AS name FROM users')
     users = c.fetchall()
     conn.close()
     return [dict(u) for u in users]

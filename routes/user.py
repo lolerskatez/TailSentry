@@ -82,7 +82,7 @@ def delete_user_route(request: Request, username: str = Form(...), user=Depends(
     if not user or user["role"] != "admin":
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     delete_user(username)
-    return RedirectResponse(url="/users", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/settings/users", status_code=status.HTTP_302_FOUND)
 
 # Change password endpoints
 @router.get("/change-password")
@@ -207,9 +207,61 @@ def set_role(request: Request, username: str = Form(...), role: str = Form(...),
     return RedirectResponse(url="/users", status_code=status.HTTP_302_FOUND)
 
 @router.post("/users/active")
-def set_active(request: Request, username: str = Form(...), active: int = Form(...), user=Depends(get_current_user)):
-    from auth_user import set_user_active
+def set_active(request: Request, username: str = Form(...), active: int = Form(None), user=Depends(get_current_user)):
+    from auth_user import set_user_active, is_user_active
     if not user or user["role"] != "admin":
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    set_user_active(username, bool(active))
-    return RedirectResponse(url="/users", status_code=status.HTTP_302_FOUND)
+    if active is None:
+        # Toggle when not provided by the form
+        current = is_user_active(username)
+        set_user_active(username, not current)
+    else:
+        set_user_active(username, bool(active))
+    return RedirectResponse(url="/settings/users", status_code=status.HTTP_302_FOUND)
+
+# Add user
+@router.post("/users/add")
+def add_user(request: Request, name: str = Form(""), username: str = Form(...), role: str = Form("user"), password: str = Form(...), user=Depends(get_current_user)):
+    if not user or user["role"] != "admin":
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    from auth_user import create_user, get_db
+    created = create_user(username, password, role)
+    if created and name:
+        # Set display name if provided
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('UPDATE users SET display_name = ? WHERE username = ?', (name, username))
+        conn.commit()
+        conn.close()
+    return RedirectResponse(url="/settings/users", status_code=status.HTTP_302_FOUND)
+
+# Edit user
+@router.post("/users/edit")
+def edit_user(request: Request,
+              original_username: str = Form(...),
+              name: str = Form(""),
+              username: str = Form(...),
+              role: str = Form("user"),
+              password: str = Form(""),
+              user=Depends(get_current_user)):
+    if not user or user["role"] != "admin":
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    from auth_user import get_db, pwd_context
+    import sqlite3
+    conn = get_db()
+    try:
+        c = conn.cursor()
+        # Update core fields
+        c.execute('UPDATE users SET username = ?, role = ? WHERE username = ?', (username, role, original_username))
+        # Optionally update password
+        if password:
+            c.execute('UPDATE users SET password_hash = ? WHERE username = ?', (pwd_context.hash(password), username))
+        # Update display name
+        c.execute('UPDATE users SET display_name = ? WHERE username = ?', (name, username))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        # Username conflict; ignore and continue
+        conn.rollback()
+    finally:
+        conn.close()
+    return RedirectResponse(url="/settings/users", status_code=status.HTTP_302_FOUND)
