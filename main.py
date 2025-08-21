@@ -95,13 +95,13 @@ app = FastAPI(
 
 # Session config
 from routes import user as user_routes
-SESSION_SECRET = os.environ.get("SESSION_SECRET", "changeme")
-app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
-app.include_router(user_routes.router)
+
+# Session configuration
 SESSION_SECRET = os.getenv("SESSION_SECRET", "changeme")
 if SESSION_SECRET == "changeme":
     logger.warning("SESSION_SECRET is using the default value 'changeme'. Set SESSION_SECRET in your .env for production!")
 SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT_MINUTES", 30)) * 60
+
 app.add_middleware(
     SessionMiddleware,
     secret_key=SESSION_SECRET,
@@ -111,6 +111,9 @@ app.add_middleware(
     # Only set https_only=False during development
     https_only=not os.getenv("DEVELOPMENT", "false").lower() == "true",
 )
+
+# Include user authentication router
+app.include_router(user_routes.router)
 
 # Add security headers middleware with enhanced CSP
 app.add_middleware(SecurityHeadersMiddleware, 
@@ -221,8 +224,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 # Import all routers (including settings) in a single line
 
 # Import all routers (including settings) in a single line
-from routes import auth, tailscale, keys, api, config, version, dashboard, settings, authenticate, exit_node, logs, tailscale_settings
-app.include_router(auth.router)
+from routes import tailscale, keys, api, config, version, dashboard, settings, authenticate, exit_node, logs, tailscale_settings
 app.include_router(tailscale.router)
 app.include_router(keys.router)
 app.include_router(api.router, prefix="/api")

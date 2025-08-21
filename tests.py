@@ -25,7 +25,7 @@ sys.path.append(APP_DIR)
 try:
     from services.tailscale_service import TailscaleClient
     import utils
-    from auth import verify_password
+    from auth_user import pwd_context
 except ImportError as e:
     logger.error(f"Import error: {e}")
     logger.error("Make sure you've installed dependencies with 'pip install -r requirements.txt'")
@@ -191,15 +191,14 @@ class AuthTests(unittest.TestCase):
     def test_verify_password(self):
         """Test password verification"""
         # Generate a test hash - this is how a real hash would be created
-        import bcrypt
         password = "testpassword"
-        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        hashed = pwd_context.hash(password)
         
         # Verification should pass with correct password
-        self.assertTrue(verify_password(password, hashed))
+        self.assertTrue(pwd_context.verify(password, hashed))
         
         # Verification should fail with incorrect password
-        self.assertFalse(verify_password("wrongpassword", hashed))
+        self.assertFalse(pwd_context.verify("wrongpassword", hashed))
 
 if __name__ == "__main__":
     unittest.main()
