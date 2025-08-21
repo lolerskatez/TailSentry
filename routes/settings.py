@@ -17,6 +17,7 @@ async def manage_users(request: Request):
     users = list_users()
     return templates.TemplateResponse("users.html", {"request": request, "users": users})
 
-@router.get("/tailscale-settings")
-async def tailscale_settings(request: Request):
+
+@router.get("/settings/tailscale")
+async def tailscale_settings_page(request: Request):
     return templates.TemplateResponse("tailscale_settings.html", {"request": request})
