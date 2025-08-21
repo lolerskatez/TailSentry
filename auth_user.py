@@ -167,8 +167,6 @@ def is_user_active(username: str) -> bool:
     return bool(row and row[0])
 
 def ensure_default_admin():
-    from passlib.context import CryptContext
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     conn = get_db()
     c = conn.cursor()
     c.execute('SELECT * FROM users WHERE username = ?', ("admin",))
@@ -177,7 +175,8 @@ def ensure_default_admin():
         conn.commit()
     conn.close()
 
-    init_db()
-    add_email_column()
-    add_display_name_column()
-    ensure_default_admin()
+# Initialize DB and ensure admin user at module load
+init_db()
+add_email_column()
+add_display_name_column()
+ensure_default_admin()
