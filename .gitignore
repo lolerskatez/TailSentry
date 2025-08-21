@@ -215,9 +215,6 @@ local_config/
 dev_scripts/
 local_*.py
 
-# Copilot and AI generated files
-.copilot/
-
 # VS Code workspace files
 *.code-workspace
 
@@ -226,6 +223,8 @@ local_*.py
 *.sock
 *.lock
 run/
+
+# Executables and installers
 *.exe
 *.msi
 *.bat
