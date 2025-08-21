@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Manage Users - TailSentry{% endblock %}
 {% block content %}
+<script>
+    // Ensure all CSRF hidden inputs are set to the current window.__CSRF_TOKEN__ before any form submit
+    document.addEventListener('submit', function(e) {
+        if (e.target && e.target.tagName === 'FORM') {
+            var csrfInputs = e.target.querySelectorAll('input[type="hidden"][name="csrf_token"]');
+            csrfInputs.forEach(function(input) {
+                input.value = window.__CSRF_TOKEN__ || '';
+            });
+        }
+    }, true);
+</script>
 <div x-data="{ editUser: null, addUser: false }" class="max-w-6xl mx-auto py-8 px-4">
         <nav class="flex gap-4 mb-8" aria-label="Settings Subnavigation">
         <a href="/settings" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-indigo-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">General</a>
@@ -25,7 +36,7 @@
                         </button>
                         <h2 class="text-xl font-bold mb-4 text-indigo-800 dark:text-indigo-200">Add User</h2>
                         <form method="post" action="/users/add">
-                            <input type="hidden" name="csrf_token" value="{{ getattr(request.state, 'csrf_token', request.cookies.get('csrf_token', '')) }}">
+                            <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
                             <div class="mb-4">
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Name</label>
                                 <input type="text" name="name" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100" required>
@@ -85,7 +96,7 @@
                                 </button>
                                 <form method="post" action="/users/delete" onsubmit="return confirm('Delete user {{ user.username }}?');">
                                     <input type="hidden" name="username" value="{{ user.username }}">
-                                    <input type="hidden" name="csrf_token" value="{{ getattr(request.state, 'csrf_token', request.cookies.get('csrf_token', '')) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
                                     <button type="submit" title="Delete User" class="p-2 rounded hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500">
                                         <!-- Heroicon: Trash -->
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -93,7 +104,7 @@
                                 </form>
                                 <form method="post" action="/users/active">
                                     <input type="hidden" name="username" value="{{ user.username }}">
-                                    <input type="hidden" name="csrf_token" value="{{ getattr(request.state, 'csrf_token', request.cookies.get('csrf_token', '')) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
                                     <button type="submit" title="Toggle Active" class="p-2 rounded hover:bg-green-100 dark:hover:bg-green-900 text-green-600 dark:text-green-400 focus:outline-none focus:ring-2 focus:ring-green-500">
                                         <!-- Heroicon: Check Circle -->
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a10 10 0 11-20 0 10 10 0 0120 0z" /></svg>
@@ -115,7 +126,7 @@
                             </button>
                             <h2 class="text-xl font-bold mb-4 text-indigo-800 dark:text-indigo-200">Edit User</h2>
                             <form method="post" action="/users/edit">
-                                <input type="hidden" name="csrf_token" value="{{ getattr(request.state, 'csrf_token', request.cookies.get('csrf_token', '')) }}">
+                                <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
                                 <input type="hidden" name="original_username" :value="editUser.username">
                                 <div class="mb-4">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Name</label>
