@@ -345,12 +345,12 @@ class TailscaleClient:
             args.append("--no-accept-routes")
         # Advertised subnet routes (not exit node)
         subnet_routes = [r for r in merged_adv_routes if r not in ("0.0.0.0/0", "::/0")]
-        if subnet_routes:
-            args += ["--advertise-routes", ",".join(subnet_routes)]
+        # Always include --advertise-routes, even if empty, to satisfy Tailscale's strict flag requirements
+        args += ["--advertise-routes", ",".join(subnet_routes)]
         # Exit node flags
         if "0.0.0.0/0" in merged_adv_routes or "::/0" in merged_adv_routes:
             args.append("--advertise-exit-node")
-    # Firewall flag removed due to lack of support in current Tailscale version
+        # Firewall flag removed due to lack of support in current Tailscale version
         logger.info(f"Running tailscale up with args: {args}")
         return TailscaleClient.up(extra_args=args)
     @staticmethod
