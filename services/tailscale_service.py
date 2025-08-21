@@ -350,9 +350,7 @@ class TailscaleClient:
         # Exit node flags
         if "0.0.0.0/0" in merged_adv_routes or "::/0" in merged_adv_routes:
             args.append("--advertise-exit-node")
-        # Firewall
-        if merged_firewall:
-            args.append("--exit-node-firewall")
+    # Firewall flag removed due to lack of support in current Tailscale version
         logger.info(f"Running tailscale up with args: {args}")
         return TailscaleClient.up(extra_args=args)
     @staticmethod
