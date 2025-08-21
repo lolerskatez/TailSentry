@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tailscale Settings</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/tailwind.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded shadow-md w-full max-w-lg">
+        <h1 class="text-2xl font-bold mb-6">Tailscale Settings</h1>
+        <form id="tailscale-settings-form" class="space-y-4">
+            <div>
+                <label class="block font-medium mb-1" for="hostname">Hostname</label>
+                <input type="text" id="hostname" name="hostname" class="w-full border rounded px-3 py-2" required>
+            </div>
+            <div>
+                <label class="block font-medium mb-1" for="advertise_routes">Advertise Routes (comma-separated)</label>
+                <input type="text" id="advertise_routes" name="advertise_routes" class="w-full border rounded px-3 py-2">
+            </div>
+            <div>
+                <label class="block font-medium mb-1" for="accept_routes">Accept Routes</label>
+                <input type="checkbox" id="accept_routes" name="accept_routes">
+            </div>
+            <div>
+                <label class="block font-medium mb-1" for="exit_node_enable">Enable Exit Node</label>
+                <input type="checkbox" id="exit_node_enable" name="exit_node_enable">
+            </div>
+            <div>
+                <label class="block font-medium mb-1" for="exit_node_firewall">Exit Node Firewall</label>
+                <input type="checkbox" id="exit_node_firewall" name="exit_node_firewall">
+            </div>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Apply</button>
+            <div id="form-message" class="mt-4 text-center"></div>
+        </form>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load current settings
+        fetch('/api/tailscale-settings')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('hostname').value = data.hostname || '';
+                document.getElementById('advertise_routes').value = (data.advertise_routes || []).join(',');
+                document.getElementById('accept_routes').checked = !!data.accept_routes;
+                document.getElementById('exit_node_enable').checked = !!data.exit_node_enable;
+                document.getElementById('exit_node_firewall').checked = !!data.exit_node_firewall;
+            });
+
+        document.getElementById('tailscale-settings-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const payload = {
+                hostname: form.hostname.value,
+                advertise_routes: form.advertise_routes.value.split(',').map(s => s.trim()).filter(Boolean),
+                accept_routes: form.accept_routes.checked,
+                exit_node_enable: form.exit_node_enable.checked,
+                exit_node_firewall: form.exit_node_firewall.checked
+            };
+            fetch('/api/tailscale-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                const msg = document.getElementById('form-message');
+                if (data.success) {
+                    msg.textContent = 'Settings applied successfully!';
+                    msg.className = 'text-green-600 mt-4';
+                } else {
+                    msg.textContent = 'Error: ' + (data.error || 'Unknown error');
+                    msg.className = 'text-red-600 mt-4';
+                }
+            })
+            .catch(() => {
+                const msg = document.getElementById('form-message');
+                msg.textContent = 'Network or server error.';
+                msg.className = 'text-red-600 mt-4';
+            });
+        });
+    });
+    </script>
+</body>
+</html>

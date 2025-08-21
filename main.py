@@ -191,7 +191,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 # Import all routers (including settings) in a single line
 
 # Import all routers (including settings) in a single line
-from routes import auth, tailscale, keys, api, config, version, dashboard, settings, authenticate, exit_node, logs
+from routes import auth, tailscale, keys, api, config, version, dashboard, settings, authenticate, exit_node, logs, tailscale_settings
 app.include_router(auth.router)
 app.include_router(tailscale.router)
 app.include_router(keys.router)
@@ -211,6 +211,9 @@ app.include_router(settings.router)
 app.include_router(exit_node.router)
 app.include_router(logs.router)
 # app.include_router(monitoring.router, prefix="/system", tags=["monitoring"])  # temporarily disabled
+
+# Register the new Tailscale settings API
+app.include_router(tailscale_settings.tailscale_settings_router)
 
 # Global context processor for all templates
 @app.middleware("http")
