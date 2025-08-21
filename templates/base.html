@@ -27,7 +27,6 @@
       <a href="/" class="hover:bg-indigo-800 px-3 py-1 rounded transition {% if active_nav == 'dashboard' %}bg-indigo-900 font-semibold{% endif %}" aria-label="Dashboard" title="Dashboard">Dashboard</a>
   {% if user and user.role == 'admin' %}
   <a href="/settings" class="hover:bg-indigo-800 px-3 py-1 rounded transition {% if active_nav == 'settings' %}bg-indigo-900 font-semibold{% endif %}" aria-label="Settings" title="Settings">Settings</a>
-  <a href="/settings/notifications" class="hover:bg-indigo-800 px-3 py-1 rounded transition {% if active_nav == 'notifications' %}bg-indigo-900 font-semibold{% endif %}" aria-label="Notifications" title="Notifications">🔔 Notifications</a>
   {% endif %}
       <a href="/profile" class="hover:bg-indigo-800 px-3 py-1 rounded transition flex items-center {% if active_nav == 'profile' %}bg-indigo-900 font-semibold{% endif %}" aria-label="Profile" title="Profile">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
