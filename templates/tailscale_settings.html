@@ -2,84 +2,112 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Tailscale Settings</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tailscale Settings - TailSentry</title>
     <link rel="stylesheet" href="/static/tailwind.min.css">
+    <link rel="stylesheet" href="/static/dark-mode-addon.css">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <script src="/static/dashboard.js"></script>
+    <script src="/static/alpine-focus.min.js" defer></script>
+    <script src="/static/alpine.min.js" defer></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
-    <div class="bg-white p-8 rounded shadow-md w-full max-w-lg">
-        <h1 class="text-2xl font-bold mb-6">Tailscale Settings</h1>
-        <form id="tailscale-settings-form" class="space-y-4">
-            <div>
-                <label class="block font-medium mb-1" for="hostname">Hostname</label>
-                <input type="text" id="hostname" name="hostname" class="w-full border rounded px-3 py-2" required>
-            </div>
-            <div>
-                <label class="block font-medium mb-1" for="advertise_routes">Advertise Routes (comma-separated)</label>
-                <input type="text" id="advertise_routes" name="advertise_routes" class="w-full border rounded px-3 py-2">
-            </div>
-            <div>
-                <label class="block font-medium mb-1" for="accept_routes">Accept Routes</label>
-                <input type="checkbox" id="accept_routes" name="accept_routes">
-            </div>
-            <div>
-                <label class="block font-medium mb-1" for="exit_node_enable">Enable Exit Node</label>
-                <input type="checkbox" id="exit_node_enable" name="exit_node_enable">
-            </div>
-            <div>
-                <label class="block font-medium mb-1" for="exit_node_firewall">Exit Node Firewall</label>
-                <input type="checkbox" id="exit_node_firewall" name="exit_node_firewall">
-            </div>
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Apply</button>
-            <div id="form-message" class="mt-4 text-center"></div>
-        </form>
-    </div>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Load current settings
-        fetch('/api/tailscale-settings')
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('hostname').value = data.hostname || '';
-                document.getElementById('advertise_routes').value = (data.advertise_routes || []).join(',');
-                document.getElementById('accept_routes').checked = !!data.accept_routes;
-                document.getElementById('exit_node_enable').checked = !!data.exit_node_enable;
-                document.getElementById('exit_node_firewall').checked = !!data.exit_node_firewall;
-            });
+<body x-data="window.dashboard()" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Navigation -->
+    <nav class="flex items-center justify-between px-6 py-4 bg-indigo-700 text-white shadow" role="navigation" aria-label="Main Navigation">
+        <div class="flex items-center gap-3">
+            <img src="/static/favicon.svg" class="h-8 w-8" alt="TailSentry logo">
+            <span class="font-bold text-xl tracking-tight">TailSentry</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <a href="/" class="hover:bg-indigo-800 px-3 py-1 rounded transition" aria-label="Dashboard" title="Dashboard">Dashboard</a>
+            <a href="/settings" class="hover:bg-indigo-800 px-3 py-1 rounded transition" aria-label="Settings" title="Settings">Settings</a>
+            <a href="/logs" class="hover:bg-indigo-800 px-3 py-1 rounded transition" aria-label="Logs" title="Logs">Logs</a>
+            <button @click="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded" aria-label="Logout" title="Logout">Logout</button>
+        </div>
+    </nav>
 
-        document.getElementById('tailscale-settings-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const form = e.target;
-            const payload = {
-                hostname: form.hostname.value,
-                advertise_routes: form.advertise_routes.value.split(',').map(s => s.trim()).filter(Boolean),
-                accept_routes: form.accept_routes.checked,
-                exit_node_enable: form.exit_node_enable.checked,
-                exit_node_firewall: form.exit_node_firewall.checked
-            };
-            fetch('/api/tailscale-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(data => {
-                const msg = document.getElementById('form-message');
-                if (data.success) {
-                    msg.textContent = 'Settings applied successfully!';
-                    msg.className = 'text-green-600 mt-4';
-                } else {
-                    msg.textContent = 'Error: ' + (data.error || 'Unknown error');
+    <!-- Settings Subnavigation -->
+    <nav class="flex gap-4 mb-8 mt-4 max-w-6xl mx-auto" aria-label="Settings Subnavigation">
+        <a href="/settings" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-indigo-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">General</a>
+        <a href="/settings/users" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-indigo-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">Manage Users</a>
+        <a href="/settings/tailscale" class="px-3 py-1 rounded font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-current="page">Tailscale Settings</a>
+    </nav>
+
+    <main class="max-w-6xl mx-auto py-8 px-4">
+        <h1 class="text-2xl font-bold mb-6 text-indigo-800">Tailscale Settings</h1>
+        <div class="bg-white dark:bg-gray-800 p-8 rounded shadow-md w-full max-w-2xl mx-auto">
+            <form id="tailscale-settings-form" class="space-y-4">
+                <div>
+                    <label class="block font-medium mb-1" for="hostname">Hostname</label>
+                    <input type="text" id="hostname" name="hostname" class="w-full border rounded px-3 py-2" required>
+                </div>
+                <div>
+                    <label class="block font-medium mb-1" for="advertise_routes">Advertise Routes (comma-separated)</label>
+                    <input type="text" id="advertise_routes" name="advertise_routes" class="w-full border rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1" for="accept_routes">Accept Routes</label>
+                    <input type="checkbox" id="accept_routes" name="accept_routes">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1" for="exit_node_enable">Enable Exit Node</label>
+                    <input type="checkbox" id="exit_node_enable" name="exit_node_enable">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1" for="exit_node_firewall">Exit Node Firewall</label>
+                    <input type="checkbox" id="exit_node_firewall" name="exit_node_firewall">
+                </div>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Apply</button>
+                <div id="form-message" class="mt-4 text-center"></div>
+            </form>
+        </div>
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load current settings
+            fetch('/api/tailscale-settings')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('hostname').value = data.hostname || '';
+                    document.getElementById('advertise_routes').value = (data.advertise_routes || []).join(',');
+                    document.getElementById('accept_routes').checked = !!data.accept_routes;
+                    document.getElementById('exit_node_enable').checked = !!data.exit_node_enable;
+                    document.getElementById('exit_node_firewall').checked = !!data.exit_node_firewall;
+                });
+
+            document.getElementById('tailscale-settings-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const form = e.target;
+                const payload = {
+                    hostname: form.hostname.value,
+                    advertise_routes: form.advertise_routes.value.split(',').map(s => s.trim()).filter(Boolean),
+                    accept_routes: form.accept_routes.checked,
+                    exit_node_enable: form.exit_node_enable.checked,
+                    exit_node_firewall: form.exit_node_firewall.checked
+                };
+                fetch('/api/tailscale-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    const msg = document.getElementById('form-message');
+                    if (data.success) {
+                        msg.textContent = 'Settings applied successfully!';
+                        msg.className = 'text-green-600 mt-4';
+                    } else {
+                        msg.textContent = 'Error: ' + (data.error || 'Unknown error');
+                        msg.className = 'text-red-600 mt-4';
+                    }
+                })
+                .catch(() => {
+                    const msg = document.getElementById('form-message');
+                    msg.textContent = 'Network or server error.';
                     msg.className = 'text-red-600 mt-4';
-                }
-            })
-            .catch(() => {
-                const msg = document.getElementById('form-message');
-                msg.textContent = 'Network or server error.';
-                msg.className = 'text-red-600 mt-4';
+                });
             });
         });
-    });
     </script>
 </body>
 </html>
