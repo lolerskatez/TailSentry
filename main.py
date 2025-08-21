@@ -158,17 +158,22 @@ async def not_found_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(403)
 async def forbidden_handler(request: Request, exc: HTTPException):
-    """Custom 403 error handler"""
-    return templates.TemplateResponse("403.html", {"request": request}, status_code=403)
+    """Custom 403 error handler with detailed logging"""
+    import traceback
+    error_id = str(uuid.uuid4())[:8]
+    logger.error(f"403 Forbidden {error_id}: {str(exc)} | Path: {request.url.path} | Method: {request.method} | User-Agent: {request.headers.get('user-agent')} | Remote: {request.client.host if request.client else 'unknown'}\nTraceback:\n{traceback.format_exc()}")
+    return templates.TemplateResponse("403.html", {"request": request, "error_id": error_id, "detail": str(exc)}, status_code=403)
 
 @app.exception_handler(500)
 async def internal_error_handler(request: Request, exc: Exception):
-    """Custom 500 error handler"""
+    """Custom 500 error handler with detailed logging"""
+    import traceback
     error_id = str(uuid.uuid4())[:8]
-    logger.error(f"Internal server error {error_id}: {str(exc)}", exc_info=True)
+    logger.error(f"Internal server error {error_id}: {str(exc)} | Path: {request.url.path} | Method: {request.method} | User-Agent: {request.headers.get('user-agent')} | Remote: {request.client.host if request.client else 'unknown'}\nTraceback:\n{traceback.format_exc()}")
     return templates.TemplateResponse("500.html", {
         "request": request, 
-        "error_id": error_id
+        "error_id": error_id,
+        "detail": str(exc)
     }, status_code=500)
 
 @app.exception_handler(RequestValidationError)

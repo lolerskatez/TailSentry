@@ -63,7 +63,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                     # Allow client-side scripts to read the CSRF cookie so forms/JS can send it back
                     httponly=False,
                     secure=not request.url.scheme == "http",
-                    samesite="strict"
+                    samesite="lax"
                 )
             return response
 
@@ -78,21 +78,23 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         except Exception:
             csrf_form = None
 
-
-        logger.debug(f"CSRF DEBUG | Path: {request.url.path} | Method: {request.method} | Cookie: {csrf_cookie} | Header: {csrf_header} | Form: {csrf_form}")
+        # Enhanced debug logging for CSRF validation
+        logger.warning(f"[CSRF DEBUG] Path: {request.url.path} | Method: {request.method} | CSRF cookie: {csrf_cookie} | CSRF header: {csrf_header} | CSRF form: {csrf_form}")
+        print(f"[CSRF DEBUG] Path: {request.url.path} | Method: {request.method} | CSRF cookie: {csrf_cookie} | CSRF header: {csrf_header} | CSRF form: {csrf_form}")
 
         valid_token = False
         if csrf_cookie and (csrf_header == csrf_cookie or csrf_form == csrf_cookie):
             valid_token = True
 
         if not valid_token:
-            logger.warning(
-                f"CSRF validation failed for {request.url.path} "
+            logger.error(
+                f"[CSRF ERROR] Validation failed for {request.url.path} "
                 f"from {request.client.host if request.client else 'unknown'} | "
                 f"Exempt paths: {self.exempt_paths} | "
                 f"Method: {request.method} | "
                 f"CSRF cookie: {csrf_cookie} | CSRF header: {csrf_header} | CSRF form: {csrf_form}"
             )
+            print(f"[CSRF ERROR] Validation failed for {request.url.path} | CSRF cookie: {csrf_cookie} | CSRF header: {csrf_header} | CSRF form: {csrf_form}")
             raise HTTPException(
                 status_code=403,
                 detail="CSRF token validation failed"
