@@ -241,6 +241,11 @@ document.addEventListener('alpine:init', () => {
             // Save theme preference
             localStorage.setItem('theme', this.theme);
             
+            // Emit global theme change event for other components
+            window.dispatchEvent(new CustomEvent('theme-changed', {
+                detail: { theme: this.theme, isDark }
+            }));
+            
             // Show toast notification
             this.showToast('Theme applied successfully!', 'success');
         },

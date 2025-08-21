@@ -70,10 +70,10 @@ window.dashboard = function dashboard() {
     },
     
     // --- Alpine.js state variables ---
-  darkMode: false,
-  theme: localStorage.getItem('theme') || 'system',
-  emailAlerts: false,
-  showToasts: true,
+    darkMode: false,
+    theme: localStorage.getItem('theme') || 'system',
+    emailAlerts: false,
+    showToasts: true,
     openSettings: false,
     peerModal: false,
     selectedPeer: {},
@@ -268,12 +268,43 @@ window.dashboard = function dashboard() {
     },
 
     init() {
-      this.darkMode = localStorage.getItem('altDarkMode') === 'true';
+      // Initialize theme system - unified with appearance settings
+      this.theme = localStorage.getItem('theme') || 'system';
+      this.applyTheme();
+      
+      // Watch for system theme changes
+      if (this.theme === 'system') {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+          if (this.theme === 'system') {
+            this.applyTheme();
+          }
+        });
+      }
+      
+      // Listen for theme changes from appearance settings
+      window.addEventListener('theme-changed', (event) => {
+        this.theme = event.detail.theme;
+        this.applyTheme();
+      });
+      
       // Optionally load authKey from storage
       const key = localStorage.getItem('tailscale_auth_key');
       if (key) this.authKey = key;
       this.loadAll();
       setInterval(() => this.loadAll(), this.refreshInterval * 1000);
+    },
+
+    applyTheme() {
+      const isDark = this.theme === 'dark' || 
+                    (this.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      
+      this.darkMode = isDark;
+      
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     },
 
     authenticateTailscale() {
@@ -601,9 +632,6 @@ window.dashboard = function dashboard() {
     regenerateAuthKey() {
       this.toastMsg('Auth key regeneration coming soon!');
     },
-    saveDarkMode() {
-      localStorage.setItem('altDarkMode', this.darkMode);
-    },
     openKeyModal() { this.toastMsg('Key management coming soon!'); },
     openLogsModal() { this.toastMsg('Logs coming soon!'); },
     openPeerModal(peer) { this.selectedPeer = peer; this.peerModal = true; },
@@ -611,7 +639,10 @@ window.dashboard = function dashboard() {
     logout() { window.location.href = '/logout'; },
     toastMsg(msg) { this.toast = msg; setTimeout(() => this.toast = '', 3500); },
     $watch: {
-      darkMode(val) { localStorage.setItem('altDarkMode', val); },
+      theme(val) { 
+        localStorage.setItem('theme', val); 
+        this.applyTheme();
+      },
       refreshInterval(val) { if (val < 5) this.refreshInterval = 5; }
     }
   }
