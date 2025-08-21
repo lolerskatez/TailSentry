@@ -223,6 +223,71 @@ def add_email_column():
     conn.commit()
     conn.close()
 
+def add_notification_preferences_column():
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        # JSON column to store notification preferences like {"email": true, "system_alerts": true, "maintenance": false}
+        c.execute('ALTER TABLE users ADD COLUMN notification_preferences TEXT DEFAULT \'{"email": true, "system_alerts": true, "maintenance": true}\'')
+    except Exception:
+        pass  # Ignore if already exists
+    conn.commit()
+    conn.close()
+
+def get_user_notification_preferences(username: str) -> dict:
+    """Get user notification preferences, returns default if not set"""
+    import json
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT notification_preferences FROM users WHERE username = ?', (username,))
+    row = c.fetchone()
+    conn.close()
+    
+    if row and row[0]:
+        try:
+            return json.loads(row[0])
+        except (json.JSONDecodeError, TypeError):
+            pass
+    
+    # Return default preferences
+    return {"email": True, "system_alerts": True, "maintenance": True}
+
+def set_user_notification_preferences(username: str, preferences: dict) -> bool:
+    """Set user notification preferences"""
+    import json
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        c.execute('UPDATE users SET notification_preferences = ? WHERE username = ?', 
+                 (json.dumps(preferences), username))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+def get_admin_emails_with_preferences(notification_type: str = "email") -> list:
+    """Get email addresses of admin users who have opted in to receive the specified notification type"""
+    import json
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT email, notification_preferences FROM users WHERE role = ? AND COALESCE(active, 1) = 1 AND email IS NOT NULL AND email != ""', ("admin",))
+    users = c.fetchall()
+    conn.close()
+    
+    opted_in_emails = []
+    for email, prefs_json in users:
+        if email:
+            try:
+                prefs = json.loads(prefs_json) if prefs_json else {"email": True, "system_alerts": True, "maintenance": True}
+                # Check if user has opted in to this notification type
+                if prefs.get(notification_type, True):  # Default to True if preference not set
+                    opted_in_emails.append(email)
+            except (json.JSONDecodeError, TypeError):
+                # If preferences are corrupted, default to opt-in for backward compatibility
+                opted_in_emails.append(email)
+    
+    return opted_in_emails
+
 def add_display_name_column():
     conn = get_db()
     c = conn.cursor()
@@ -278,4 +343,5 @@ add_email_column()
 add_display_name_column()
 add_active_column()
 add_activity_log_column()
+add_notification_preferences_column()
 ensure_default_admin()

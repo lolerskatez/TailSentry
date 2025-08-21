@@ -362,9 +362,9 @@ class NotificationService:
             if not MimeText or not MimeMultipart:
                 return {"success": False, "error": "Email modules not available"}
             
-            # Get admin emails from database
-            from auth_user import get_admin_emails
-            admin_emails = get_admin_emails()
+            # Get admin emails from database with notification preferences
+            from auth_user import get_admin_emails_with_preferences
+            admin_emails = get_admin_emails_with_preferences("email")
             
             # Fallback to environment variable if no admin emails in database
             if not admin_emails:
