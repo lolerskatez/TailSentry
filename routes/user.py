@@ -43,10 +43,16 @@ def login_form(request: Request):
     return templates.TemplateResponse("login.html", {"request": request, "error": None})
 
 @router.post("/login")
-def login(request: Request, response: Response, username: str = Form(...), password: str = Form(...)):
+def login(request: Request, response: Response, username: str = Form(...), password: str = Form(...), remember_me: str = Form(None)):
     user = verify_user(username, password)
     if user:
         request.session["user"] = user["username"]
+        if remember_me:
+            request.session["remember_me"] = True
+            request.session["max_age"] = 60*60*24*30  # 30 days
+        else:
+            request.session["remember_me"] = False
+            request.session["max_age"] = None
         return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
     return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
 
@@ -182,3 +188,19 @@ def profile_update(request: Request, email: str = Form(...), display_name: str =
     from auth_user import get_user
     user = get_user(user["username"])
     return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": error, "success": success})
+
+@router.post("/users/role")
+def set_role(request: Request, username: str = Form(...), role: str = Form(...), user=Depends(get_current_user)):
+    from auth_user import set_user_role
+    if not user or user["role"] != "admin":
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    set_user_role(username, role)
+    return RedirectResponse(url="/users", status_code=status.HTTP_302_FOUND)
+
+@router.post("/users/active")
+def set_active(request: Request, username: str = Form(...), active: int = Form(...), user=Depends(get_current_user)):
+    from auth_user import set_user_active
+    if not user or user["role"] != "admin":
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    set_user_active(username, bool(active))
+    return RedirectResponse(url="/users", status_code=status.HTTP_302_FOUND)

@@ -44,38 +44,20 @@
             </div>
             
             {% if error %}
-            <div class="bg-red-100 border border-red-400 text-red-800 px-4 py-3 rounded flex items-center space-x-2">
-                <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span>{{ error }}</span>
-            </div>
+            <div class="mb-4 text-red-600">{{ error }}</div>
             {% endif %}
-            
-            <form method="post" action="/login" class="mt-8 space-y-6">
-                <div class="rounded-md shadow-sm -space-y-px">
-                    <div>
-                        <label for="username" class="sr-only">Username</label>
-                        <input 
-                            id="username" 
-                            name="username" 
-                            type="text" 
-                            autocomplete="username"
-                            required 
-                            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm dark:bg-gray-700" 
-                            placeholder="Username"
-                        >
-                    </div>
-                    <div>
-                        <label for="password" class="sr-only">Password</label>
-                        <input 
-                            id="password" 
-                            name="password" 
-                            type="password" 
-                            autocomplete="current-password"
-                            required 
-                            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm dark:bg-gray-700" 
-                            placeholder="Password"
-                        >
-                    </div>
+            <form method="post" action="/login" class="space-y-4" autocomplete="on">
+                <div>
+                    <label class="block font-medium mb-1" for="username">Username</label>
+                    <input type="text" id="username" name="username" class="w-full border rounded px-3 py-2" required autocomplete="username">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1" for="password">Password</label>
+                    <input type="password" id="password" name="password" class="w-full border rounded px-3 py-2" required autocomplete="current-password">
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="remember_me" name="remember_me" class="mr-2">
+                    <label for="remember_me">Remember me</label>
                 </div>
 
                 <div>

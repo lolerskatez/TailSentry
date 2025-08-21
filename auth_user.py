@@ -134,5 +134,35 @@ def add_display_name_column():
     conn.commit()
     conn.close()
 
+def set_user_role(username: str, role: str) -> bool:
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        c.execute('UPDATE users SET role = ? WHERE username = ?', (role, username))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+def set_user_active(username: str, active: bool) -> bool:
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        c.execute('ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1')
+    except Exception:
+        pass  # Ignore if already exists
+    c.execute('UPDATE users SET active = ? WHERE username = ?', (1 if active else 0, username))
+    conn.commit()
+    conn.close()
+    return True
+
+def is_user_active(username: str) -> bool:
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT active FROM users WHERE username = ?', (username,))
+    row = c.fetchone()
+    conn.close()
+    return bool(row and row[0])
+
 add_email_column()
 add_display_name_column()

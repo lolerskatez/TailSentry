@@ -15,6 +15,7 @@
                     <th class="px-4 py-2">Username</th>
                     <th class="px-4 py-2">Role</th>
                     <th class="px-4 py-2">Created</th>
+                    <th class="px-4 py-2">Active</th>
                     <th class="px-4 py-2">Actions</th>
                 </tr>
             </thead>
@@ -24,10 +25,23 @@
                     <td class="border px-4 py-2">{{ user.username }}</td>
                     <td class="border px-4 py-2">{{ user.role }}</td>
                     <td class="border px-4 py-2">{{ user.created_at }}</td>
+                    <td class="border px-4 py-2">{{ 'Yes' if user.active else 'No' }}</td>
                     <td class="border px-4 py-2">
                         <form method="post" action="/users/delete" style="display:inline;">
                             <input type="hidden" name="username" value="{{ user.username }}">
                             <button type="submit" class="text-red-600 hover:underline" onclick="return confirm('Delete user {{ user.username }}?');">Delete</button>
+                        </form>
+                        <form method="post" action="/users/role" style="display:inline;">
+                            <input type="hidden" name="username" value="{{ user.username }}">
+                            <select name="role" onchange="this.form.submit()" class="ml-2 border rounded px-1 py-0.5">
+                                <option value="user" {% if user.role == 'user' %}selected{% endif %}>User</option>
+                                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                            </select>
+                        </form>
+                        <form method="post" action="/users/active" style="display:inline;">
+                            <input type="hidden" name="username" value="{{ user.username }}">
+                            <input type="hidden" name="active" value="{{ 0 if user.active else 1 }}">
+                            <button type="submit" class="ml-2 text-blue-600 hover:underline">{{ 'Deactivate' if user.active else 'Activate' }}</button>
                         </form>
                     </td>
                 </tr>
