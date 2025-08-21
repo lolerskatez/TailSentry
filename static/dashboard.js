@@ -139,6 +139,7 @@ window.dashboard = function dashboard() {
     peerModal: false,
     subnetModalOpen: false,
     selectedPeer: {},
+    showPeerModal: false,
     
     // Dashboard settings
     refreshInterval: 30,
@@ -150,6 +151,47 @@ window.dashboard = function dashboard() {
     showQuickSettings: false,
     viewMode: 'detailed',
     isRefreshing: false,
+    
+    // Alert system
+    alertType: null,
+    alertMessage: '',
+    
+    // Search and filtering
+    searchFilter: '',
+    sortBy: 'hostname',
+    
+    // Toast system
+    toastType: null,
+    toastMessage: '',
+    
+    // Enhanced data structures for new dashboard
+    deviceStatus: {
+      online: false,
+      hostname: 'Loading...',
+      ip: '0.0.0.0',
+      uptime: '0m',
+      isExitNode: false
+    },
+    
+    peersStats: {
+      total: 0,
+      online: 0,
+      offline: 0,
+      onlineChange: 0
+    },
+    
+    networkStats: {
+      throughput: '0 Mbps',
+      upload: '0 KB/s',
+      download: '0 KB/s',
+      history: []
+    },
+    
+    subnetStats: {
+      total: 0,
+      advertised: 0,
+      accepted: 0
+    },
     
     // Device information
     device: {
@@ -582,6 +624,9 @@ window.dashboard = function dashboard() {
           this.tailscaleIp = '';
         }
         
+        // Update enhanced data structures
+        this.updateEnhancedDataStructures();
+        
         return data;
       } catch (error) {
         console.error('Failed to load status:', error);
@@ -589,6 +634,43 @@ window.dashboard = function dashboard() {
         this.connectionStatus = 'error';
         throw error; // Re-throw for Promise.allSettled handling
       }
+    },
+
+    // Update enhanced data structures for the new dashboard UI
+    updateEnhancedDataStructures() {
+      // Update deviceStatus
+      this.deviceStatus = {
+        online: this.device.online,
+        hostname: this.device.hostname,
+        ip: this.device.ip,
+        uptime: this.device.uptime,
+        isExitNode: this.device.isExit
+      };
+      
+      // Update peersStats
+      const onlinePeers = this.peers.filter(p => p.online).length;
+      const offlinePeers = this.peers.length - onlinePeers;
+      this.peersStats = {
+        total: this.peers.length,
+        online: onlinePeers,
+        offline: offlinePeers,
+        onlineChange: 0 // This would need historical data
+      };
+      
+      // Update networkStats (placeholder values - would need actual network monitoring)
+      this.networkStats = {
+        throughput: this.net.activity ? `${this.net.activity} Mbps` : '0 Mbps',
+        upload: this.net.tx || '0 KB/s',
+        download: this.net.rx || '0 KB/s',
+        history: this.net.history || []
+      };
+      
+      // Update subnetStats
+      this.subnetStats = {
+        total: this.subnets.length,
+        advertised: this.advertisedRoutes.length,
+        accepted: this.device.subnetRoutes || 0
+      };
     },
 
     async loadPeers() {
@@ -622,6 +704,10 @@ window.dashboard = function dashboard() {
         }
         
         console.log(`Loaded ${this.peers.length} peers`);
+        
+        // Update enhanced data structures
+        this.updateEnhancedDataStructures();
+        
         return this.peers;
       } catch (error) {
         console.error('Failed to load peers:', error);

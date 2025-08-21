@@ -119,7 +119,7 @@ app.include_router(user_routes.router)
 app.add_middleware(SecurityHeadersMiddleware, 
     csp={
         'default-src': ["'self'"],
-        'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],  # For Alpine.js
+        'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],  # For Alpine.js and Chart.js CDN
         'style-src': ["'self'", "'unsafe-inline'"],   # For Tailwind
         'img-src': ["'self'", "data:"],
         'connect-src': ["'self'", "ws:", "wss:"],     # For WebSocket
