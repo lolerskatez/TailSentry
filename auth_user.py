@@ -164,5 +164,17 @@ def is_user_active(username: str) -> bool:
     conn.close()
     return bool(row and row[0])
 
+def ensure_default_admin():
+    from passlib.context import CryptContext
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM users WHERE username = ?', ("admin",))
+    if not c.fetchone():
+        c.execute('INSERT INTO users (username, password_hash, role, email, active, display_name) VALUES (?, ?, ?, ?, ?, ?)', ("admin", pwd_context.hash("admin123"), "admin", "admin@localhost", 1, "Administrator"))
+        conn.commit()
+    conn.close()
+
 add_email_column()
 add_display_name_column()
+ensure_default_admin()
