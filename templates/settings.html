@@ -29,95 +29,98 @@
     </div>
   </nav>
 
-  <main class="max-w-2xl mx-auto py-8 px-4">
-    <!-- Device Info Section -->
-    <div class="mb-8 p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-  <div class="font-semibold mb-2 text-indigo-700" id="device-info-title">Device Info</div>
-      <div class="grid grid-cols-2 gap-2 text-sm items-center">
-        <div>Hostname:</div>
-        <div class="flex gap-2 items-center">
-          <input type="text" x-model="device.hostname" class="px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100 w-40" />
-          <button @click="saveHostname()" class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs">Save</button>
-        </div>
-        <div>Tailscale IP:</div>
-        <div x-text="device.ip"></div>
-        <div>OS:</div>
-        <div x-text="device.role"></div>
-        <div>Uptime:</div>
-        <div x-text="device.uptime"></div>
-        <div>Exit Node:</div>
-        <div x-text="isExitNode ? 'Yes' : 'No'"></div>
-        <div>Subnet Routes:</div>
-        <div x-text="device.subnetRoutes"></div>
-        <div>User:</div>
-        <div x-text="device.user"></div>
-        <div>MagicDNS Suffix:</div>
-        <div x-text="device.magicDnsSuffix"></div>
-        <div>Version:</div>
-        <div x-text="device.version"></div>
-      </div>
-    </div>
-    <div id="settings-title" class="text-2xl font-bold mb-6 text-indigo-700">Settings</div>
-    <!-- Appearance Section -->
-    <div class="mb-8">
-    <!-- Tailscale Up/Down Controls -->
-    <div class="mb-8 p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-  <div class="font-semibold mb-2 text-indigo-700" id="tailscale-controls-title">Tailscale Controls</div>
-      <div class="flex gap-4 items-center">
-        <button @click="tailscaleUp()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Tailscale Up</button>
-        <button @click="tailscaleDown()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Tailscale Down</button>
-        <span class="text-sm font-semibold" x-text="tailscaleCtlFeedback"></span>
-      </div>
-    </div>
-  <div class="font-semibold mb-2 text-indigo-700" id="appearance-title">Appearance</div>
-      <div class="flex items-center justify-between mb-2">
-        <span>Dark Mode</span>
-        <input type="checkbox" x-model="darkMode" class="h-5 w-5" @change="saveDarkMode()" aria-label="Toggle dark mode">
-      </div>
-      <div class="mb-2">
-        <label class="block mb-1 font-medium" for="refresh-interval">Refresh Interval (seconds)</label>
-        <input id="refresh-interval" type="number" x-model.number="refreshInterval" min="5" max="120" class="w-full px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100">
-      </div>
-    </div>
-    <!-- TailScale Controller Section -->
-    <div class="mb-8">
-  <div class="font-semibold mb-2 text-indigo-700" id="controller-title">TailScale Controller</div>
-      <!-- Authentication Key (Save only) -->
-      <div class="mb-8">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col gap-3 border border-gray-200 dark:border-gray-700">
-          <div class="flex items-center justify-between mb-2">
-            <div class="font-semibold text-indigo-700">Authentication Key</div>
-          </div>
-          <div class="flex gap-2">
-            <input id="auth-key" type="text" x-model="authKey" class="w-full px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100" placeholder="Enter your Tailscale Auth Key">
-            <button @click="saveAuthKey()" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600" title="Save">Save</button>
-          </div>
-          <template x-if="authKey">
-            <div class="flex items-center gap-2 mt-2">
-              <span class="text-xs text-gray-500 dark:text-gray-400">Current Key:</span>
-              <input type="text" :value="authKey" readonly class="w-full px-2 py-1 rounded border border-blue-300 dark:border-blue-700 dark:text-blue-200 bg-blue-50 dark:bg-blue-900 cursor-not-allowed text-xs font-mono" style="font-family:monospace;">
+  <main class="max-w-6xl mx-auto py-8 px-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <!-- Left Column -->
+      <div class="flex flex-col gap-8">
+        <!-- Device Info Section -->
+        <div class="p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div class="font-semibold mb-2 text-indigo-700" id="device-info-title">Device Info</div>
+          <div class="grid grid-cols-2 gap-2 text-sm items-center">
+            <div>Hostname:</div>
+            <div class="flex gap-2 items-center">
+              <input type="text" x-model="device.hostname" class="px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100 w-40" />
+              <button @click="saveHostname()" class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs">Save</button>
             </div>
-          </template>
-          <template x-if="authFeedback">
-            <div class="mt-2 text-sm" :class="authSuccess ? 'text-green-600' : 'text-red-600'" x-text="authFeedback"></div>
-          </template>
+            <div>Tailscale IP:</div>
+            <div x-text="device.ip"></div>
+            <div>OS:</div>
+            <div x-text="device.role"></div>
+            <div>Uptime:</div>
+            <div x-text="device.uptime"></div>
+            <div>Exit Node:</div>
+            <div x-text="isExitNode ? 'Yes' : 'No'"></div>
+            <div>Subnet Routes:</div>
+            <div x-text="device.subnetRoutes"></div>
+            <div>User:</div>
+            <div x-text="device.user"></div>
+            <div>MagicDNS Suffix:</div>
+            <div x-text="device.magicDnsSuffix"></div>
+            <div>Version:</div>
+            <div x-text="device.version"></div>
+          </div>
+        </div>
+        <!-- Tailscale Up/Down Controls -->
+        <div class="p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div class="font-semibold mb-2 text-indigo-700" id="tailscale-controls-title">Tailscale Controls</div>
+          <div class="flex gap-4 items-center">
+            <button @click="tailscaleUp()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Tailscale Up</button>
+            <button @click="tailscaleDown()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Tailscale Down</button>
+            <span class="text-sm font-semibold" x-text="tailscaleCtlFeedback"></span>
+          </div>
         </div>
       </div>
-      <!-- Exit Node Card (moved outside settingsPage) -->
-    </div>
-    <div class="mb-6 p-6 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-      <div class="font-semibold text-lg flex items-center gap-2" id="exit-node-title">
-            <svg x-show="isExitNode" class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="currentColor"/></svg>
-            <svg x-show="!isExitNode" class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-            Exit Node
+      <!-- Right Column -->
+      <div class="flex flex-col gap-8">
+        <!-- Appearance Section -->
+        <div class="p-4 rounded shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div class="font-semibold mb-2 text-indigo-700" id="appearance-title">Appearance</div>
+          <div class="flex items-center justify-between mb-2">
+            <span>Dark Mode</span>
+            <input type="checkbox" x-model="darkMode" class="h-5 w-5" @change="saveDarkMode()" aria-label="Toggle dark mode">
           </div>
-          <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Enable or disable exit node for this device. All traffic from peers can route through this node when enabled.</div>
+          <div class="mb-2">
+            <label class="block mb-1 font-medium" for="refresh-interval">Refresh Interval (seconds)</label>
+            <input id="refresh-interval" type="number" x-model.number="refreshInterval" min="5" max="120" class="w-full px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100">
+          </div>
         </div>
-        <label class="inline-flex items-center cursor-pointer" aria-label="Toggle Exit Node" tabindex="0">
-          <input type="checkbox" x-model="isExitNode" class="sr-only peer" aria-checked="isExitNode" aria-labelledby="exit-node-title">
-          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 dark:bg-gray-700 rounded-full peer peer-checked:bg-green-500 transition-all" tabindex="-1"></div>
+        <!-- TailScale Controller Section -->
+        <div>
+          <div class="font-semibold mb-2 text-indigo-700" id="controller-title">TailScale Controller</div>
+          <!-- Authentication Key (Save only) -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col gap-3 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between mb-2">
+              <div class="font-semibold text-indigo-700">Authentication Key</div>
+            </div>
+            <div class="flex gap-2">
+              <input id="auth-key" type="text" x-model="authKey" class="w-full px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-gray-100" placeholder="Enter your Tailscale Auth Key">
+              <button @click="saveAuthKey()" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600" title="Save">Save</button>
+            </div>
+            <template x-if="authKey">
+              <div class="flex items-center gap-2 mt-2">
+                <span class="text-xs text-gray-500 dark:text-gray-400">Current Key:</span>
+                <input type="text" :value="authKey" readonly class="w-full px-2 py-1 rounded border border-blue-300 dark:border-blue-700 dark:text-blue-200 bg-blue-50 dark:bg-blue-900 cursor-not-allowed text-xs font-mono" style="font-family:monospace;">
+              </div>
+            </template>
+            <template x-if="authFeedback">
+              <div class="mt-2 text-sm" :class="authSuccess ? 'text-green-600' : 'text-red-600'" x-text="authFeedback"></div>
+            </template>
+          </div>
+        </div>
+        <!-- Exit Node Card (moved outside settingsPage) -->
+        <div class="mb-6 p-6 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <div class="font-semibold text-lg flex items-center gap-2" id="exit-node-title">
+                <svg x-show="isExitNode" class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="currentColor"/></svg>
+                <svg x-show="!isExitNode" class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                Exit Node
+              </div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Enable or disable exit node for this device. All traffic from peers can route through this node when enabled.</div>
+            </div>
+            <label class="inline-flex items-center cursor-pointer" aria-label="Toggle Exit Node" tabindex="0">
+              <input type="checkbox" x-model="isExitNode" class="sr-only peer" aria-checked="isExitNode" aria-labelledby="exit-node-title">
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 dark:bg-gray-700 rounded-full peer peer-checked:bg-green-500 transition-all" tabindex="-1"></div>
           <span class="ml-3 text-sm font-medium" x-text="isExitNode ? 'Enabled' : 'Disabled'"></span>
         </label>
       </div>
