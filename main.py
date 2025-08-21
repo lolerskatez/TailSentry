@@ -20,15 +20,17 @@ BASE_DIR = Path(__file__).resolve().parent
 LOG_DIR = BASE_DIR / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
-# Configure logging
+
+# Configure logging with rotation
+from logging.handlers import RotatingFileHandler
+log_file = LOG_DIR / "tailsentry.log"
+file_handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=5, encoding='utf-8')  # 5MB per file, 5 backups
+file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[
-        logging.FileHandler(LOG_DIR / "tailsentry.log"),
-        logging.StreamHandler()
-    ]
+    handlers=[file_handler, stream_handler]
 )
 
 # Create logger
@@ -187,7 +189,9 @@ async def general_exception_handler(request: Request, exc: Exception):
     }, status_code=500)
 
 # Import all routers (including settings) in a single line
-from routes import auth, tailscale, keys, api, config, version, dashboard, settings, authenticate, exit_node
+
+# Import all routers (including settings) in a single line
+from routes import auth, tailscale, keys, api, config, version, dashboard, settings, authenticate, exit_node, logs
 app.include_router(auth.router)
 app.include_router(tailscale.router)
 app.include_router(keys.router)
@@ -205,6 +209,7 @@ except Exception as e:
     logger.error(f'Failed to import/register authenticate router: {e}')
 app.include_router(settings.router)
 app.include_router(exit_node.router)
+app.include_router(logs.router)
 # app.include_router(monitoring.router, prefix="/system", tags=["monitoring"])  # temporarily disabled
 
 # Global context processor for all templates
