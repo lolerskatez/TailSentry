@@ -429,7 +429,6 @@ function tailsentrySettings() {
             security: {
                 admin_username: 'admin',
                 session_timeout_minutes: 30,
-                admin_password: '',
                 force_https: false,
                 cors_origins: ['*'],
                 has_session_secret: false
@@ -511,9 +510,6 @@ function tailsentrySettings() {
                 const result = await response.json();
                 if (result.success) {
                     this.showMessage(`${section ? section.charAt(0).toUpperCase() + section.slice(1) + ' s' : 'S'}ettings saved successfully${result.restart_required ? ' (restart required)' : ''}`, 'success');
-                    if (this.config.security.admin_password) {
-                        this.config.security.admin_password = ''; // Clear password field
-                    }
                     this.loadSettings(); // Reload to get updated state
                 } else {
                     this.showMessage('Error: ' + (result.error || 'Unknown error'), 'error');
