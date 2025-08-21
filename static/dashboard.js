@@ -70,7 +70,10 @@ window.dashboard = function dashboard() {
     },
     
     // --- Alpine.js state variables ---
-    darkMode: false,
+  darkMode: false,
+  theme: localStorage.getItem('theme') || 'system',
+  emailAlerts: false,
+  showToasts: true,
     openSettings: false,
     peerModal: false,
     selectedPeer: {},
