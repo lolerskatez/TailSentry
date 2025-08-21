@@ -8,6 +8,8 @@
 .env.staging
 .env.development
 .env.test
+config/.env
+config/.env.*
 
 # Python
 __pycache__/
@@ -63,12 +65,27 @@ acl_backups/
 metrics_history.json
 policy.json
 
+# TailSentry Configuration Files (sensitive)
+config/tailscale_settings.json
+config/tailsentry_config.json
+config/debian_config.env
+config/.env*
+!config/.env.example
+
 # Tailscale/TailSentry specific files
 tailscale_config/
 tailnet_data/
 session_cache/
 api_tokens/
 device_cache.json
+
+# Development and Testing
+test_*.py
+*_test.py
+test-results*/
+performance-test-*
+stress-test-*
+demo_data.json
 
 # OS
 .DS_Store
@@ -111,12 +128,15 @@ vault/
 certificates/
 ssl/
 tls/
+auth_tokens/
+jwt_keys/
 
 # Authentication & Session files
 .session_*
 session_secret
-auth_tokens/
-jwt_keys/
+users.db
+*.sqlite
+*.sqlite3
 
 # Database files
 *.db
@@ -194,3 +214,21 @@ docker-compose.local.yml
 local_config/
 dev_scripts/
 local_*.py
+
+# Copilot and AI generated files
+.copilot/
+
+# VS Code workspace files
+*.code-workspace
+
+# Local system files  
+*.pid
+*.sock
+*.lock
+run/
+*.exe
+*.msi
+*.bat
+*.deb
+*.rpm
+*.appimage
