@@ -40,6 +40,18 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         """Process the request/response and enforce CSRF protection."""
+        # Ensure templates can access a CSRF token during initial render
+        csrf_cookie = request.cookies.get(self.csrf_cookie_name)
+        if csrf_cookie:
+            try:
+                request.state.csrf_token = csrf_cookie
+            except Exception:
+                pass
+        else:
+            try:
+                request.state.csrf_token = self._generate_csrf_token()
+            except Exception:
+                pass
         # Skip CSRF check for safe methods or exempt paths (with wildcard support)
         if request.method in self.safe_methods or self._is_exempt(request.url.path):
             response = await call_next(request)
@@ -47,7 +59,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             if self.csrf_cookie_name not in request.cookies:
                 response.set_cookie(
                     key=self.csrf_cookie_name,
-                    value=self._generate_csrf_token(),
+                    value=getattr(request.state, "csrf_token", self._generate_csrf_token()),
                     # Allow client-side scripts to read the CSRF cookie so forms/JS can send it back
                     httponly=False,
                     secure=not request.url.scheme == "http",
@@ -60,9 +72,11 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         csrf_header = request.headers.get(self.csrf_header_name)
         # Accept CSRF token from form field as fallback (for standard form posts)
         csrf_form = None
-        if request.headers.get("content-type", "").startswith("application/x-www-form-urlencoded"):
+        try:
             form = await request.form()
             csrf_form = form.get("csrf_token")
+        except Exception:
+            csrf_form = None
 
 
         logger.debug(f"CSRF DEBUG | Path: {request.url.path} | Method: {request.method} | Cookie: {csrf_cookie} | Header: {csrf_header} | Form: {csrf_form}")

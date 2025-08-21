@@ -10,6 +10,10 @@
   <script src="/static/alpine-focus.min.js" defer></script>
   <script src="/static/dashboard.js" defer></script>
   <script src="/static/alpine.min.js" defer></script>
+  <script>
+    // Expose CSRF token to inline forms if present in request.state
+  window.__CSRF_TOKEN__ = "{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}";
+  </script>
   {% block head %}{% endblock %}
 </head>
 <body x-data="window.dashboard()" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
