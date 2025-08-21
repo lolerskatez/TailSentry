@@ -75,3 +75,64 @@ def delete_user(username: str) -> bool:
     deleted = c.rowcount > 0
     conn.close()
     return deleted
+
+def set_user_email(username: str, email: str) -> bool:
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        c.execute('UPDATE users SET email = ? WHERE username = ?', (email, username))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+def get_user_by_email(email: str) -> Optional[dict]:
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM users WHERE email = ?', (email,))
+    user = c.fetchone()
+    conn.close()
+    if user:
+        return dict(user)
+    return None
+
+def set_user_display_name(username: str, display_name: str) -> bool:
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        c.execute('UPDATE users SET display_name = ? WHERE username = ?', (display_name, username))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+def get_user_display_name(username: str) -> str:
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT display_name FROM users WHERE username = ?', (username,))
+    row = c.fetchone()
+    conn.close()
+    return row[0] if row and row[0] else ""
+
+def add_email_column():
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        c.execute('ALTER TABLE users ADD COLUMN email TEXT')
+    except Exception:
+        pass  # Ignore if already exists
+    conn.commit()
+    conn.close()
+
+def add_display_name_column():
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        c.execute('ALTER TABLE users ADD COLUMN display_name TEXT')
+    except Exception:
+        pass  # Ignore if already exists
+    conn.commit()
+    conn.close()
+
+add_email_column()
+add_display_name_column()
