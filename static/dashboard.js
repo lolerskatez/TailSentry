@@ -619,6 +619,13 @@ window.dashboard = function dashboard() {
         if (data.BackendState === 'Running' && this.device.ip && this.device.ip !== '0.0.0.0') {
           this.tailscaleStatus = 'authenticated';
           this.tailscaleIp = this.device.ip;
+        } else if (data.BackendState === 'NeedsLogin' || data.offline_reason === 'tailscale_not_configured') {
+          // Tailscale not configured or needs authentication
+          this.tailscaleStatus = 'not_authenticated';
+          this.tailscaleIp = '';
+          // Set offline state for better user experience
+          this.device.online = false;
+          this.connectionStatus = 'offline';
         } else {
           this.tailscaleStatus = 'not_authenticated';
           this.tailscaleIp = '';

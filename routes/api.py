@@ -91,6 +91,21 @@ async def websocket_endpoint(websocket: WebSocket):
 @router.get("/status")
 async def get_status(request: Request):
     try:
+        # Check if TAILSCALE_PAT is not set (Tailscale not configured)
+        if not os.getenv("TAILSCALE_PAT"):
+            logger.info("Tailscale not configured - returning offline status")
+            return {
+                "BackendState": "NeedsLogin",
+                "TailscaleIPs": [],
+                "Self": {"Online": False, "HostName": "Not Connected", "TailscaleIPs": []},
+                "Peer": {},
+                "User": {},
+                "CurrentTailnet": {},
+                "MagicDNSSuffix": "",
+                "CertDomains": [],
+                "offline_reason": "tailscale_not_configured"
+            }
+            
         status = TailscaleClient.status_json()
         logger.info(f"API /status called, returning data type: {type(status)}")
         if isinstance(status, dict) and "error" not in status:
@@ -115,6 +130,11 @@ async def get_device(request: Request):
 @router.get("/peers")
 async def get_peers(request: Request):
     try:
+        # Check if TAILSCALE_PAT is not set (Tailscale not configured)
+        if not os.getenv("TAILSCALE_PAT"):
+            logger.info("Tailscale not configured - returning empty peers")
+            return {"peers": {}}
+            
         status = TailscaleClient.status_json()
         if isinstance(status, dict) and "Peer" in status:
             return {"peers": status["Peer"]}
@@ -173,6 +193,23 @@ async def set_subnet_routes(request: Request, payload: dict = Body(...)):
 async def get_network_stats(request: Request):
     """Get real-time network statistics for dashboard charts."""
     try:
+        # Check if TAILSCALE_PAT is not set (Tailscale not configured)
+        if not os.getenv("TAILSCALE_PAT"):
+            logger.info("Tailscale not configured - returning empty network stats")
+            return JSONResponse(content={
+                "success": True,
+                "stats": {
+                    "tx": "0.0 KB/s",
+                    "rx": "0.0 KB/s", 
+                    "timestamp": time.time(),
+                    "bytes_sent": 0,
+                    "bytes_received": 0,
+                    "active_peers": 0,
+                    "total_peers": 0,
+                    "offline_reason": "tailscale_not_configured"
+                }
+            })
+            
         # Get network metrics from TailscaleClient
         metrics = TailscaleClient.get_network_metrics()
         

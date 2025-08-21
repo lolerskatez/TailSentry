@@ -299,7 +299,29 @@
       <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Network Activity</h3>
         <div class="h-64">
-          <canvas id="networkChart"></canvas>
+          <!-- Show chart when online, notice when offline -->
+          <div x-show="tailscaleStatus === 'authenticated'">
+            <canvas id="networkChart"></canvas>
+          </div>
+          <div x-show="tailscaleStatus !== 'authenticated'" 
+               class="h-full flex items-center justify-center">
+            <div class="text-center">
+              <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
+              </svg>
+              <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Tailscale Offline</h4>
+              <p class="text-gray-500 dark:text-gray-400 mb-4">Connect to Tailscale to view network activity</p>
+              <div class="space-y-2">
+                <button @click="showAuthModal = true" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2-2V5a2 2 0 00-2-2m-2 2V3"></path>
+                  </svg>
+                  Enter Authentication Key
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -307,7 +329,18 @@
       <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Peer Status Distribution</h3>
         <div class="h-64 flex items-center justify-center">
-          <canvas id="peerChart"></canvas>
+          <!-- Show chart when online, notice when offline -->
+          <div x-show="tailscaleStatus === 'authenticated'">
+            <canvas id="peerChart"></canvas>
+          </div>
+          <div x-show="tailscaleStatus !== 'authenticated'" 
+               class="text-center">
+            <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Peer Data</h4>
+            <p class="text-gray-500 dark:text-gray-400">Connect to Tailscale to see connected devices</p>
+          </div>
         </div>
       </div>
     </div>
@@ -365,19 +398,21 @@
 
       <!-- Table View -->
       <div x-show="viewMode === 'table'" class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead class="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Device</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Network</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">System</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Last Seen</th>
-              <th scope="col" class="relative px-6 py-3"><span class="sr-only">Actions</span></th>
-            </tr>
-          </thead>
-          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            <template x-for="peer in filteredPeers" :key="peer.id">
+        <!-- Show table when authenticated -->
+        <div x-show="tailscaleStatus === 'authenticated'">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Device</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Network</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">System</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Last Seen</th>
+                <th scope="col" class="relative px-6 py-3"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <template x-for="peer in filteredPeers" :key="peer.id">
               <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center">
@@ -419,11 +454,41 @@
             </template>
           </tbody>
         </table>
+        </div>
+        
+        <!-- Show offline notice when not authenticated -->
+        <div x-show="tailscaleStatus !== 'authenticated'" 
+             class="flex flex-col items-center justify-center py-12">
+          <svg class="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+          </svg>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Devices Connected</h3>
+          <p class="text-gray-500 dark:text-gray-400 mb-6 text-center max-w-md">
+            Tailscale is offline. Please authenticate with Tailscale to see your connected devices.
+          </p>
+          <div class="flex space-x-3">
+            <button @click="showAuthModal = true" 
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2-2V5a2 2 0 00-2-2m-2 2V3"></path>
+              </svg>
+              Enter Authentication Key
+            </button>
+            <button @click="refreshAll()" 
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              Refresh Status
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Cards View -->
       <div x-show="viewMode === 'cards'" class="p-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Show cards when authenticated -->
+        <div x-show="tailscaleStatus === 'authenticated'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <template x-for="peer in filteredPeers" :key="peer.id">
             <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow duration-150">
               <div class="flex items-center justify-between mb-3">
@@ -469,6 +534,25 @@
               </div>
             </div>
           </template>
+        </div>
+        
+        <!-- Show offline notice when not authenticated -->
+        <div x-show="tailscaleStatus !== 'authenticated'" 
+             class="flex flex-col items-center justify-center py-12">
+          <svg class="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14-7H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2z"></path>
+          </svg>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Tailscale Offline</h3>
+          <p class="text-gray-500 dark:text-gray-400 mb-6 text-center max-w-md">
+            Connect to Tailscale to view your devices in card format.
+          </p>
+          <button @click="showAuthModal = true" 
+                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2-2V5a2 2 0 00-2-2m-2 2V3"></path>
+            </svg>
+            Enter Authentication Key
+          </button>
         </div>
       </div>
 

@@ -48,6 +48,31 @@ logger = logging.getLogger("tailsentry.tailscale")
 
 load_dotenv()
 
+# Demo data helper functions
+def should_use_demo_data():
+    """Check if we should use demo data (when Tailscale isn't properly configured)"""
+    # Use demo data if explicitly enabled OR if no TAILSCALE_PAT is set
+    use_demo = os.getenv("TAILSENTRY_USE_DEMO_DATA", "false").lower() == "true"
+    no_pat = not os.getenv("TAILSCALE_PAT")
+    
+    if use_demo:
+        logger.info("Demo data enabled via TAILSENTRY_USE_DEMO_DATA=true")
+        return True
+    elif no_pat:
+        logger.info("Using demo data because TAILSCALE_PAT is not set")
+        return True
+    return False
+
+def load_demo_data():
+    """Load demo data from the demo_data.json file"""
+    try:
+        demo_file = os.path.join(os.path.dirname(__file__), "..", "demo_data.json")
+        with open(demo_file, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load demo data: {e}")
+        return None
+
 # Configuration from environment
 TAILSCALE_PAT = os.getenv("TAILSCALE_PAT")
 if not TAILSCALE_PAT:
@@ -453,6 +478,15 @@ class TailscaleClient:
     @staticmethod
     def status_json():
         """Get Tailscale status as JSON (cached for 5 seconds)"""
+        # Check if we should use demo data
+        if should_use_demo_data():
+            demo_data = load_demo_data()
+            if demo_data and "demo_status" in demo_data:
+                logger.info("Returning demo Tailscale data for development")
+                return demo_data["demo_status"]
+            else:
+                logger.warning("Demo data requested but not available, falling back to real data")
+        
         # Force live data - disable mock data completely
         if USE_MOCK_DATA and not FORCE_LIVE_DATA:
             logger.warning("USE_MOCK_DATA is enabled but FORCE_LIVE_DATA overrides it")
