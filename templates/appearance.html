@@ -14,7 +14,19 @@
   </nav>
 
   <!-- Toast notification container -->
-  <div x-data="{ show: false, message: '', type: '' }" x-show="show" x-transition class="fixed top-6 right-6 z-50">
+  <div x-data="{ 
+    show: false, 
+    message: '', 
+    type: '',
+    init() {
+      window.addEventListener('show-toast', (event) => {
+        this.message = event.detail.message;
+        this.type = event.detail.type;
+        this.show = true;
+        setTimeout(() => this.show = false, 3000);
+      });
+    }
+  }" x-show="show" x-transition class="fixed top-6 right-6 z-50">
     <div :class="type === 'success' ? 'bg-green-600' : 'bg-red-600'" class="text-white px-6 py-3 rounded shadow-lg flex items-center gap-2">
       <svg x-show="type === 'success'" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
       <svg x-show="type === 'error'" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -300,19 +312,10 @@ document.addEventListener('alpine:init', () => {
         },
 
         showToast(message, type) {
-            // Find the toast container and trigger it
-            const toastContainer = document.querySelector('[x-data*="show: false"]');
-            if (toastContainer) {
-                // Use Alpine's magic to set the toast data
-                Alpine.raw(toastContainer._x_dataStack[0]).show = true;
-                Alpine.raw(toastContainer._x_dataStack[0]).message = message;
-                Alpine.raw(toastContainer._x_dataStack[0]).type = type;
-                
-                // Auto-hide after 3 seconds
-                setTimeout(() => {
-                    Alpine.raw(toastContainer._x_dataStack[0]).show = false;
-                }, 3000);
-            }
+            // Use Alpine's global store or dispatch custom event
+            window.dispatchEvent(new CustomEvent('show-toast', {
+                detail: { message, type }
+            }));
         }
     }));
 });
