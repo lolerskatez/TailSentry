@@ -1,56 +1,115 @@
-// --- Alpine.js state and methods ---
+// --- Enhanced Alpine.js Dashboard with Robust Error Handling ---
 window.dashboard = function dashboard() {
   return {
-    // --- Settings Export/Import Methods ---
-    exportSettings() {
-      fetch('/api/settings/export', { credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(data => {
-          this.downloadFile('tailsentry-settings-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(data, null, 2));
-          this.showToast('Settings exported.', 'success');
-        })
-        .catch(() => this.showToast('Failed to export settings.', 'error'));
+    // --- Enhanced Settings Export/Import Methods ---
+    async exportSettings() {
+      this.showLoading('export', true);
+      try {
+        const response = await fetch('/api/settings/export', { 
+          credentials: 'same-origin',
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Export failed: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        const filename = `tailsentry-settings-${new Date().toISOString().slice(0,10)}.json`;
+        this.downloadFile(filename, JSON.stringify(data, null, 2));
+        this.showToast('Settings exported successfully', 'success');
+      } catch (error) {
+        console.error('Export error:', error);
+        this.showToast('Failed to export settings: ' + error.message, 'error');
+      } finally {
+        this.showLoading('export', false);
+      }
     },
-    importSettings(e) {
+    async importSettings(e) {
       const file = e.target.files[0];
       if (!file) return;
+      
+      this.showLoading('import', true);
       const reader = new FileReader();
-      reader.onload = (evt) => {
+      
+      reader.onload = async (evt) => {
         try {
           const settings = JSON.parse(evt.target.result);
-          fetch('/api/settings/import', {
+          
+          const response = await fetch('/api/settings/import', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
             body: JSON.stringify(settings)
-          })
-            .then(r => r.ok ? r.json() : Promise.reject())
-            .then(() => this.showToast('Settings imported.', 'success'))
-            .catch(() => this.showToast('Failed to import settings.', 'error'));
-        } catch {
-          this.showToast('Invalid settings file.', 'error');
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Import failed: ${response.status} ${response.statusText}`);
+          }
+          
+          await response.json();
+          this.showToast('Settings imported successfully', 'success');
+          
+          // Refresh dashboard data after import
+          setTimeout(() => this.loadAll(), 1000);
+        } catch (error) {
+          console.error('Import error:', error);
+          this.showToast('Failed to import settings: ' + error.message, 'error');
+        } finally {
+          this.showLoading('import', false);
+          e.target.value = ''; // Clear file input
         }
       };
+      
+      reader.onerror = () => {
+        this.showToast('Failed to read file', 'error');
+        this.showLoading('import', false);
+      };
+      
       reader.readAsText(file);
     },
     downloadFile(filename, content) {
-      const blob = new Blob([content], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
+      try {
+        const blob = new Blob([content], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 100);
+      } catch (error) {
+        console.error('Download error:', error);
+        this.showToast('Failed to download file', 'error');
+      }
     },
-    showToast(message, type) {
-      this.toast = message;
-      setTimeout(() => { this.toast = ''; }, 3000);
+    
+    showToast(message, type = 'info') {
+      this.toast = { message, type, timestamp: Date.now() };
+      setTimeout(() => { 
+        this.toast = ''; 
+      }, type === 'error' ? 5000 : 3000);
+      
+      // Screen reader accessibility
       const aria = document.getElementById('aria-feedback');
       if (aria) aria.textContent = message;
+      
+      console.log(`Toast [${type.toUpperCase()}]: ${message}`);
+    },
+    
+    showLoading(operation, isLoading) {
+      if (!this.loadingStates) this.loadingStates = {};
+      this.loadingStates[operation] = isLoading;
+    },
+    
+    isLoading(operation) {
+      return this.loadingStates && this.loadingStates[operation] === true;
     },
     // --- Helper methods for feedback and loading ---
     setFeedback(type, msg) {
@@ -69,16 +128,30 @@ window.dashboard = function dashboard() {
       if (type === 'subnet') this.subnetApplyLoading = val;
     },
     
-    // --- Alpine.js state variables ---
+    // --- Enhanced state variables with better organization ---
     darkMode: false,
     theme: localStorage.getItem('theme') || 'system',
     emailAlerts: false,
     showToasts: true,
     openSettings: false,
+    
+    // Modal states
     peerModal: false,
+    subnetModalOpen: false,
     selectedPeer: {},
+    
+    // Dashboard settings
     refreshInterval: 30,
     lastUpdated: '',
+    connectionStatus: 'connecting',
+    loadingStates: {},
+    autoRefresh: true,
+    showCharts: true,
+    showQuickSettings: false,
+    viewMode: 'detailed',
+    isRefreshing: false,
+    
+    // Device information
     device: {
       hostname: 'Loading...',
       ip: '0.0.0.0',
@@ -92,7 +165,14 @@ window.dashboard = function dashboard() {
       subnetRoutes: 0,
       accept_routes: true
     },
-    net: { tx: '0.0 MB/s', rx: '0.0 MB/s', activity: 0 },
+    
+    // Network statistics
+    net: { 
+      tx: '0.0 MB/s', 
+      rx: '0.0 MB/s', 
+      activity: 0,
+      history: []
+    },
     peers: [],
     peerFilter: '',
     subnets: [],
@@ -268,6 +348,11 @@ window.dashboard = function dashboard() {
     },
 
     init() {
+      console.log('🚀 Initializing TailSentry Dashboard');
+      
+      // Load user preferences first
+      this.loadPreferences();
+      
       // Initialize theme system - unified with appearance settings
       this.theme = localStorage.getItem('theme') || 'system';
       this.applyTheme();
@@ -287,11 +372,51 @@ window.dashboard = function dashboard() {
         this.applyTheme();
       });
       
-      // Optionally load authKey from storage
+      // Listen for dashboard errors from controller
+      window.addEventListener('dashboard-error', (event) => {
+        this.showToast(event.detail.error, 'error');
+      });
+      
+      // Initialize connection monitoring
+      window.addEventListener('online', () => {
+        this.connectionStatus = 'connecting';
+        this.showToast('Connection restored', 'success');
+        this.loadAll();
+      });
+      
+      window.addEventListener('offline', () => {
+        this.connectionStatus = 'offline';
+        this.showToast('Connection lost', 'warning');
+      });
+      
+      // Load stored auth key
       const key = localStorage.getItem('tailscale_auth_key');
       if (key) this.authKey = key;
+      
+      // Initial data load
       this.loadAll();
-      setInterval(() => this.loadAll(), this.refreshInterval * 1000);
+      
+      // Setup refresh interval with error handling
+      if (this.autoRefresh) {
+        this.setupRefreshInterval();
+      }
+      
+      console.log('✅ Dashboard initialization complete');
+    },
+    
+    setupRefreshInterval() {
+      if (this.refreshIntervalId) {
+        clearInterval(this.refreshIntervalId);
+      }
+      
+      this.refreshIntervalId = setInterval(() => {
+        // Only refresh if page is visible and online
+        if (!document.hidden && navigator.onLine && this.connectionStatus !== 'error') {
+          this.loadAll();
+        }
+      }, this.refreshInterval * 1000);
+      
+      console.log(`⏰ Refresh interval set to ${this.refreshInterval}s`);
     },
 
     applyTheme() {
@@ -304,6 +429,11 @@ window.dashboard = function dashboard() {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
+      }
+      
+      // Update dashboard controller theme if available
+      if (window.dashboardMethods && window.dashboardMethods.updateTheme) {
+        window.dashboardMethods.updateTheme(isDark);
       }
     },
 
@@ -351,81 +481,153 @@ window.dashboard = function dashboard() {
       });
     },
 
-    loadAll() {
-  this.loadStatus();
-  this.loadPeers();
-  this.loadSubnets();
-  this.lastUpdated = new Date().toLocaleTimeString();
+    // --- Enhanced data loading with error handling ---
+    async loadAll() {
+      this.connectionStatus = 'loading';
+      const startTime = performance.now();
+      
+      try {
+        // Load all data concurrently with individual error handling
+        const results = await Promise.allSettled([
+          this.loadStatus(),
+          this.loadPeers(),
+          this.loadSubnets()
+        ]);
+        
+        // Check for any failures
+        const failures = results.filter(result => result.status === 'rejected');
+        if (failures.length > 0) {
+          console.warn(`${failures.length} API calls failed:`, failures);
+        }
+        
+        // Update connection status
+        const successCount = results.filter(result => result.status === 'fulfilled').length;
+        if (successCount === 0) {
+          this.connectionStatus = 'error';
+          this.showToast('Failed to load dashboard data', 'error');
+        } else if (successCount < results.length) {
+          this.connectionStatus = 'partial';
+        } else {
+          this.connectionStatus = 'connected';
+        }
+        
+        this.lastUpdated = new Date().toLocaleTimeString();
+        
+        const loadTime = Math.round(performance.now() - startTime);
+        console.log(`Dashboard refresh completed in ${loadTime}ms (${successCount}/${results.length} successful)`);
+        
+      } catch (error) {
+        console.error('Critical error during dashboard refresh:', error);
+        this.connectionStatus = 'error';
+        this.showToast('Critical dashboard error: ' + error.message, 'error');
+      }
     },
 
     async loadStatus() {
       try {
-        const res = await fetch('/api/status');
-        if (res.ok) {
-          const data = await res.json();
-          console.log('Status API response:', data);
-          // Map fields from data.Self
-          const self = data.Self || {};
-          this.device.hostname = self.HostName || 'Unknown';
-          this.device.ip = (self.TailscaleIPs && self.TailscaleIPs[0]) || '0.0.0.0';
-          this.device.role = self.OS || 'Unknown';
-          this.device.uptime = this.formatUptime(self.Created || null);
-          // Check if AdvertisedRoutes contains 0.0.0.0/0 or ::/0 (exit node)
-          const advRoutes = Array.isArray(self.AdvertisedRoutes) ? self.AdvertisedRoutes : [];
-          this.advertisedRoutes = advRoutes;
-          const isExitNode = advRoutes.includes('0.0.0.0/0') || advRoutes.includes('::/0');
-          this.device.isExit = isExitNode;
-          this.device.online = data.BackendState === 'Running';
-          this.isExitNode = isExitNode;
-          this.device.subnetRoutes = (self.AllowedIPs && self.AllowedIPs.length) || 0;
-          // Peers using this as exit node (count peers with ExitNode == this device's ID)
-          const myId = self.ID;
-          let peerCount = 0;
-          if (data.Peer && myId) {
-            for (const peerId in data.Peer) {
-              const peer = data.Peer[peerId];
-              if (peer.ExitNode === myId) peerCount++;
-            }
-          }
-          this.exitNodePeerCount = peerCount;
-          // Last changed and last error/log (UI only, could be improved with backend support)
-          this.exitNodeLastChanged = localStorage.getItem('exitNodeLastChanged') || '';
-          this.exitNodeLastError = localStorage.getItem('exitNodeLastError') || '';
-          // ...existing code...
-          // Extra: user, DNS, version for settings if needed
-          this.device.user = (data.User && (data.User.DisplayName || data.User.LoginName)) || '';
-          this.device.magicDnsSuffix = data.MagicDNSSuffix || '';
-          this.device.version = data.Version || '';
-
-          // Set tailscaleStatus based on backend state and IP
-          if (data.BackendState === 'Running' && this.device.ip && this.device.ip !== '0.0.0.0') {
-            this.tailscaleStatus = 'authenticated';
-            this.tailscaleIp = this.device.ip;
-          } else {
-            this.tailscaleStatus = 'not_authenticated';
-            this.tailscaleIp = '';
+        const response = await fetch('/api/status', {
+          credentials: 'same-origin',
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Status API error: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Status API response:', data);
+        
+        // Map fields from data.Self with proper validation
+        const self = data.Self || {};
+        this.device.hostname = self.HostName || 'Unknown';
+        this.device.ip = (self.TailscaleIPs && self.TailscaleIPs[0]) || '0.0.0.0';
+        this.device.role = self.OS || 'Unknown';
+        this.device.uptime = this.formatUptime(self.Created || null);
+        
+        // Check if AdvertisedRoutes contains 0.0.0.0/0 or ::/0 (exit node)
+        const advRoutes = Array.isArray(self.AdvertisedRoutes) ? self.AdvertisedRoutes : [];
+        this.advertisedRoutes = advRoutes;
+        const isExitNode = advRoutes.includes('0.0.0.0/0') || advRoutes.includes('::/0');
+        this.device.isExit = isExitNode;
+        this.device.online = data.BackendState === 'Running';
+        this.isExitNode = isExitNode;
+        this.device.subnetRoutes = (self.AllowedIPs && self.AllowedIPs.length) || 0;
+        
+        // Count peers using this as exit node
+        const myId = self.ID;
+        let peerCount = 0;
+        if (data.Peer && myId) {
+          for (const peerId in data.Peer) {
+            const peer = data.Peer[peerId];
+            if (peer.ExitNode === myId) peerCount++;
           }
         }
-      } catch (e) { this.toastMsg('Failed to load status'); }
+        this.exitNodePeerCount = peerCount;
+        
+        // Load persistent UI state
+        this.exitNodeLastChanged = localStorage.getItem('exitNodeLastChanged') || '';
+        this.exitNodeLastError = localStorage.getItem('exitNodeLastError') || '';
+        
+        // Additional device info
+        this.device.user = (data.User && (data.User.DisplayName || data.User.LoginName)) || '';
+        this.device.magicDnsSuffix = data.MagicDNSSuffix || '';
+        this.device.version = data.Version || '';
+
+        // Set tailscaleStatus based on backend state and IP
+        if (data.BackendState === 'Running' && this.device.ip && this.device.ip !== '0.0.0.0') {
+          this.tailscaleStatus = 'authenticated';
+          this.tailscaleIp = this.device.ip;
+        } else {
+          this.tailscaleStatus = 'not_authenticated';
+          this.tailscaleIp = '';
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('Failed to load status:', error);
+        this.device.online = false;
+        this.connectionStatus = 'error';
+        throw error; // Re-throw for Promise.allSettled handling
+      }
     },
 
     async loadPeers() {
       try {
-        const res = await fetch('/api/peers');
-        if (res.ok) {
-          const data = await res.json();
-          const peersObj = data.peers || {};
-          this.peers = Object.values(peersObj).map(peer => ({
-            id: peer.ID || peer.HostName,
-            hostname: peer.HostName || 'unknown',
-            ip: (peer.TailscaleIPs && peer.TailscaleIPs[0]) || '0.0.0.0',
-            os: peer.OS || 'Unknown',
-            lastSeen: this.formatLastSeen(peer.LastSeen),
-            tags: peer.Tags || [],
-            online: peer.Online || false
-          }));
+        const response = await fetch('/api/peers', {
+          credentials: 'same-origin',
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Peers API error: ${response.status} ${response.statusText}`);
         }
-      } catch (e) { this.toastMsg('Failed to load peers'); }
+        
+        const data = await response.json();
+        const peersObj = data.peers || {};
+        
+        this.peers = Object.values(peersObj).map(peer => ({
+          id: peer.ID || peer.HostName || 'unknown',
+          hostname: peer.HostName || 'unknown',
+          ip: (peer.TailscaleIPs && peer.TailscaleIPs[0]) || '0.0.0.0',
+          os: peer.OS || 'Unknown',
+          lastSeen: this.formatLastSeen(peer.LastSeen),
+          tags: Array.isArray(peer.Tags) ? peer.Tags : [],
+          online: Boolean(peer.Online),
+          exitNode: peer.ExitNode || null
+        }));
+        
+        // Update peer status chart if controller is available
+        if (window.dashboardMethods && window.dashboardMethods.updatePeerChart) {
+          window.dashboardMethods.updatePeerChart(this.peers);
+        }
+        
+        console.log(`Loaded ${this.peers.length} peers`);
+        return this.peers;
+      } catch (error) {
+        console.error('Failed to load peers:', error);
+        this.peers = [];
+        throw error;
+      }
     },
 
     async loadSubnets() {
@@ -638,12 +840,82 @@ window.dashboard = function dashboard() {
     pingPeer(peer) { this.toastMsg('Ping to ' + peer.hostname + ' -> 12ms (mock)'); },
     logout() { window.location.href = '/logout'; },
     toastMsg(msg) { this.toast = msg; setTimeout(() => this.toast = '', 3500); },
+    
+    // --- Additional methods for enhanced dashboard ---
+    refreshAll() {
+      this.isRefreshing = true;
+      this.loadAll().finally(() => {
+        this.isRefreshing = false;
+      });
+    },
+    
+    toggleAutoRefresh() {
+      this.autoRefresh = !this.autoRefresh;
+      if (this.autoRefresh) {
+        this.setupRefreshInterval();
+      } else {
+        if (this.refreshIntervalId) {
+          clearInterval(this.refreshIntervalId);
+          this.refreshIntervalId = null;
+        }
+      }
+      this.savePreferences();
+    },
+    
+    updateRefreshInterval() {
+      if (this.refreshInterval < 5) this.refreshInterval = 5;
+      if (this.autoRefresh) {
+        this.setupRefreshInterval();
+      }
+      this.savePreferences();
+    },
+    
+    toggleCharts() {
+      this.showCharts = !this.showCharts;
+      this.savePreferences();
+      
+      // Restart dashboard controller charts when shown
+      if (this.showCharts && window.dashboardMethods) {
+        setTimeout(() => {
+          window.dashboardMethods.restart();
+        }, 100);
+      }
+    },
+    
+    savePreferences() {
+      const prefs = {
+        autoRefresh: this.autoRefresh,
+        showCharts: this.showCharts,
+        viewMode: this.viewMode,
+        refreshInterval: this.refreshInterval
+      };
+      localStorage.setItem('dashboard_preferences', JSON.stringify(prefs));
+    },
+    
+    loadPreferences() {
+      try {
+        const prefs = localStorage.getItem('dashboard_preferences');
+        if (prefs) {
+          const parsed = JSON.parse(prefs);
+          this.autoRefresh = parsed.autoRefresh !== false;
+          this.showCharts = parsed.showCharts !== false;
+          this.viewMode = parsed.viewMode || 'detailed';
+          this.refreshInterval = parsed.refreshInterval || 30;
+        }
+      } catch (error) {
+        console.warn('Failed to load dashboard preferences:', error);
+      }
+    },
+    
     $watch: {
       theme(val) { 
         localStorage.setItem('theme', val); 
         this.applyTheme();
       },
-      refreshInterval(val) { if (val < 5) this.refreshInterval = 5; }
+      refreshInterval(val) { 
+        if (val < 5) this.refreshInterval = 5;
+        if (this.autoRefresh) this.updateRefreshInterval();
+      }
     }
   }
 }

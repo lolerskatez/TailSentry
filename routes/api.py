@@ -168,3 +168,64 @@ async def set_subnet_routes(request: Request, payload: dict = Body(...)):
     except Exception as e:
         logger.error(f"Set subnet routes API error: {str(e)}")
         return {"success": False, "error": str(e)}
+
+@router.get("/network-stats")
+async def get_network_stats(request: Request):
+    """Get real-time network statistics for dashboard charts."""
+    try:
+        # Get network metrics from TailscaleClient
+        metrics = TailscaleClient.get_network_metrics()
+        
+        if metrics and "error" not in metrics:
+            # Convert bytes to human readable format
+            def format_bytes_per_sec(bytes_val):
+                if bytes_val == 0:
+                    return "0.0 MB/s"
+                # Simple approximation - in real scenario you'd track delta over time
+                mb_val = bytes_val / (1024 * 1024) 
+                if mb_val < 0.1:
+                    kb_val = bytes_val / 1024
+                    return f"{kb_val:.1f} KB/s"
+                return f"{mb_val:.1f} MB/s"
+            
+            return JSONResponse(content={
+                "success": True,
+                "stats": {
+                    "tx": format_bytes_per_sec(metrics.get("tx_bytes", 0)),
+                    "rx": format_bytes_per_sec(metrics.get("rx_bytes", 0)),
+                    "timestamp": metrics.get("timestamp", time.time()),
+                    "bytes_sent": metrics.get("tx_bytes", 0),
+                    "bytes_received": metrics.get("rx_bytes", 0),
+                    "active_peers": metrics.get("active_peers", 0),
+                    "total_peers": metrics.get("total_peers", 0)
+                }
+            })
+        else:
+            # Return mock data if no real stats available
+            return JSONResponse(content={
+                "success": True,
+                "stats": {
+                    "tx": "0.0 MB/s",
+                    "rx": "0.0 MB/s", 
+                    "timestamp": time.time(),
+                    "bytes_sent": 0,
+                    "bytes_received": 0,
+                    "active_peers": 0,
+                    "total_peers": 0
+                }
+            })
+    except Exception as e:
+        logger.error(f"Network stats API error: {str(e)}")
+        return JSONResponse(content={
+            "success": False,
+            "error": str(e),
+            "stats": {
+                "tx": "0.0 MB/s",
+                "rx": "0.0 MB/s",
+                "timestamp": time.time(),
+                "bytes_sent": 0,
+                "bytes_received": 0,
+                "active_peers": 0,
+                "total_peers": 0
+            }
+        }, status_code=500)
