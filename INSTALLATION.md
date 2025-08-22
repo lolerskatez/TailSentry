@@ -46,24 +46,9 @@ This guide covers all installation methods for TailSentry, including bare metal 
 
 3. Get a Personal Access Token (PAT) from [Tailscale Admin Console](https://login.tailscale.com/admin/settings/keys)
 
-## Quick Installation
+## Installation
 
-The fastest way to install TailSentry:
-
-```bash
-# Download and run the quick installer
-curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/quick-install.sh | sudo bash
-```
-
-This will:
-- Download the full installer
-- Install system dependencies
-- Set up TailSentry with default configuration
-- Start the service automatically
-
-## Manual Installation
-
-### Step 1: Download the Installer
+### Download and Install
 
 ```bash
 # Download the installer
@@ -71,19 +56,21 @@ curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/tailsen
 
 # Make it executable
 chmod +x /usr/local/bin/tailsentry-installer
-```
 
-### Step 2: Run Installation
-
-```bash
-# Interactive installation
+# Run installation
 sudo tailsentry-installer
 
 # Or direct installation
 sudo tailsentry-installer install
 ```
 
-### Step 3: Configure TailSentry
+The installer will:
+- Install system dependencies
+- Set up TailSentry with secure defaults
+- Optionally configure Tailscale PAT
+- Start the service automatically
+
+### Configure TailSentry
 
 1. **Access the web interface**: http://localhost:8080
 2. **Default credentials**: admin/admin (change immediately!)

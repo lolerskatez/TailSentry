@@ -10,48 +10,44 @@
    - Includes automated backup system with retention
    - Comprehensive error handling and logging
 
-2. **`quick-install.sh`** - One-liner quick installer
-   - Downloads and runs the main installer automatically
-   - Perfect for simple deployments and documentation
-
-3. **`validate-system.sh`** - System validation script
+2. **`validate-system.sh`** - System validation script
    - Checks all prerequisites before installation
    - Provides detailed compatibility report
    - Helps troubleshoot installation issues
 
 ### Docker Components
 
-4. **`docker-deploy.sh`** - Docker management script
+3. **`docker-deploy.sh`** - Docker management script
    - Simplified Docker Compose management
    - Handles updates, logs, and container lifecycle
 
-5. **`docker-compose.prod.yml`** - Production Docker Compose
+4. **`docker-compose.prod.yml`** - Production Docker Compose
    - Optimized for production deployment
    - Includes security settings and volume management
    - Environment variable configuration
 
-6. **`.env.example`** - Docker environment template
+5. **`.env.example`** - Docker environment template
    - Comprehensive configuration template
    - Includes all available settings with documentation
    - Security-focused with examples
 
-7. **`.dockerignore`** - Docker build optimization
+6. **`.dockerignore`** - Docker build optimization
    - Excludes unnecessary files from build context
    - Reduces image size and build time
 
 ### Updated Files
 
-8. **`Dockerfile`** - Enhanced production Dockerfile
+7. **`Dockerfile`** - Enhanced production Dockerfile
    - Multi-stage build for smaller images
    - Security hardening with non-root user
    - Proper health checks and optimization
 
-9. **`README.md`** - Updated with installation instructions
+8. **`README.md`** - Updated with installation instructions
    - Quick start guide added
    - Installation options clearly documented
    - Management commands included
 
-10. **`INSTALLATION.md`** - Comprehensive installation guide
+9. **`INSTALLATION.md`** - Comprehensive installation guide
     - Complete step-by-step instructions
     - Troubleshooting section
     - Multiple installation methods
@@ -59,12 +55,7 @@
 
 ## 🚀 Installation Methods
 
-### Method 1: Quick Install (Easiest)
-```bash
-curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/quick-install.sh | sudo bash
-```
-
-### Method 2: Full Installer (Recommended)
+### Method 1: Single Installer (Recommended)
 ```bash
 # Download installer
 curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/tailsentry-installer -o tailsentry-installer
@@ -77,7 +68,7 @@ sudo ./tailsentry-installer
 sudo ./tailsentry-installer install
 ```
 
-### Method 3: Docker Deployment
+### Method 2: Docker Deployment
 ```bash
 git clone https://github.com/lolerskatez/TailSentry.git
 cd TailSentry

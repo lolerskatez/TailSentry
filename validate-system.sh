@@ -279,7 +279,7 @@ generate_install_command() {
     
     if [[ "$CHECKS_FAILED" -eq 0 ]]; then
         echo -e "${GREEN}Quick Installation:${NC}"
-        echo "  curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/quick-install.sh | sudo bash"
+        echo "  curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/tailsentry-installer | sudo bash -s -- install"
         echo ""
         echo -e "${GREEN}Manual Installation:${NC}"
         echo "  wget https://raw.githubusercontent.com/lolerskatez/TailSentry/main/tailsentry-installer"
