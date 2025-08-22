@@ -455,7 +455,7 @@ EOF
     fi
     
     # Create .env file with secure session secret
-    if [[ ! -f ".env" ]]; then
+    if [[ ! -f ".env" ]] || [[ ! -s ".env" ]]; then
         info "Generating secure session secret..."
         local session_secret
         session_secret=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
@@ -472,6 +472,7 @@ HOST=0.0.0.0
 PORT=8080
 DEBUG=false
 LOG_LEVEL=INFO
+DEVELOPMENT=true
 
 # Database
 DB_PATH=data/users.db
