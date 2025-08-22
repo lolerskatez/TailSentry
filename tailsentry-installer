@@ -460,41 +460,56 @@ EOF
         local session_secret
         session_secret=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
         
+        # Optional Tailscale PAT configuration
+        echo ""
+        echo -e "${WHITE}Tailscale Personal Access Token Configuration:${NC}"
+        echo "To use real Tailscale data instead of demo data, you need a Personal Access Token."
+        echo "You can:"
+        echo "  1. Enter your token now (recommended)"
+        echo "  2. Configure it later through the TailSentry web interface"
+        echo "  3. Skip for now and use demo data"
+        echo ""
+        echo "To get a token, visit: https://login.tailscale.com/admin/settings/keys"
+        echo ""
+        
+        local tailscale_pat=""
+        read -r -p "Enter your Tailscale Personal Access Token (or press Enter to skip): " tailscale_pat
+        
+        # Create .env file
         cat > ".env" << EOF
 # TailSentry Environment Configuration
 # Generated on $(date)
 
 # Security Settings
-SESSION_SECRET=$session_secret
+SESSION_SECRET='$session_secret'
+SESSION_TIMEOUT_MINUTES='30'
+DEVELOPMENT='true'
 
-# Application Settings
-HOST=0.0.0.0
-PORT=8080
-DEBUG=false
-LOG_LEVEL=INFO
-DEVELOPMENT=true
+# Tailscale Integration
+EOF
 
-# Database
-DB_PATH=data/users.db
+        if [[ -n "$tailscale_pat" ]]; then
+            echo "TAILSCALE_PAT='$tailscale_pat'" >> ".env"
+            echo "# Tailscale PAT configured during installation" >> ".env"
+        else
+            echo "# TAILSCALE_PAT='your_tailscale_personal_access_token_here'" >> ".env"
+            echo "# Configure your Tailscale PAT through the web interface: Settings > Tailscale" >> ".env"
+        fi
+        
+        cat >> ".env" << EOF
+TAILSCALE_TAILNET='-'
+TAILSCALE_API_TIMEOUT='10'
+TAILSENTRY_FORCE_LIVE_DATA='true'
+TAILSENTRY_DATA_DIR='/opt/tailsentry/data'
 
-# Tailscale Integration (configure these after installation)
-# TAILSCALE_PAT=your_tailscale_personal_access_token_here
-# TAILNET=your_tailnet_name_here
-
-# Optional: Force demo mode for testing (remove for production)
-# USE_DEMO_DATA=false
-# FORCE_LIVE_DATA=false
-
-# Email notifications (optional)
-# SMTP_SERVER=smtp.example.com
-# SMTP_PORT=587
-# SMTP_USER=your_email@example.com
-# SMTP_PASSWORD=your_email_password
-# SMTP_FROM=noreply@example.com
-
-# Security Headers (optional customization)
-# ALLOWED_HOSTS=your-domain.com,localhost
-# CORS_ORIGINS=https://your-domain.com
+# Application Settings  
+LOG_LEVEL='INFO'
+LOG_FORMAT='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+HEALTH_CHECK_ENABLED='true'
+HEALTH_CHECK_INTERVAL='300'
+BACKUP_ENABLED='true'
+BACKUP_RETENTION_DAYS='30'
+ALLOWED_ORIGIN='*'
 EOF
         chmod 600 ".env"
         success "Environment configuration created with secure session secret"

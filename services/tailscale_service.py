@@ -360,7 +360,7 @@ class TailscaleClient:
                 merged_adv_routes.append("0.0.0.0/0")
         merged_firewall = firewall if firewall is not None else False
         # Build args (match set_exit_node logic)
-        args = []
+        args = ["--reset"]  # Use --reset to avoid needing all non-default flags
         if merged_hostname:
             args += ["--hostname", str(merged_hostname)]
         # Accept routes (always explicit)
@@ -371,7 +371,8 @@ class TailscaleClient:
         # Advertised subnet routes (not exit node)
         subnet_routes = [r for r in merged_adv_routes if r not in ("0.0.0.0/0", "::/0")]
         # Always include --advertise-routes, even if empty, to satisfy Tailscale's strict flag requirements
-        args += ["--advertise-routes", ",".join(subnet_routes)]
+        if subnet_routes:
+            args += ["--advertise-routes", ",".join(subnet_routes)]
         # Exit node flags
         if "0.0.0.0/0" in merged_adv_routes or "::/0" in merged_adv_routes:
             args.append("--advertise-exit-node")
@@ -567,6 +568,19 @@ class TailscaleClient:
             return str(e)
 
     @staticmethod
+    def down():
+        """Run tailscale down to disconnect from the tailnet"""
+        tailscale_path = TailscaleClient.get_tailscale_path()
+        cmd = [tailscale_path, "down"]
+        try:
+            logger.info(f"Running Tailscale command: {' '.join(cmd)}")
+            subprocess.check_call(cmd)
+            return True
+        except Exception as e:
+            logger.error(f"Tailscale down command failed: {str(e)}")
+            return str(e)
+
+    @staticmethod
     def subnet_routes() -> List[str]:
         """Get all advertised subnet routes for this device"""
         status = TailscaleClient.status_json()
@@ -740,12 +754,16 @@ class TailscaleClient:
 
     @staticmethod
     def service_control(action):
-        """Control the tailscaled service: start/stop/restart/status"""
+        """Control the tailscaled service: start/stop/restart/status/down"""
         # Validate action to prevent command injection
-        allowed_actions = ["start", "stop", "restart", "status"]
+        allowed_actions = ["start", "stop", "restart", "status", "down"]
         if action not in allowed_actions:
             logger.error(f"Invalid service action: {action}")
             return f"Invalid action: {action}. Must be one of {allowed_actions}"
+            
+        # Handle special case for "down" action - this should run "tailscale down"
+        if action == "down":
+            return TailscaleClient.down()
             
         logger.info(f"Performing service {action} on tailscaled")
         

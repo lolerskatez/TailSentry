@@ -224,7 +224,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 # Import all routers (including settings) in a single line
 
 # Import all routers (including settings) in a single line
-from routes import tailscale, keys, api, config, version, dashboard, settings, authenticate, exit_node, logs, tailscale_settings
+from routes import tailscale, keys, api, config, version, dashboard, settings, authenticate, exit_node, logs, tailscale_settings, system_settings
 app.include_router(tailscale.router)
 app.include_router(keys.router)
 app.include_router(api.router, prefix="/api")
@@ -240,6 +240,7 @@ try:
 except Exception as e:
     logger.error(f'Failed to import/register authenticate router: {e}')
 app.include_router(settings.router)
+app.include_router(system_settings.router)
 app.include_router(exit_node.router)
 app.include_router(logs.router)
 # app.include_router(monitoring.router, prefix="/system", tags=["monitoring"])  # temporarily disabled
