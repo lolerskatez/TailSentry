@@ -12,17 +12,10 @@ templates = Jinja2Templates(directory="templates")
 from routes.user import get_current_user
 
 
-@router.get("/settings")
-async def settings(request: Request):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse(url="/login", status_code=302)
-    return templates.TemplateResponse("settings.html", {
-        "request": request, 
-        "active_nav": "settings", 
-        "user": user,
-        "current_user": user
-    })
+# Note: The `/settings` landing page (General) was removed per UX consolidation.
+# Keep individual settings routes (appearance, users, tailscale, tailsentry, notifications)
+# If a landing page is needed in future, recreate a new endpoint that points to
+# an appropriate consolidated template.
 
 @router.get("/settings/notifications")
 async def notifications_settings(request: Request):
