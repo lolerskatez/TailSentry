@@ -137,7 +137,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hostname</label>
-                            <input type="text" x-model="settings.hostname" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" placeholder="Enter hostname">
+                            <input type="text" x-model="settings.hostname" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" placeholder="tailsentry-router">
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Set a custom hostname for this device</p>
                         </div>
                         
@@ -328,7 +328,7 @@ function tailscaleSettings() {
         activeTab: 'basic',
         status: null,
         settings: {
-            hostname: '',
+            hostname: 'tailsentry-router',
             accept_routes: false,
             exit_node_enable: false,
             exit_node_firewall: false,
@@ -372,7 +372,12 @@ function tailscaleSettings() {
                 const response = await fetch('/api/tailscale-settings');
                 if (response.ok) {
                     const data = await response.json();
-                    this.settings = { ...this.settings, ...data };
+                    // Merge settings but preserve defaults if backend values are empty
+                    this.settings = { 
+                        ...this.settings, 
+                        ...data,
+                        hostname: data.hostname || 'tailsentry-router'
+                    };
                     this.advertisedRoutes = data.advertise_routes || [];
                 }
             } catch (error) {

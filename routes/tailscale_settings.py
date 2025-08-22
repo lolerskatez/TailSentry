@@ -28,6 +28,10 @@ def save_settings(settings):
 async def get_tailscale_settings():
     settings = load_settings()
     
+    # Set default hostname if not configured
+    if not settings.get('hostname'):
+        settings['hostname'] = 'tailsentry-router'
+    
     # Add PAT status (without exposing the actual value)
     settings['tailscale_pat'] = ''  # Don't expose actual PAT
     settings['has_pat'] = bool(os.getenv('TAILSCALE_PAT'))
