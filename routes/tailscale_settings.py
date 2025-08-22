@@ -4,6 +4,7 @@ from fastapi import status as http_status
 import json
 import os
 import logging
+from dotenv import set_key, find_dotenv
 from services.tailscale_service import TailscaleClient
 
 router = APIRouter()
@@ -26,13 +27,42 @@ def save_settings(settings):
 @router.get("/api/tailscale-settings")
 async def get_tailscale_settings():
     settings = load_settings()
+    
+    # Add PAT status (without exposing the actual value)
+    settings['tailscale_pat'] = ''  # Don't expose actual PAT
+    settings['has_pat'] = bool(os.getenv('TAILSCALE_PAT'))
+    
     return JSONResponse(settings)
 
 @router.post("/api/tailscale-settings")
 async def apply_tailscale_settings(request: Request):
     data = await request.json()
+    
+    # Handle PAT separately - save to .env file
+    if 'tailscale_pat' in data:
+        pat_value = data.get('tailscale_pat', '').strip()
+        try:
+            env_file = find_dotenv()
+            if not env_file:
+                logger.error("No .env file found")
+                return JSONResponse({"success": False, "error": ".env file not found"}, status_code=500)
+                
+            if pat_value:
+                set_key(env_file, 'TAILSCALE_PAT', f"'{pat_value}'")
+                logger.info("Tailscale PAT updated successfully")
+            else:
+                # Clear PAT if empty
+                set_key(env_file, 'TAILSCALE_PAT', '')
+                logger.info("Tailscale PAT cleared")
+        except Exception as e:
+            logger.error(f"Failed to update TAILSCALE_PAT in .env: {e}", exc_info=True)
+            return JSONResponse({"success": False, "error": f"Failed to update PAT: {e}"}, status_code=500)
+    
+    # Remove PAT from data before saving to tailscale_settings.json
+    settings_data = {k: v for k, v in data.items() if k != 'tailscale_pat'}
+    
     try:
-        save_settings(data)
+        save_settings(settings_data)
     except Exception as e:
         logger.error(f"Failed to write tailscale_settings.json: {e}", exc_info=True)
         return JSONResponse({"success": False, "error": f"Failed to write settings: {e}"}, status_code=500)

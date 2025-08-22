@@ -134,19 +134,20 @@
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
       <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Tailscale Integration</h3>
       
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Personal Access Token
-          </label>
-          <input type="password" x-model="config.tailscale.tailscale_pat" 
-                 placeholder="Enter Tailscale PAT"
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Get your PAT from <a href="https://login.tailscale.com/admin/settings/keys" target="_blank" class="text-indigo-600 hover:text-indigo-500">Tailscale Admin Console</a>
+      <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+        <div class="flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p class="text-sm text-blue-800 dark:text-blue-200">
+            <strong>Note:</strong> Personal Access Token configuration has been moved to 
+            <a href="/settings/tailscale" class="underline hover:text-blue-600">Tailscale Settings</a> 
+            for better organization.
           </p>
         </div>
-        
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">        
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Tailnet Name
@@ -539,7 +540,6 @@ function tailsentrySettings() {
                 has_session_secret: false
             },
             tailscale: {
-                tailscale_pat: '',
                 tailscale_tailnet: '-',
                 api_timeout: 10,
                 force_live_data: true,
