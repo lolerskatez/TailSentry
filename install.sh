@@ -86,6 +86,42 @@ with open(settings_path, 'w') as f:
 print(f"Saved Tailscale Authentication Key to {settings_path}")
 EOF
 
+# Create .env file with development settings for initial installation
+echo "Creating environment configuration..."
+cat > .env << EOF
+# TailSentry Environment Configuration
+# Generated during installation on $(date)
+
+# Security Settings
+SESSION_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+SESSION_TIMEOUT_MINUTES=30
+
+# Development Mode (enabled by default for initial setup - change to false for production)
+DEVELOPMENT=true
+
+# Application Settings
+LOG_LEVEL=INFO
+LOG_FORMAT='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+# Tailscale Integration (configure through web interface: Settings > System)
+# TAILSCALE_PAT=your_tailscale_personal_access_token_here
+TAILSCALE_TAILNET=-
+TAILSCALE_API_TIMEOUT=10
+TAILSENTRY_FORCE_LIVE_DATA=true
+
+# Health Check and Backup Settings
+HEALTH_CHECK_ENABLED=true
+HEALTH_CHECK_INTERVAL=300
+BACKUP_ENABLED=true
+BACKUP_RETENTION_DAYS=30
+
+# CORS Settings
+ALLOWED_ORIGIN=*
+EOF
+
+chmod 600 .env
+echo "Environment configuration created with secure session secret"
+
 # Install systemd service
 cp tailsentry.service /etc/systemd/system/
 

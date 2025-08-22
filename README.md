@@ -13,12 +13,27 @@ TailSentry is a secure, web-based management dashboard for Tailscale networks. I
 
 ## 🚀 Quick Installation
 
-### Option 1: Quick Install (Recommended)
+### Option 1: One-Line Install (Recommended)
+```bash
+curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/tailsentry-installer | sudo bash -s -- install
+```
+
+### Option 2: Quick Install Script
 ```bash
 curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/quick-install.sh | sudo bash
 ```
 
-### Option 2: Docker Deployment
+### Option 3: Manual Download & Install
+```bash
+# Download installer
+wget https://raw.githubusercontent.com/lolerskatez/TailSentry/main/tailsentry-installer
+chmod +x tailsentry-installer
+
+# Install with PAT configuration
+sudo ./tailsentry-installer install
+```
+
+### Option 4: Docker Deployment
 ```bash
 git clone https://github.com/lolerskatez/TailSentry.git
 cd TailSentry
@@ -26,15 +41,7 @@ cp .env.example .env  # Configure your settings
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-### Option 3: Manual Installation
-```bash
-# Download installer
-curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/tailsentry-installer -o tailsentry-installer
-chmod +x tailsentry-installer
-
-# Install
-sudo ./tailsentry-installer install
-```
+> **Note**: The installer automatically configures `DEVELOPMENT=true` for HTTP session support during initial setup. You can change this to `false` in **Settings > System** for production deployments with HTTPS.
 
 ## 📋 Prerequisites
 
