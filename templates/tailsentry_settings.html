@@ -4,10 +4,10 @@
 {% block content %}
 <!-- Settings Subnavigation -->
 <nav class="flex flex-wrap gap-2 sm:gap-4 mb-8 max-w-6xl mx-auto py-4 px-4" aria-label="Settings Subnavigation">
+  <a href="/settings/tailsentry" class="px-3 py-1 rounded font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-current="page">TailSentry Config</a>
+  <a href="/settings/tailscale" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-indigo-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">Tailscale Settings</a>
   <a href="/settings/users" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-indigo-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">Manage Users</a>
   <a href="/settings/appearance" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-indigo-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">Appearance</a>
-  <a href="/settings/tailscale" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-indigo-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">Tailscale Settings</a>
-  <a href="/settings/tailsentry" class="px-3 py-1 rounded font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-current="page">TailSentry Config</a>
   <a href="/settings/notifications" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-indigo-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">Notifications</a>
   <a href="/logs" class="px-3 py-1 rounded font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100 hover:bg-indigo-200 hover:text-indigo-900 dark:hover:bg-gray-800 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">Logs</a>
 </nav>
@@ -30,7 +30,7 @@
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
           </svg>
           <svg x-show="messageType === 'error'" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
           </svg>
         </div>
         <div class="ml-3">
@@ -47,11 +47,6 @@
               :class="activeTab === 'security' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
               class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
         🔒 Security
-      </button>
-      <button @click="activeTab = 'tailscale'" 
-              :class="activeTab === 'tailscale' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
-              class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
-        🌐 Tailscale
       </button>
       <button @click="activeTab = 'application'" 
               :class="activeTab === 'application' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
@@ -117,62 +112,6 @@
         <button @click="saveSecuritySettings()" :disabled="loading"
                 class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
           <span x-show="!loading">Save Security Settings</span>
-          <span x-show="loading">Saving...</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tailscale Settings Tab -->
-  <div x-show="activeTab === 'tailscale'" class="space-y-6">
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Tailscale Integration</h3>
-      
-      <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-        <div class="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p class="text-sm text-blue-800 dark:text-blue-200">
-            <strong>Note:</strong> Personal Access Token configuration has been moved to 
-            <a href="/settings/tailscale" class="underline hover:text-blue-600">Tailscale Settings</a> 
-            for better organization.
-          </p>
-        </div>
-      </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Tailnet Name
-          </label>
-          <input type="text" x-model="config.tailscale.tailscale_tailnet" 
-                 placeholder="-" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Use "-" for personal tailnet</p>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            API Timeout (seconds)
-          </label>
-          <input type="number" x-model.number="config.tailscale.api_timeout" min="1" max="60"
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-        </div>
-        
-        <div class="flex items-center">
-          <input type="checkbox" x-model="config.tailscale.force_live_data" id="force_live_data"
-                 class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-          <label for="force_live_data" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-            Force Live Data (disable caching)
-          </label>
-        </div>
-      </div>
-      
-      <div class="mt-6">
-        <button @click="saveTailscaleSettings()" :disabled="loading"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
-          <span x-show="!loading">Save Tailscale Settings</span>
           <span x-show="loading">Saving...</span>
         </button>
       </div>
