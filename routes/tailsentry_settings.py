@@ -434,61 +434,6 @@ async def test_smtp(request: Request, smtp_config: SMTPSettings):
         logger.error(f"SMTP test failed: {e}")
         return {"success": False, "message": f"SMTP test failed: {str(e)}"}
 
-@router.get("/api/tailsentry-settings/system-info")
-async def get_system_info(request: Request):
-    """Get system information for diagnostics"""
-    from routes.user import get_current_user
-    user = get_current_user(request)
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
-    try:
-        import platform
-        import psutil
-        
-        # Get disk usage for data directory
-        data_dir = Path(os.getenv("TAILSENTRY_DATA_DIR", "/app/data"))
-        disk_usage = {}
-        if data_dir.exists():
-            try:
-                import shutil
-                total, used, free = shutil.disk_usage(data_dir)
-                disk_usage = {
-                    "total": total,
-                    "free": free,
-                    "used": used
-                }
-            except Exception:
-                disk_usage = {"error": "Unable to get disk usage"}
-        
-        return {
-            "platform": {
-                "system": platform.system(),
-                "release": platform.release(),
-                "machine": platform.machine(),
-                "python_version": platform.python_version()
-            },
-            "memory": {
-                "total": psutil.virtual_memory().total,
-                "available": psutil.virtual_memory().available,
-                "percent": psutil.virtual_memory().percent
-            },
-            "disk": disk_usage,
-            "env_file": {
-                "exists": ENV_FILE.exists(),
-                "path": str(ENV_FILE),
-                "size": ENV_FILE.stat().st_size if ENV_FILE.exists() else 0
-            },
-            "config_file": {
-                "exists": CONFIG_FILE.exists(),
-                "path": str(CONFIG_FILE),
-                "size": CONFIG_FILE.stat().st_size if CONFIG_FILE.exists() else 0
-            }
-        }
-    except Exception as e:
-        logger.error(f"Failed to get system info: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get system information")
-
 @router.post("/api/tailsentry-settings/backup-config")
 async def backup_config(request: Request):
     """Create a backup of current configuration"""

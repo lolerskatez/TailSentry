@@ -18,7 +18,7 @@
   <!-- Page Header -->
   <div class="mb-8">
     <h1 class="text-3xl font-bold text-gray-900 dark:text-white">TailSentry Configuration</h1>
-    <p class="mt-2 text-gray-600 dark:text-gray-400">Manage your TailSentry application settings, security, and system configuration.</p>
+    <p class="mt-2 text-gray-600 dark:text-gray-400">Manage your TailSentry application settings and security configuration.</p>
   </div>
 
   <!-- Success/Error Messages -->
@@ -73,11 +73,6 @@
               :class="activeTab === 'smtp' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
               class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
         📧 SMTP
-      </button>
-      <button @click="activeTab = 'system'" 
-              :class="activeTab === 'system' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
-              class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
-        🖥️ System
       </button>
     </nav>
   </div>
@@ -456,73 +451,6 @@
       </div>
     </div>
   </div>
-
-  <!-- System Information Tab -->
-  <div x-show="activeTab === 'system'" class="space-y-6">
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">System Information</h3>
-      
-      <div x-show="systemInfo">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div>
-            <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Platform</h4>
-            <div class="space-y-1 text-sm">
-              <div><span class="font-medium">System:</span> <span x-text="systemInfo?.platform?.system"></span></div>
-              <div><span class="font-medium">Release:</span> <span x-text="systemInfo?.platform?.release"></span></div>
-              <div><span class="font-medium">Machine:</span> <span x-text="systemInfo?.platform?.machine"></span></div>
-              <div><span class="font-medium">Python:</span> <span x-text="systemInfo?.platform?.python_version"></span></div>
-            </div>
-          </div>
-          
-          <div>
-            <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Memory</h4>
-            <div class="space-y-1 text-sm">
-              <div><span class="font-medium">Total:</span> <span x-text="formatBytes(systemInfo?.memory?.total)"></span></div>
-              <div><span class="font-medium">Available:</span> <span x-text="formatBytes(systemInfo?.memory?.available)"></span></div>
-              <div><span class="font-medium">Used:</span> <span x-text="systemInfo?.memory?.percent + '%'"></span></div>
-            </div>
-          </div>
-          
-          <div>
-            <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Storage</h4>
-            <div class="space-y-1 text-sm">
-              <div><span class="font-medium">Total:</span> <span x-text="formatBytes(systemInfo?.disk?.total)"></span></div>
-              <div><span class="font-medium">Free:</span> <span x-text="formatBytes(systemInfo?.disk?.free)"></span></div>
-              <div><span class="font-medium">Used:</span> <span x-text="formatBytes(systemInfo?.disk?.used)"></span></div>
-            </div>
-          </div>
-          
-          <div>
-            <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Configuration Files</h4>
-            <div class="space-y-1 text-sm">
-              <div>
-                <span class="font-medium">.env:</span> 
-                <span :class="systemInfo?.env_file?.exists ? 'text-green-600' : 'text-red-600'">
-                  <span x-text="systemInfo?.env_file?.exists ? '✓ Found' : '✗ Missing'"></span>
-                  <span x-show="systemInfo?.env_file?.exists" x-text="'(' + formatBytes(systemInfo?.env_file?.size) + ')'"></span>
-                </span>
-              </div>
-              <div>
-                <span class="font-medium">Config:</span> 
-                <span :class="systemInfo?.config_file?.exists ? 'text-green-600' : 'text-yellow-600'">
-                  <span x-text="systemInfo?.config_file?.exists ? '✓ Found' : '○ Optional'"></span>
-                  <span x-show="systemInfo?.config_file?.exists" x-text="'(' + formatBytes(systemInfo?.config_file?.size) + ')'"></span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="mt-6">
-        <button @click="loadSystemInfo()" :disabled="loading"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
-          <span x-show="!loading">Refresh System Info</span>
-          <span x-show="loading">Loading...</span>
-        </button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <script>
@@ -563,11 +491,9 @@ function tailsentrySettings() {
                 backup_retention_days: 30
             }
         },
-        systemInfo: null,
 
         init() {
             this.loadSettings();
-            this.loadSystemInfo();
         },
 
         async loadSettings() {
@@ -756,30 +682,6 @@ function tailsentrySettings() {
             
             // Clear the file input
             event.target.value = '';
-        },
-
-        async loadSystemInfo() {
-            this.loading = true;
-            try {
-                const response = await fetch('/api/tailsentry-settings/system-info');
-                if (response.ok) {
-                    this.systemInfo = await response.json();
-                } else {
-                    this.showMessage('Failed to load system information', 'error');
-                }
-            } catch (error) {
-                this.showMessage('Failed to load system information', 'error');
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        formatBytes(bytes) {
-            if (!bytes) return 'N/A';
-            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-            if (bytes === 0) return '0 Bytes';
-            const i = Math.floor(Math.log(bytes) / Math.log(1024));
-            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
         },
 
         showMessage(text, type = 'success') {
