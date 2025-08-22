@@ -36,7 +36,10 @@ async def send_reset_email(to_email, token):
 def get_current_user(request: Request):
     username = request.session.get("user")
     if username:
-        return get_user(username)
+        user_row = get_user(username)
+        if user_row:
+            # Convert Row to dict for template compatibility
+            return dict(user_row)
     return None
 
 @router.get("/login")

@@ -76,22 +76,6 @@ print_separator() {
     echo -e "${CYAN}════════════════════════════════════════════════════════════════════════${NC}"
 }
 
-confirm() {
-    local prompt="$1"
-    local default="${2:-n}"
-    local response
-    
-    if [[ "$default" == "y" ]]; then
-        prompt="$prompt [Y/n]: "
-    else
-        prompt="$prompt [y/N]: "
-    fi
-    
-    read -r -p "$prompt" response
-    response=${response:-$default}
-    
-    [[ "$response" =~ ^[Yy]$ ]]
-}
 
 check_root() {
     if [[ "$EUID" -ne 0 ]]; then
@@ -271,6 +255,112 @@ restore_backup() {
 # INSTALLATION FUNCTIONS
 # ============================================================================
 
+fresh_install() {
+    info "Starting fresh installation..."
+    
+    # Check if installation already exists
+    if [[ -d "$INSTALL_DIR" ]]; then
+        error "$APP_NAME is already installed at $INSTALL_DIR"
+        warning "Use 'Install & Override' if you want to reinstall, or 'Update Existing' to preserve data"
+        return 1
+    fi
+    
+    # Proceed with installation
+    check_system
+    install_dependencies
+    download_application
+    setup_python_environment
+    configure_application
+    install_service
+    systemctl start "$SERVICE_NAME"
+    success "$APP_NAME fresh installation completed!"
+}
+
+install_and_override() {
+    warning "DANGEROUS OPERATION: This will delete all existing data!"
+    echo -e "${RED}This will permanently delete:${NC}"
+    echo "  - User accounts and passwords"
+    echo "  - Configuration settings"
+    echo "  - Application data"
+    echo "  - Logs and backups"
+    echo ""
+    
+    if [[ -d "$INSTALL_DIR" ]]; then
+        echo -e "${YELLOW}Current installation found at: $INSTALL_DIR${NC}"
+        
+        if ! confirm "Are you ABSOLUTELY SURE you want to delete everything and reinstall?"; then
+            info "Installation cancelled by user"
+            return 0
+        fi
+        
+        # Final confirmation
+        echo ""
+        warning "FINAL WARNING: This action cannot be undone!"
+        if ! confirm "Type 'yes' to proceed with complete deletion and reinstall" "yes"; then
+            info "Installation cancelled by user"
+            return 0
+        fi
+        
+        # Stop service if running
+        if systemctl is-active --quiet "$SERVICE_NAME"; then
+            systemctl stop "$SERVICE_NAME"
+        fi
+        
+        # Remove service file
+        if [[ -f "/etc/systemd/system/$SERVICE_NAME.service" ]]; then
+            rm -f "/etc/systemd/system/$SERVICE_NAME.service"
+            systemctl daemon-reload
+        fi
+        
+        # Remove installation directory
+        rm -rf "$INSTALL_DIR"
+        success "Previous installation removed"
+    fi
+    
+    # Proceed with fresh installation
+    check_system
+    install_dependencies
+    download_application
+    setup_python_environment
+    configure_application
+    install_service
+    systemctl start "$SERVICE_NAME"
+    success "$APP_NAME installation with override completed!"
+}
+
+# Enhanced confirm function that supports custom expected input
+confirm() {
+    local message="$1"
+    local expected="${2:-y}"
+    local prompt
+    
+    if [[ "$expected" == "yes" ]]; then
+        prompt="yes/no"
+    else
+        prompt="y/n"
+    fi
+    
+    while true; do
+        read -r -p "$message [$prompt]: " response
+        case "$response" in
+            [Yy]|[Yy][Ee][Ss])
+                [[ "$expected" == "yes" && "$response" =~ ^[Yy][Ee][Ss]$ ]] && return 0
+                [[ "$expected" != "yes" ]] && return 0
+                ;;
+            [Nn]|[Nn][Oo])
+                return 1
+                ;;
+            *)
+                if [[ "$expected" == "yes" ]]; then
+                    echo "Please type 'yes' or 'no'"
+                else
+                    echo "Please answer y or n"
+                fi
+                ;;
+        esac
+    done
+}
+
 download_application() {
     info "Downloading $APP_NAME..."
     
@@ -364,6 +454,53 @@ EOF
         echo "or by editing config/tailscale_settings.json"
     fi
     
+    # Create .env file with secure session secret
+    if [[ ! -f ".env" ]]; then
+        info "Generating secure session secret..."
+        local session_secret
+        session_secret=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+        
+        cat > ".env" << EOF
+# TailSentry Environment Configuration
+# Generated on $(date)
+
+# Security Settings
+SESSION_SECRET=$session_secret
+
+# Application Settings
+HOST=0.0.0.0
+PORT=8080
+DEBUG=false
+LOG_LEVEL=INFO
+
+# Database
+DB_PATH=data/users.db
+
+# Tailscale Integration (configure these after installation)
+# TAILSCALE_PAT=your_tailscale_personal_access_token_here
+# TAILNET=your_tailnet_name_here
+
+# Optional: Force demo mode for testing (remove for production)
+# USE_DEMO_DATA=false
+# FORCE_LIVE_DATA=false
+
+# Email notifications (optional)
+# SMTP_SERVER=smtp.example.com
+# SMTP_PORT=587
+# SMTP_USER=your_email@example.com
+# SMTP_PASSWORD=your_email_password
+# SMTP_FROM=noreply@example.com
+
+# Security Headers (optional customization)
+# ALLOWED_HOSTS=your-domain.com,localhost
+# CORS_ORIGINS=https://your-domain.com
+EOF
+        chmod 600 ".env"
+        success "Environment configuration created with secure session secret"
+    else
+        info "Environment file already exists, skipping creation"
+    fi
+
     # Set proper permissions
     chmod 600 config/*.json
     chown -R root:root "$INSTALL_DIR"
@@ -444,12 +581,33 @@ update_application() {
     
     cd "$INSTALL_DIR"
     
+    # Backup user configuration files
+    local temp_backup="/tmp/tailsentry-config-backup-$(date +%s)"
+    mkdir -p "$temp_backup"
+    
+    [[ -f ".env" ]] && cp ".env" "$temp_backup/"
+    [[ -f "config/tailsentry_config.json" ]] && cp "config/tailsentry_config.json" "$temp_backup/"
+    [[ -f "config/tailscale_settings.json" ]] && cp "config/tailscale_settings.json" "$temp_backup/"
+    [[ -d "data" ]] && cp -r "data" "$temp_backup/"
+    
+    info "Configuration backed up to $temp_backup"
+    
     # Stash any local changes
     git stash push -m "Auto-stash before update $(date)"
     
     # Update from repository
     git fetch origin
     git reset --hard origin/main
+    
+    # Restore user configuration files
+    [[ -f "$temp_backup/.env" ]] && cp "$temp_backup/.env" ".env"
+    [[ -f "$temp_backup/tailsentry_config.json" ]] && cp "$temp_backup/tailsentry_config.json" "config/"
+    [[ -f "$temp_backup/tailscale_settings.json" ]] && cp "$temp_backup/tailscale_settings.json" "config/"
+    [[ -d "$temp_backup/data" ]] && cp -r "$temp_backup/data"/* "data/" 2>/dev/null
+    
+    # Clean up temporary backup
+    rm -rf "$temp_backup"
+    info "Configuration restored"
     
     # Update Python dependencies
     source venv/bin/activate
@@ -641,6 +799,42 @@ manage_service() {
 }
 
 # ============================================================================
+# SECURITY FUNCTIONS
+# ============================================================================
+
+regenerate_session_secret() {
+    info "Regenerating session secret..."
+    
+    if [[ ! -f "$INSTALL_DIR/.env" ]]; then
+        error ".env file not found. Please run 'install' first."
+        return 1
+    fi
+    
+    # Generate new session secret
+    local new_secret
+    new_secret=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+    
+    # Backup current .env
+    cp "$INSTALL_DIR/.env" "$INSTALL_DIR/.env.backup.$(date +%s)"
+    
+    # Update the session secret
+    sed -i "s/^SESSION_SECRET=.*/SESSION_SECRET=$new_secret/" "$INSTALL_DIR/.env"
+    
+    success "Session secret regenerated"
+    
+    # Restart service if running
+    if systemctl is-active --quiet "$SERVICE_NAME"; then
+        warning "Restarting service to apply new session secret..."
+        systemctl restart "$SERVICE_NAME"
+        success "Service restarted"
+    else
+        warning "Service is not running. Start it to apply the new session secret."
+    fi
+    
+    info "Note: All users will need to log in again due to the new session secret."
+}
+
+# ============================================================================
 # MENU FUNCTIONS
 # ============================================================================
 
@@ -651,17 +845,23 @@ $APP_NAME Installer/Manager v$SCRIPT_VERSION
 USAGE:
     $0 [COMMAND] [OPTIONS]
 
-COMMANDS:
-    install         Fresh installation of $APP_NAME
-    update          Update $APP_NAME to latest version
-    update-deps     Update Python dependencies only
+INSTALLATION COMMANDS:
+    install         Fresh installation (fails if already exists)
+    install-override DANGEROUS: Wipe existing data and reinstall
+    update          Update existing installation (preserves data)
     uninstall       Remove $APP_NAME completely
+
+MAINTENANCE COMMANDS:
     status          Show current status
     backup          Create manual backup
     restore         Restore from backup
     list-backups    List available backups
+    update-deps     Update Python dependencies only
     
-    Service Management:
+SECURITY COMMANDS:
+    regen-secret    Regenerate session secret (requires restart)
+    
+SERVICE MANAGEMENT:
     start           Start the service
     stop            Stop the service
     restart         Restart the service
@@ -669,14 +869,22 @@ COMMANDS:
     disable         Disable service auto-start
     logs            Show service logs (live)
     
+OTHER:
     help            Show this help message
 
 EXAMPLES:
-    $0 install          # Fresh installation
-    $0 update           # Update application
-    $0 status           # Check status
-    $0 restart          # Restart service
-    $0 logs             # Show live logs
+    $0                      # Interactive menu (recommended)
+    $0 install              # Fresh installation
+    $0 install-override     # DANGEROUS: Reinstall and wipe data
+    $0 update               # Update preserving data
+    $0 status               # Check status
+    $0 restart              # Restart service
+    $0 regen-secret         # Generate new session secret
+    $0 logs                 # Show live logs
+
+INTERACTIVE MODE:
+    Run without arguments to use the interactive menu with detailed
+    descriptions and safety warnings for each operation.
 
 For more information, visit: https://github.com/lolerskatez/TailSentry
 EOF
@@ -688,44 +896,48 @@ interactive_menu() {
         show_status 2>/dev/null || true
         print_separator
         
-        echo -e "${WHITE}Available Actions:${NC}"
-        echo "1. Install $APP_NAME"
-        echo "2. Update $APP_NAME"
-        echo "3. Update Dependencies Only"
-        echo "4. Uninstall $APP_NAME"
+        echo -e "${WHITE}Installation Options:${NC}"
+        echo "1. Fresh Install (New installation only - fails if already exists)"
+        echo "2. Install & Override (DANGEROUS - Wipes existing data and reinstalls)"
+        echo "3. Update Existing (Preserves data, applies fixes and updates)"
+        echo "4. Remove Installation (Complete uninstall)"
+        echo ""
+        echo -e "${WHITE}Maintenance Options:${NC}"
         echo "5. Create Backup"
         echo "6. Restore from Backup"
         echo "7. List Backups"
-        echo "8. Service Management"
-        echo "9. View Logs"
+        echo "8. Update Dependencies Only"
+        echo ""
+        echo -e "${WHITE}Security Options:${NC}"
+        echo "9. Regenerate Session Secret"
+        echo ""
+        echo -e "${WHITE}Service Management:${NC}"
+        echo "10. Service Control Menu"
+        echo "11. View Live Logs"
+        echo ""
+        echo -e "${WHITE}Other:${NC}"
+        echo "12. Show Installation Status"
         echo "0. Exit"
         echo ""
         
-        read -r -p "Choose an option [0-9]: " choice
+        read -r -p "Choose an option [0-12]: " choice
         
         case "$choice" in
             1)
                 check_root
-                check_system
-                install_dependencies
-                download_application
-                setup_python_environment
-                configure_application
-                install_service
-                systemctl start "$SERVICE_NAME"
-                success "$APP_NAME installation completed!"
+                fresh_install
                 echo ""
                 read -r -p "Press Enter to continue..."
                 ;;
             2)
                 check_root
-                update_application
+                install_and_override
                 echo ""
                 read -r -p "Press Enter to continue..."
                 ;;
             3)
                 check_root
-                update_dependencies
+                update_application
                 echo ""
                 read -r -p "Press Enter to continue..."
                 ;;
@@ -753,10 +965,27 @@ interactive_menu() {
                 read -r -p "Press Enter to continue..."
                 ;;
             8)
-                service_menu
+                check_root
+                update_dependencies
+                echo ""
+                read -r -p "Press Enter to continue..."
                 ;;
             9)
+                check_root
+                regenerate_session_secret
+                echo ""
+                read -r -p "Press Enter to continue..."
+                ;;
+            10)
+                service_menu
+                ;;
+            11)
                 manage_service "logs"
+                ;;
+            12)
+                show_status
+                echo ""
+                read -r -p "Press Enter to continue..."
                 ;;
             0)
                 echo "Goodbye!"
@@ -811,14 +1040,12 @@ main() {
         "install")
             print_header
             check_root
-            check_system
-            install_dependencies
-            download_application
-            setup_python_environment
-            configure_application
-            install_service
-            systemctl start "$SERVICE_NAME"
-            success "$APP_NAME installation completed!"
+            fresh_install
+            ;;
+        "install-override")
+            print_header
+            check_root
+            install_and_override
             ;;
         "update")
             check_root
@@ -845,6 +1072,10 @@ main() {
             ;;
         "list-backups")
             list_backups
+            ;;
+        "regen-secret")
+            check_root
+            regenerate_session_secret
             ;;
         "start"|"stop"|"restart"|"enable"|"disable"|"logs")
             check_root
