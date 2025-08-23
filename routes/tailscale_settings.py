@@ -43,6 +43,8 @@ async def apply_tailscale_settings(request: Request):
     data = await request.json()
     
     # Handle PAT separately - save to .env file
+    pat_was_updated = False
+    new_pat_value = None
     if 'tailscale_pat' in data:
         pat_value = data.get('tailscale_pat', '').strip()
         try:
@@ -54,6 +56,8 @@ async def apply_tailscale_settings(request: Request):
             if pat_value:
                 set_key(env_file, 'TAILSCALE_PAT', f"'{pat_value}'")
                 logger.info("Tailscale PAT updated successfully")
+                pat_was_updated = True
+                new_pat_value = pat_value
             else:
                 # Clear PAT if empty
                 set_key(env_file, 'TAILSCALE_PAT', '')
@@ -70,18 +74,28 @@ async def apply_tailscale_settings(request: Request):
     except Exception as e:
         logger.error(f"Failed to write tailscale_settings.json: {e}", exc_info=True)
         return JSONResponse({"success": False, "error": f"Failed to write settings: {e}"}, status_code=500)
+    
     try:
-        result = TailscaleClient.set_exit_node_advanced(
-            advertised_routes=data.get("advertise_routes"),
-            firewall=data.get("exit_node_firewall"),
-            hostname=data.get("hostname")
-        )
-        logger.info(f"TailscaleClient.set_exit_node_advanced result: {result}")
+        # If PAT was updated, use it as authkey for connection
+        if pat_was_updated and new_pat_value:
+            logger.info("PAT was updated, using it as authkey for tailscale up")
+            result = TailscaleClient.up(authkey=new_pat_value, extra_args=['--reset', '--hostname', data.get('hostname', 'tailsentry-router'), '--accept-routes'])
+        else:
+            # Regular settings update without PAT change
+            result = TailscaleClient.set_exit_node_advanced(
+                advertised_routes=data.get("advertise_routes"),
+                firewall=data.get("exit_node_firewall"),
+                hostname=data.get("hostname")
+            )
+        
+        logger.info(f"TailscaleClient operation result: {result}")
         status = TailscaleClient.status_json()
         if result is not True:
-            logger.error(f"Exit node operation failed: {result}")
+            logger.error(f"Tailscale operation failed: {result}")
             return JSONResponse({"success": False, "error": str(result), "status": status}, status_code=500)
-        return JSONResponse({"success": True, "message": "Settings applied!", "status": status})
+            
+        success_message = "PAT updated and connected to tailnet!" if pat_was_updated else "Settings applied!"
+        return JSONResponse({"success": True, "message": success_message, "status": status})
     except Exception as e:
         logger.error(f"Failed to apply settings via TailscaleClient: {e}", exc_info=True)
         status = TailscaleClient.status_json()
