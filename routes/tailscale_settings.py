@@ -140,26 +140,64 @@ async def tailscale_service_control(request: Request):
         data = await request.json()
         action = data.get("action")
         
+        logger.info(f"Tailscale service control requested: {action}")
+        
+        # Validate action
+        allowed_actions = ["start", "stop", "restart", "status", "up", "down"]
+        if action not in allowed_actions:
+            return JSONResponse({"success": False, "error": f"Invalid action: {action}. Must be one of {allowed_actions}"}, status_code=400)
+        
         if action == "status":
-            status = TailscaleClient.service_status()
-            return JSONResponse({"success": True, "status": status})
-        elif action in ["start", "stop", "restart", "up", "down"]:
-            if action == "up":
-                result = TailscaleClient.up()
-            elif action == "down":
-                result = TailscaleClient.service_control("down")
-            else:
-                result = TailscaleClient.service_control(action)
+            try:
+                status = TailscaleClient.service_status()
+                return JSONResponse({"success": True, "status": status})
+            except Exception as e:
+                logger.error(f"Failed to get service status: {e}")
+                return JSONResponse({"success": False, "error": f"Failed to get service status: {str(e)}"}, status_code=500)
                 
-            if result is True or "success" in str(result).lower():
-                return JSONResponse({"success": True, "message": f"Service {action} completed"})
-            else:
-                return JSONResponse({"success": False, "error": str(result)}, status_code=500)
-        else:
-            return JSONResponse({"success": False, "error": "Invalid action"}, status_code=400)
+        elif action in ["start", "stop", "restart"]:
+            try:
+                result = TailscaleClient.service_control(action)
+                logger.info(f"Service control {action} result: {result}")
+                
+                # Consider it successful if no exception was raised
+                if result is True or (isinstance(result, str) and "error" not in result.lower() and "failed" not in result.lower()):
+                    return JSONResponse({"success": True, "message": f"Service {action} completed", "details": str(result)})
+                else:
+                    return JSONResponse({"success": False, "error": str(result)}, status_code=500)
+            except Exception as e:
+                logger.error(f"Failed to {action} service: {e}")
+                return JSONResponse({"success": False, "error": f"Failed to {action} service: {str(e)}"}, status_code=500)
+                
+        elif action == "up":
+            try:
+                result = TailscaleClient.up()
+                logger.info(f"Tailscale up result: {result}")
+                
+                if result is True:
+                    return JSONResponse({"success": True, "message": "Tailscale connected successfully"})
+                else:
+                    return JSONResponse({"success": False, "error": str(result)}, status_code=500)
+            except Exception as e:
+                logger.error(f"Failed to bring Tailscale up: {e}")
+                return JSONResponse({"success": False, "error": f"Failed to bring Tailscale up: {str(e)}"}, status_code=500)
+                
+        elif action == "down":
+            try:
+                result = TailscaleClient.down()
+                logger.info(f"Tailscale down result: {result}")
+                
+                if result is True:
+                    return JSONResponse({"success": True, "message": "Tailscale disconnected successfully"})
+                else:
+                    return JSONResponse({"success": False, "error": str(result)}, status_code=500)
+            except Exception as e:
+                logger.error(f"Failed to bring Tailscale down: {e}")
+                return JSONResponse({"success": False, "error": f"Failed to bring Tailscale down: {str(e)}"}, status_code=500)
+                
     except Exception as e:
-        logger.error(f"Failed to control service: {e}", exc_info=True)
-        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+        logger.error(f"Failed to process service control request: {e}", exc_info=True)
+        return JSONResponse({"success": False, "error": f"Failed to process request: {str(e)}"}, status_code=500)
 
 @router.get("/api/tailscale-logs")
 async def get_tailscale_logs():
