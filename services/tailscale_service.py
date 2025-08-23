@@ -66,9 +66,22 @@ def should_use_demo_data():
 def load_demo_data():
     """Load demo data from the demo_data.json file"""
     try:
-        demo_file = os.path.join(os.path.dirname(__file__), "..", "demo_data.json")
-        with open(demo_file, 'r') as f:
-            return json.load(f)
+        # Try multiple possible locations for demo_data.json
+        possible_paths = [
+            os.path.join(os.path.dirname(__file__), "..", "demo_data.json"),  # Original path
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "demo_data.json"),  # Project root
+            "/opt/tailsentry/demo_data.json",  # Installed location
+        ]
+        
+        for demo_file in possible_paths:
+            if os.path.exists(demo_file):
+                logger.info(f"Loading demo data from: {demo_file}")
+                with open(demo_file, 'r') as f:
+                    return json.load(f)
+        
+        # If we get here, no demo file was found
+        logger.warning("Demo data file not found in any expected location")
+        return None
     except Exception as e:
         logger.error(f"Failed to load demo data: {e}")
         return None
