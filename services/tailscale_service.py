@@ -48,44 +48,6 @@ logger = logging.getLogger("tailsentry.tailscale")
 
 load_dotenv()
 
-# Demo data helper functions
-def should_use_demo_data():
-    """Check if we should use demo data (when Tailscale isn't properly configured)"""
-    # Use demo data if explicitly enabled OR if no TAILSCALE_PAT is set
-    use_demo = os.getenv("TAILSENTRY_USE_DEMO_DATA", "false").lower() == "true"
-    no_pat = not os.getenv("TAILSCALE_PAT")
-    
-    if use_demo:
-        logger.info("Demo data enabled via TAILSENTRY_USE_DEMO_DATA=true")
-        return True
-    elif no_pat:
-        logger.info("Using demo data because TAILSCALE_PAT is not set")
-        return True
-    return False
-
-def load_demo_data():
-    """Load demo data from the demo_data.json file"""
-    try:
-        # Try multiple possible locations for demo_data.json
-        possible_paths = [
-            os.path.join(os.path.dirname(__file__), "..", "demo_data.json"),  # Original path
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), "demo_data.json"),  # Project root
-            "/opt/tailsentry/demo_data.json",  # Installed location
-        ]
-        
-        for demo_file in possible_paths:
-            if os.path.exists(demo_file):
-                logger.info(f"Loading demo data from: {demo_file}")
-                with open(demo_file, 'r') as f:
-                    return json.load(f)
-        
-        # If we get here, no demo file was found
-        logger.warning("Demo data file not found in any expected location")
-        return None
-    except Exception as e:
-        logger.error(f"Failed to load demo data: {e}")
-        return None
-
 # Configuration from environment
 TAILSCALE_PAT = os.getenv("TAILSCALE_PAT")
 if not TAILSCALE_PAT:
@@ -492,15 +454,6 @@ class TailscaleClient:
     @staticmethod
     def status_json():
         """Get Tailscale status as JSON (cached for 5 seconds)"""
-        # Check if we should use demo data
-        if should_use_demo_data():
-            demo_data = load_demo_data()
-            if demo_data and "demo_status" in demo_data:
-                logger.info("Returning demo Tailscale data for development")
-                return demo_data["demo_status"]
-            else:
-                logger.warning("Demo data requested but not available, falling back to real data")
-        
         # Force live data - disable mock data completely
         if USE_MOCK_DATA and not FORCE_LIVE_DATA:
             logger.warning("USE_MOCK_DATA is enabled but FORCE_LIVE_DATA overrides it")
@@ -516,24 +469,20 @@ class TailscaleClient:
         if isinstance(result, dict) and "error" not in result:
             self_obj = result.get("Self", {})
             peer_obj = result.get("Peer", {})
+            
             if isinstance(self_obj, dict):
                 hostname = self_obj.get("HostName", "unknown")
-                ip = self_obj.get("TailscaleIPs", ["none"])[0]
+                ip = self_obj.get("TailscaleIPs", ["none"])[0] if self_obj.get("TailscaleIPs") else "none"
             else:
                 hostname = "unknown"
                 ip = "none"
+                
             if isinstance(peer_obj, dict):
                 peer_count = len(peer_obj)
             else:
                 peer_count = 0
+                
             logger.info(f"Returning real Tailscale data: {hostname} ({ip}) with {peer_count} peers")
-            # Verify this isn't mock data
-            if hostname == "tailscale-server" and peer_count == 3:
-                logger.warning("This might be mock data - checking...")
-            if not isinstance(self_obj, dict):
-                logger.warning("Tailscale data 'Self' is not a dict")
-            if not isinstance(peer_obj, dict):
-                logger.warning("Tailscale data 'Peer' is not a dict")
         else:
             error = result.get("error", "unknown error") if isinstance(result, dict) else "not a dict"
             logger.error(f"Error in Tailscale status: {error}")

@@ -290,22 +290,9 @@ from routes.user import get_current_user
 @app.get("/", include_in_schema=False)
 async def root(request: Request):
     """Root endpoint, requires login to access dashboard"""
-    import logging
-    logger = logging.getLogger("tailsentry")
-    
-    # Debug session information
-    session_user = request.session.get("user")
-    logger.info(f"[ROOT] Session user: {session_user}")
-    logger.info(f"[ROOT] Full session: {dict(request.session)}")
-    
     user = get_current_user(request)
-    logger.info(f"[ROOT] get_current_user returned: {user}")
-    
     if not user:
-        logger.info(f"[ROOT] No user found, redirecting to login")
         return RedirectResponse(url="/login", status_code=302)
-    
-    logger.info(f"[ROOT] Showing dashboard for user: {user.get('username') if user else 'None'}")
     return templates.TemplateResponse("dashboard.html", {"request": request, "user": user})
 
 # Test route for debugging

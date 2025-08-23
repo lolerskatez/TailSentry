@@ -311,17 +311,6 @@
               </svg>
               <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Tailscale Offline</h4>
               <p class="text-gray-500 dark:text-gray-400 mb-4">Connect to Tailscale to view network activity</p>
-              {% if user and user.role == 'admin' %}
-              <div class="space-y-2">
-                <a href="/settings/tailscale" 
-                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2-2V5a2 2 0 00-2-2m-2 2V3"></path>
-                  </svg>
-                  Enter Authentication Key
-                </a>
-              </div>
-              {% endif %}
             </div>
           </div>
         </div>
@@ -470,13 +459,6 @@
           </p>
           {% if user and user.role == 'admin' %}
           <div class="flex space-x-3">
-            <a href="/settings/tailscale" 
-               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2-2V5a2 2 0 00-2-2m-2 2V3"></path>
-              </svg>
-              Enter Authentication Key
-            </a>
             <button @click="refreshAll()" 
                     class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -560,15 +542,6 @@
           <p class="text-gray-500 dark:text-gray-400 mb-6 text-center max-w-md">
             Connect to Tailscale to view your devices in card format.
           </p>
-          {% if user and user.role == 'admin' %}
-          <a href="/settings/tailscale" 
-             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2-2V5a2 2 0 00-2-2m-2 2V3"></path>
-            </svg>
-            Enter Authentication Key
-          </a>
-          {% endif %}
         </div>
       </div>
 

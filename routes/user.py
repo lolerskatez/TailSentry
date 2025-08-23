@@ -34,22 +34,12 @@ async def send_reset_email(to_email, token):
     )
 
 def get_current_user(request: Request):
-    import logging
-    logger = logging.getLogger("tailsentry")
-    
     username = request.session.get("user")
-    logger.info(f"[GET_CURRENT_USER] Session username: {username}")
-    
     if username:
         user_row = get_user(username)
-        logger.info(f"[GET_CURRENT_USER] User row from DB: {user_row}")
         if user_row:
             # Convert Row to dict for template compatibility
-            user_dict = dict(user_row)
-            logger.info(f"[GET_CURRENT_USER] Returning user dict: {user_dict}")
-            return user_dict
-    
-    logger.info(f"[GET_CURRENT_USER] No valid user found, returning None")
+            return dict(user_row)
     return None
 
 @router.get("/login")
@@ -77,10 +67,6 @@ def login(request: Request, response: Response, username: str = Form(...), passw
         else:
             request.session["remember_me"] = False
             request.session["max_age"] = None
-        
-        # Debug: Check if session was set correctly
-        logger.info(f"[LOGIN] Session after setting: {dict(request.session)}")
-        logger.info(f"[LOGIN] Session user after setting: {request.session.get('user')}")
         
         return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
     else:
