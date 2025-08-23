@@ -523,10 +523,22 @@ class TailscaleClient:
             cmd += extra_args
         try:
             logger.info(f"Running Tailscale command: {' '.join(cmd)}")
-            subprocess.check_call(cmd)
-            return True
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            
+            if result.returncode == 0:
+                if result.stdout:
+                    logger.info(f"Tailscale stdout: {result.stdout}")
+                return True
+            else:
+                error_msg = f"Command failed with exit code {result.returncode}"
+                if result.stderr:
+                    error_msg += f", stderr: {result.stderr}"
+                if result.stdout:
+                    error_msg += f", stdout: {result.stdout}"
+                logger.error(f"Tailscale command failed: {error_msg}")
+                return error_msg
         except Exception as e:
-            logger.error(f"Tailscale command failed: {str(e)}")
+            logger.error(f"Tailscale command exception: {str(e)}")
             return str(e)
 
     @staticmethod
@@ -536,10 +548,22 @@ class TailscaleClient:
         cmd = [tailscale_path, "down"]
         try:
             logger.info(f"Running Tailscale command: {' '.join(cmd)}")
-            subprocess.check_call(cmd)
-            return True
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            
+            if result.returncode == 0:
+                if result.stdout:
+                    logger.info(f"Tailscale stdout: {result.stdout}")
+                return True
+            else:
+                error_msg = f"Command failed with exit code {result.returncode}"
+                if result.stderr:
+                    error_msg += f", stderr: {result.stderr}"
+                if result.stdout:
+                    error_msg += f", stdout: {result.stdout}"
+                logger.error(f"Tailscale down command failed: {error_msg}")
+                return error_msg
         except Exception as e:
-            logger.error(f"Tailscale down command failed: {str(e)}")
+            logger.error(f"Tailscale down command exception: {str(e)}")
             return str(e)
 
     @staticmethod
