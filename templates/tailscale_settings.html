@@ -198,9 +198,21 @@
                                 <div class="flex items-center">
                                     <span class="text-sm font-medium text-gray-600 dark:text-gray-400 mr-2">Advertising:</span>
                                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                                          :class="advertiseExitNode ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'">
-                                        <i :class="advertiseExitNode ? 'fas fa-check-circle mr-1' : 'fas fa-times-circle mr-1'"></i>
-                                        <span x-text="advertiseExitNode ? 'Active' : 'Disabled'"></span>
+                                          :class="{
+                                              'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': exitNodeStatus === 'approved',
+                                              'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200': exitNodeStatus === 'pending_approval',
+                                              'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300': !advertiseExitNode
+                                          }">
+                                        <i :class="{
+                                            'fas fa-check-circle mr-1': exitNodeStatus === 'approved',
+                                            'fas fa-clock mr-1': exitNodeStatus === 'pending_approval',
+                                            'fas fa-times-circle mr-1': !advertiseExitNode
+                                        }"></i>
+                                        <span x-text="{
+                                            'approved': 'Active',
+                                            'pending_approval': 'Pending',
+                                            'disabled': 'Disabled'
+                                        }[exitNodeStatus] || 'Disabled'"></span>
                                     </span>
                                 </div>
                                 <div class="flex items-center">
@@ -263,12 +275,55 @@
                                 </div>
                                 
                                 <!-- Status Information -->
-                                <div x-show="advertiseExitNode" x-transition class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-check-circle text-green-600 dark:text-green-400 mr-2"></i>
-                                        <span class="text-sm font-medium text-green-800 dark:text-green-200">
-                                            This device is advertising as an exit node
-                                        </span>
+                                <div x-show="advertiseExitNode" x-transition class="space-y-3">
+                                    <!-- Approved Status -->
+                                    <div x-show="exitNodeStatus === 'approved'" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-check-circle text-green-600 dark:text-green-400 mr-2"></i>
+                                            <span class="text-sm font-medium text-green-800 dark:text-green-200">
+                                                Exit node is active and approved
+                                            </span>
+                                        </div>
+                                        <p class="text-xs text-green-700 dark:text-green-300 mt-1 ml-6">
+                                            Other devices can now use this node as an exit point.
+                                        </p>
+                                    </div>
+                                    
+                                    <!-- Pending Approval Status -->
+                                    <div x-show="exitNodeStatus === 'pending_approval'" class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                                        <div class="flex items-start">
+                                            <i class="fas fa-clock text-yellow-600 dark:text-yellow-400 mr-2 mt-0.5"></i>
+                                            <div class="flex-1">
+                                                <span class="text-sm font-medium text-yellow-800 dark:text-yellow-200 block">
+                                                    Pending admin approval
+                                                </span>
+                                                <p class="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                                                    Your exit node request has been submitted but needs to be approved by a tailnet admin.
+                                                </p>
+                                                <div class="mt-2">
+                                                    <a :href="adminConsoleUrl" target="_blank" 
+                                                       class="inline-flex items-center text-xs text-yellow-800 dark:text-yellow-200 hover:text-yellow-900 dark:hover:text-yellow-100 font-medium">
+                                                        <i class="fas fa-external-link-alt mr-1"></i>
+                                                        Open Tailscale Admin Console
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- General Info for Active State -->
+                                    <div x-show="exitNodeStatus !== 'pending_approval'" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                        <div class="flex items-start">
+                                            <i class="fas fa-info-circle text-blue-600 dark:text-blue-400 mr-2 mt-0.5"></i>
+                                            <div class="text-xs text-blue-800 dark:text-blue-200">
+                                                <p class="font-medium mb-1">Exit node information:</p>
+                                                <ul class="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-300">
+                                                    <li>Routes all internet traffic for connected devices</li>
+                                                    <li>May require admin approval in your tailnet</li>
+                                                    <li>Check admin console for approval status</li>
+                                                </ul>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -446,6 +501,8 @@ function tailscaleSettings() {
         selectedExitNode: '',
         activeExitNode: '',
         advertiseExitNode: false,
+        exitNodeStatus: 'disabled', // 'disabled', 'pending_approval', 'approved'
+        adminConsoleUrl: 'https://login.tailscale.com/admin/machines',
         exitNodeLoading: false,
         acceptRoutes: false,
         acceptDns: false,
@@ -456,6 +513,19 @@ function tailscaleSettings() {
         async init() {
             await this.loadStatus();
             await this.loadSettings();
+            
+            // Auto-refresh when exit node is pending approval
+            this.startAutoRefresh();
+        },
+        
+        startAutoRefresh() {
+            // Refresh every 10 seconds if exit node is pending approval
+            setInterval(async () => {
+                if (this.exitNodeStatus === 'pending_approval') {
+                    await this.loadSettings();
+                    await this.loadStatus();
+                }
+            }, 10000);
         },
 
         async loadStatus() {
@@ -479,6 +549,8 @@ function tailscaleSettings() {
                     this.acceptRoutes = settings.accept_routes || false;
                     this.acceptDns = settings.accept_dns || false;
                     this.advertiseExitNode = settings.advertise_exit_node || false;
+                    this.exitNodeStatus = settings.exit_node_status || 'disabled';
+                    this.adminConsoleUrl = settings.admin_console_url || 'https://login.tailscale.com/admin/machines';
                 }
             } catch (error) {
                 console.error('Error loading settings:', error);
@@ -509,6 +581,7 @@ function tailscaleSettings() {
 
         async refreshStatus() {
             await this.loadStatus();
+            await this.loadSettings(); // Also refresh settings to get latest approval status
             this.showMessage('Status refreshed');
         },
 

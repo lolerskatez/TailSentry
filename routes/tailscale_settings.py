@@ -64,13 +64,24 @@ async def get_tailscale_settings():
                 # Running status indicates if it's approved and active
                 settings['advertise_exit_node'] = exit_node_option
                 
+                # Add detailed status for UI
                 if exit_node_option:
                     if is_running:
+                        settings['exit_node_status'] = 'approved'
                         logger.info("Exit node is requested and running (approved)")
                     else:
+                        settings['exit_node_status'] = 'pending_approval'
                         logger.info("Exit node is requested but pending approval")
                 else:
+                    settings['exit_node_status'] = 'disabled'
                     logger.info("Exit node not requested")
+                
+                # Add admin console URL for approval
+                tailnet = os.getenv('TAILSCALE_TAILNET', '-')
+                if tailnet == '-':
+                    settings['admin_console_url'] = 'https://login.tailscale.com/admin/machines'
+                else:
+                    settings['admin_console_url'] = f'https://login.tailscale.com/admin/machines/{tailnet}'
                 
                 # Also get advertised routes for subnet routing (separate from exit node)
                 advertised_routes = self_info.get('AdvertisedRoutes', [])
