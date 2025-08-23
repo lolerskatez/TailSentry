@@ -309,6 +309,10 @@ configure_application() {
     # Create config directory
     mkdir -p config data logs
     
+    # Set proper permissions for data directory
+    chmod 755 data
+    chown root:root data
+    
     # Generate session secret
     local session_secret=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
     
@@ -384,6 +388,8 @@ EOF
     # Set permissions
     chown -R root:root "$INSTALL_DIR"
     chmod 755 "$INSTALL_DIR"
+    chmod 755 "$INSTALL_DIR/data"
+    chmod 755 "$INSTALL_DIR/logs"
     chmod 600 "$INSTALL_DIR"/config/*.json 2>/dev/null || true
     
     success "Application configured"
@@ -902,6 +908,7 @@ backup_management() {
         echo "1. Create backup"
         echo "2. List backups"
         echo "3. Restore from backup"
+        echo "4. Repair permissions"
         echo "0. Back to main menu"
         echo
         
@@ -920,6 +927,10 @@ backup_management() {
                 restore_backup
                 pause
                 ;;
+            4)
+                repair_permissions
+                pause
+                ;;
             0)
                 break
                 ;;
@@ -929,6 +940,32 @@ backup_management() {
                 ;;
         esac
     done
+}
+
+repair_permissions() {
+    info "Repairing TailSentry permissions..."
+    
+    if [[ ! -d "$INSTALL_DIR" ]]; then
+        error "TailSentry installation not found at $INSTALL_DIR"
+        return 1
+    fi
+    
+    # Ensure directories exist
+    mkdir -p "$INSTALL_DIR"/{data,logs,config}
+    
+    # Set correct ownership and permissions
+    chown -R root:root "$INSTALL_DIR"
+    chmod 755 "$INSTALL_DIR"
+    chmod 755 "$INSTALL_DIR/data"
+    chmod 755 "$INSTALL_DIR/logs"
+    chmod 755 "$INSTALL_DIR/config"
+    chmod 600 "$INSTALL_DIR"/.env 2>/dev/null || true
+    chmod 600 "$INSTALL_DIR"/config/*.json 2>/dev/null || true
+    
+    # Restart service to apply changes
+    systemctl restart "$SERVICE_NAME"
+    
+    success "Permissions repaired and service restarted"
 }
 
 show_installation_guide() {

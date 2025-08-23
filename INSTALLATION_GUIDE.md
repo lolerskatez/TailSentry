@@ -56,8 +56,12 @@ The fastest way to get TailSentry running:
 # Download the setup script
 wget https://raw.githubusercontent.com/lolerskatez/TailSentry/main/setup.sh
 
-# Make it executable
+# Verify you have the correct version (should be 2.0.1+)
 chmod +x setup.sh
+./setup.sh --version
+
+# If version is older than 2.0.1, force refresh:
+wget https://raw.githubusercontent.com/lolerskatez/TailSentry/main/setup.sh?$(date +%s) -O setup.sh
 
 # Run interactive installation
 sudo ./setup.sh

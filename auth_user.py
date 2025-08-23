@@ -58,9 +58,22 @@ from typing import Optional
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(PROJECT_ROOT, 'data', 'users.db')
 print(f"[DEBUG] Using DB_PATH: {DB_PATH}")
+
+# Ensure data directory exists
+data_dir = os.path.dirname(DB_PATH)
+if not os.path.exists(data_dir):
+    os.makedirs(data_dir, mode=0o755, exist_ok=True)
+    print(f"[DEBUG] Created data directory: {data_dir}")
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_db():
+    # Ensure data directory exists before connecting
+    data_dir = os.path.dirname(DB_PATH)
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir, mode=0o755, exist_ok=True)
+        print(f"[DEBUG] Created data directory: {data_dir}")
+    
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
