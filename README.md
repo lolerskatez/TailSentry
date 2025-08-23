@@ -13,19 +13,26 @@ TailSentry is a secure, web-based management dashboard for Tailscale networks. I
 
 ## 🚀 Quick Installation
 
-### One-Line Install (Recommended)
+### Interactive Setup (Recommended)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/tailsentry-installer | sudo bash -s -- install
+# Download setup script
+wget https://raw.githubusercontent.com/lolerskatez/TailSentry/main/setup.sh
+chmod +x setup.sh
+
+# Run interactive installation
+sudo ./setup.sh
 ```
 
-### Manual Download & Install
+### Command Line Install
 ```bash
-# Download installer
-wget https://raw.githubusercontent.com/lolerskatez/TailSentry/main/tailsentry-installer
-chmod +x tailsentry-installer
+# Fresh installation
+sudo ./setup.sh install
 
-# Run installer (will prompt for Tailscale PAT)
-sudo ./tailsentry-installer install
+# Update existing installation
+sudo ./setup.sh update
+
+# Show status
+sudo ./setup.sh status
 ```
 
 ### Docker Deployment
@@ -36,7 +43,7 @@ cp .env.example .env  # Configure your settings
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-> **Note**: The installer automatically configures `DEVELOPMENT=true` for HTTP session support during initial setup. You can change this to `false` in **Settings > System** for production deployments with HTTPS.
+> **Note**: The installer automatically configures secure defaults for production use. The interactive menu provides safe options for installation, updates, and management.
 
 ## 📋 Prerequisites
 
@@ -47,8 +54,12 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ### Pre-installation Check
 ```bash
-# Validate your system is ready
-curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/validate-system.sh | bash
+# Install Tailscale first
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+
+# Ensure system requirements are met
+sudo apt-get install -y python3 python3-venv python3-pip git curl
 ```
 
 ## ⚙️ Configuration
@@ -56,21 +67,21 @@ curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/validat
 After installation:
 
 1. **Access TailSentry**: http://localhost:8080
-2. **Default login**: admin/admin (⚠️ change immediately!)
+2. **Default login**: admin/admin123 (⚠️ change immediately!)
 3. **Configure Tailscale**: Add your PAT in settings
 4. **Set up notifications**: Configure email/webhook alerts
 
-For detailed configuration options, see [INSTALLATION.md](INSTALLATION.md).
+For detailed configuration options, see [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md).
 
 ## 🔧 Management Commands
 
 ### Bare Metal Installation
 ```bash
-tailsentry-installer status        # Check status
-tailsentry-installer update        # Update application
-tailsentry-installer backup        # Create backup
-tailsentry-installer restart       # Restart service
-tailsentry-installer logs          # View logs
+sudo ./setup.sh status            # Check status
+sudo ./setup.sh update            # Update application
+sudo ./setup.sh                   # Interactive menu for all options
+systemctl status tailsentry       # Check service status
+journalctl -u tailsentry -f       # View logs
 ```
 
 ### Docker Installation
@@ -173,12 +184,14 @@ A secure, minimal FastAPI + TailwindCSS dashboard for managing a Tailscale subne
 
 2. **Install TailSentry**:
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/tailsentry-installer | sudo bash -s -- install
+   wget https://raw.githubusercontent.com/lolerskatez/TailSentry/main/setup.sh
+   chmod +x setup.sh
+   sudo ./setup.sh
    ```
 
 3. **Access the dashboard**:
    - Open http://localhost:8080 in your browser
-   - Complete the onboarding wizard to set up your admin account
+   - Login with admin/admin123 and change password
 
 
 For manual installation or development setup:

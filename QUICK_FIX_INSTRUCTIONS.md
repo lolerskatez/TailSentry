@@ -27,14 +27,14 @@ sudo systemctl start tailsentry
 sudo systemctl status tailsentry
 ```
 
-### Option 2: Update with Fixed Installer
+### Option 2: Update with Fixed Setup Script
 ```bash
-# Download the updated installer with the fix
-curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/tailsentry-installer -o /tmp/tailsentry-installer-new
-chmod +x /tmp/tailsentry-installer-new
+# Download the updated setup script with the fix
+wget https://raw.githubusercontent.com/lolerskatez/TailSentry/main/setup.sh -O /tmp/setup-new.sh
+chmod +x /tmp/setup-new.sh
 
 # Run update (this will preserve your configuration and apply fixes)
-sudo /tmp/tailsentry-installer-new update
+sudo /tmp/setup-new.sh update
 ```
 
 ## 🔒 Generate Secure Session Secret
@@ -42,8 +42,9 @@ sudo /tmp/tailsentry-installer-new update
 After fixing the login issue, secure your installation:
 
 ```bash
-# Method 1: Using the updated installer
-sudo /opt/tailsentry/tailsentry-installer regen-secret
+# Method 1: Using the setup script
+sudo ./setup.sh
+# Choose option 5: Show Status to verify installation
 
 # Method 2: Manual method
 cd /opt/tailsentry

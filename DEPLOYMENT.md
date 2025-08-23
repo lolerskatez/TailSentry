@@ -9,7 +9,7 @@
 
 ### One-Line Installation
 ```bash
-curl -fsSL https://raw.githubusercontent.com/lolerskatez/TailSentry/main/tailsentry-installer -o /usr/local/bin/tailsentry-installer && chmod +x /usr/local/bin/tailsentry-installer && sudo tailsentry-installer install
+wget https://raw.githubusercontent.com/lolerskatez/TailSentry/main/setup.sh && chmod +x setup.sh && sudo ./setup.sh install
 ```
 
 ## 🔧 Manual Deployment
