@@ -187,26 +187,21 @@ def apply_all_settings_to_tailscale(settings):
             subnet_routes = [r.strip() for r in subnet_routes.split(',') if r.strip()]
         advertised_routes.extend(subnet_routes)
     
-    # Add exit node route ONLY if explicitly enabled
+    # Handle exit node setting with dedicated flag
     advertise_exit = settings.get('advertise_exit_node', False)
     logger.info(f"advertise_exit_node setting: {advertise_exit}")
     if advertise_exit is True:
-        # For exit nodes, we need both IPv4 and IPv6 routes
-        if '0.0.0.0/0' not in advertised_routes:
-            advertised_routes.append('0.0.0.0/0')
-            logger.info("Added 0.0.0.0/0 to advertised routes (IPv4 exit node)")
-        if '::/0' not in advertised_routes:
-            advertised_routes.append('::/0')
-            logger.info("Added ::/0 to advertised routes (IPv6 exit node)")
+        args.append("--advertise-exit-node")
+        logger.info("Added --advertise-exit-node flag")
     else:
-        logger.info("Exit node disabled, not adding exit node routes")
+        logger.info("Exit node disabled, not adding exit node flag")
     
-    # Apply advertised routes only if we have any
+    # Apply advertised routes only if we have any (for subnet routing)
     if advertised_routes:
         args.extend(["--advertise-routes", ",".join(advertised_routes)])
         logger.info(f"Final advertised routes: {advertised_routes}")
     else:
-        logger.info("No routes to advertise")
+        logger.info("No subnet routes to advertise")
     
     # Log the complete command for debugging
     logger.info(f"Applying Tailscale configuration with args: {args}")
