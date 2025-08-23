@@ -36,6 +36,23 @@ async def get_tailscale_settings():
     settings['tailscale_pat'] = ''  # Don't expose actual PAT
     settings['has_pat'] = bool(os.getenv('TAILSCALE_PAT'))
     
+    # Add current exit node advertisement status
+    try:
+        status = TailscaleClient.status_json()
+        if status and isinstance(status, dict) and 'Self' in status:
+            self_info = status['Self']
+            if isinstance(self_info, dict):
+                advertised_routes = self_info.get('AdvertisedRoutes', [])
+                # Check if advertising exit node (0.0.0.0/0 or ::/0 in routes)
+                settings['advertise_exit_node'] = any(route in ('0.0.0.0/0', '::/0') for route in advertised_routes)
+            else:
+                settings['advertise_exit_node'] = False
+        else:
+            settings['advertise_exit_node'] = False
+    except Exception as e:
+        logger.error(f"Failed to get exit node status: {e}")
+        settings['advertise_exit_node'] = False
+    
     return JSONResponse(settings)
 
 @router.post("/api/tailscale-settings")
@@ -81,12 +98,40 @@ async def apply_tailscale_settings(request: Request):
             logger.info("PAT was updated, using it as authkey for tailscale up")
             result = TailscaleClient.up(authkey=new_pat_value, extra_args=['--reset', '--hostname', data.get('hostname', 'tailsentry-router'), '--accept-routes'])
         else:
-            # Regular settings update without PAT change
-            result = TailscaleClient.set_exit_node_advanced(
-                advertised_routes=data.get("advertise_routes"),
-                firewall=data.get("exit_node_firewall"),
-                hostname=data.get("hostname")
-            )
+            # Handle different types of settings updates
+            if 'advertise_exit_node' in data:
+                # Exit node advertisement setting
+                advertise_exit = data.get('advertise_exit_node', False)
+                logger.info(f"Updating exit node advertisement: {advertise_exit}")
+                
+                # Get current routes to preserve them
+                current_status = TailscaleClient.status_json()
+                current_routes = []
+                if current_status and isinstance(current_status, dict) and 'Self' in current_status:
+                    self_info = current_status['Self']
+                    if isinstance(self_info, dict):
+                        current_routes = self_info.get('AdvertisedRoutes', [])
+                        # Remove exit node routes to avoid duplication
+                        current_routes = [r for r in current_routes if r not in ('0.0.0.0/0', '::/0')]
+                
+                if advertise_exit:
+                    # Add exit node route
+                    routes_to_advertise = current_routes + ['0.0.0.0/0']
+                else:
+                    # Keep only subnet routes, remove exit node routes
+                    routes_to_advertise = current_routes
+                
+                result = TailscaleClient.set_exit_node_advanced(
+                    advertised_routes=routes_to_advertise,
+                    hostname=data.get('hostname', 'tailsentry-router')
+                )
+            else:
+                # Regular settings update without exit node change
+                result = TailscaleClient.set_exit_node_advanced(
+                    advertised_routes=data.get("advertise_routes"),
+                    firewall=data.get("exit_node_firewall"),
+                    hostname=data.get("hostname")
+                )
         
         logger.info(f"TailscaleClient operation result: {result}")
         status = TailscaleClient.status_json()
@@ -132,10 +177,10 @@ async def set_exit_node(request: Request):
     """Set or unset exit node"""
     try:
         data = await request.json()
-        exit_node = data.get("exit_node")
+        node_id = data.get("node_id")  # Frontend sends node_id
         
-        if exit_node:
-            result = TailscaleClient.set_exit_node(True, {"exit_node": exit_node})
+        if node_id:
+            result = TailscaleClient.set_exit_node(True, {"exit_node": node_id})
         else:
             result = TailscaleClient.set_exit_node(False)
             
