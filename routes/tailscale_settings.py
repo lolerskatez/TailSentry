@@ -55,12 +55,15 @@ async def get_tailscale_settings():
             if isinstance(self_info, dict):
                 advertised_routes = self_info.get('AdvertisedRoutes', [])
                 logger.info(f"AdvertisedRoutes: {advertised_routes}")
-                # Check if advertising exit node (0.0.0.0/0 or ::/0 in routes)
-                has_exit_route = any(route in ('0.0.0.0/0', '::/0') for route in advertised_routes) if advertised_routes else False
+                # Check if advertising exit node (both 0.0.0.0/0 AND ::/0 for complete exit node)
+                has_ipv4_exit = '0.0.0.0/0' in advertised_routes if advertised_routes else False
+                has_ipv6_exit = '::/0' in advertised_routes if advertised_routes else False
+                # Consider it an exit node if we have IPv4 exit route (IPv6 is optional but recommended)
+                has_exit_route = has_ipv4_exit
                 settings['advertise_exit_node'] = has_exit_route
-                logger.info(f"Exit node advertisement detected: {has_exit_route}")
+                logger.info(f"Exit node advertisement detected: {has_exit_route} (IPv4: {has_ipv4_exit}, IPv6: {has_ipv6_exit})")
                 
-                # Also update subnet routes from actual state
+                # Also update subnet routes from actual state (exclude exit node routes)
                 if advertised_routes:
                     subnet_routes = [r for r in advertised_routes if r not in ('0.0.0.0/0', '::/0')]
                     settings['advertised_routes'] = subnet_routes
@@ -188,11 +191,15 @@ def apply_all_settings_to_tailscale(settings):
     advertise_exit = settings.get('advertise_exit_node', False)
     logger.info(f"advertise_exit_node setting: {advertise_exit}")
     if advertise_exit is True:
+        # For exit nodes, we need both IPv4 and IPv6 routes
         if '0.0.0.0/0' not in advertised_routes:
             advertised_routes.append('0.0.0.0/0')
-            logger.info("Added 0.0.0.0/0 to advertised routes (exit node enabled)")
+            logger.info("Added 0.0.0.0/0 to advertised routes (IPv4 exit node)")
+        if '::/0' not in advertised_routes:
+            advertised_routes.append('::/0')
+            logger.info("Added ::/0 to advertised routes (IPv6 exit node)")
     else:
-        logger.info("Exit node disabled, not adding 0.0.0.0/0")
+        logger.info("Exit node disabled, not adding exit node routes")
     
     # Apply advertised routes only if we have any
     if advertised_routes:
