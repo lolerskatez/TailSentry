@@ -201,16 +201,19 @@
                                           :class="{
                                               'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': exitNodeStatus === 'approved',
                                               'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200': exitNodeStatus === 'pending_approval',
-                                              'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300': !advertiseExitNode
+                                              'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200': exitNodeStatus === 'blocked_by_policy',
+                                              'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300': !advertiseExitNode || exitNodeStatus === 'disabled'
                                           }">
                                         <i :class="{
                                             'fas fa-check-circle mr-1': exitNodeStatus === 'approved',
                                             'fas fa-clock mr-1': exitNodeStatus === 'pending_approval',
-                                            'fas fa-times-circle mr-1': !advertiseExitNode
+                                            'fas fa-exclamation-triangle mr-1': exitNodeStatus === 'blocked_by_policy',
+                                            'fas fa-times-circle mr-1': !advertiseExitNode || exitNodeStatus === 'disabled'
                                         }"></i>
                                         <span x-text="{
                                             'approved': 'Active',
                                             'pending_approval': 'Pending',
+                                            'blocked_by_policy': 'Blocked',
                                             'disabled': 'Disabled'
                                         }[exitNodeStatus] || 'Disabled'"></span>
                                     </span>
@@ -311,8 +314,30 @@
                                         </div>
                                     </div>
                                     
+                                    <!-- Blocked by Policy Status -->
+                                    <div x-show="exitNodeStatus === 'blocked_by_policy'" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                                        <div class="flex items-start">
+                                            <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 mr-2 mt-0.5"></i>
+                                            <div class="flex-1">
+                                                <span class="text-sm font-medium text-red-800 dark:text-red-200 block">
+                                                    Blocked by ACL policy
+                                                </span>
+                                                <p class="text-xs text-red-700 dark:text-red-300 mt-1">
+                                                    Your tailnet's Access Control List (ACL) prevents this device from advertising as an exit node.
+                                                </p>
+                                                <div class="mt-2">
+                                                    <a :href="adminConsoleUrl" target="_blank" 
+                                                       class="inline-flex items-center text-xs text-red-800 dark:text-red-200 hover:text-red-900 dark:hover:text-red-100 font-medium">
+                                                        <i class="fas fa-external-link-alt mr-1"></i>
+                                                        Check ACL Settings in Admin Console
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
                                     <!-- General Info for Active State -->
-                                    <div x-show="exitNodeStatus !== 'pending_approval'" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                    <div x-show="exitNodeStatus !== 'pending_approval' && exitNodeStatus !== 'blocked_by_policy'" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                                         <div class="flex items-start">
                                             <i class="fas fa-info-circle text-blue-600 dark:text-blue-400 mr-2 mt-0.5"></i>
                                             <div class="text-xs text-blue-800 dark:text-blue-200">

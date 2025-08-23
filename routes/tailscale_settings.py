@@ -64,7 +64,7 @@ async def get_tailscale_settings():
                 # Running status indicates if it's approved and active
                 settings['advertise_exit_node'] = exit_node_option
                 
-                # Add detailed status for UI
+                # Add detailed status for UI - handle case where ACL may block requests
                 if exit_node_option:
                     if is_running:
                         settings['exit_node_status'] = 'approved'
@@ -73,8 +73,16 @@ async def get_tailscale_settings():
                         settings['exit_node_status'] = 'pending_approval'
                         logger.info("Exit node is requested but pending approval")
                 else:
-                    settings['exit_node_status'] = 'disabled'
-                    logger.info("Exit node not requested")
+                    # Check if we have a saved setting indicating user requested exit node
+                    # but Tailscale status doesn't show it (potentially blocked by ACL)
+                    saved_setting = settings.get('advertise_exit_node', False)
+                    if saved_setting:
+                        settings['exit_node_status'] = 'blocked_by_policy'
+                        settings['advertise_exit_node'] = True  # Keep UI consistent with user intent
+                        logger.info("Exit node requested by user but blocked by ACL/policy")
+                    else:
+                        settings['exit_node_status'] = 'disabled'
+                        logger.info("Exit node not requested")
                 
                 # Add admin console URL for approval
                 tailnet = os.getenv('TAILSCALE_TAILNET', '-')
