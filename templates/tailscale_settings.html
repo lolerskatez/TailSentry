@@ -478,6 +478,7 @@ function tailscaleSettings() {
                     const settings = await response.json();
                     this.acceptRoutes = settings.accept_routes || false;
                     this.acceptDns = settings.accept_dns || false;
+                    this.advertiseExitNode = settings.advertise_exit_node || false;
                 }
             } catch (error) {
                 console.error('Error loading settings:', error);
@@ -592,7 +593,9 @@ function tailscaleSettings() {
                 const result = await response.json();
                 if (result.success) {
                     this.showMessage('Exit node advertisement updated');
+                    // Reload both status and settings to ensure UI reflects current state
                     await this.loadStatus();
+                    await this.loadSettings();
                 } else {
                     this.showMessage('Error updating exit node advertisement: ' + (result.error || 'Unknown error'), 'error');
                 }
