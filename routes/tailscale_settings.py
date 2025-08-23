@@ -145,6 +145,21 @@ def apply_all_settings_to_tailscale(settings):
     Build and execute tailscale up command from all current settings.
     This is the single source of truth for applying configuration.
     """
+    # Apply defaults to ensure consistency (same as get_tailscale_settings)
+    defaults = {
+        'hostname': 'tailsentry-router',
+        'accept_routes': True,
+        'accept_dns': False,
+        'advertise_exit_node': False,
+        'advertised_routes': []
+    }
+    
+    for key, default_value in defaults.items():
+        if key not in settings:
+            settings[key] = default_value
+    
+    logger.info(f"Settings with defaults applied: {settings}")
+    
     args = ["--reset"]  # Start clean
     
     # Hostname
@@ -163,20 +178,28 @@ def apply_all_settings_to_tailscale(settings):
     advertised_routes = []
     
     # Add subnet routes if configured
-    if settings.get('advertised_routes'):
-        subnet_routes = settings.get('advertised_routes', [])
+    subnet_routes = settings.get('advertised_routes', [])
+    if subnet_routes:
         if isinstance(subnet_routes, str):
             subnet_routes = [r.strip() for r in subnet_routes.split(',') if r.strip()]
         advertised_routes.extend(subnet_routes)
     
-    # Add exit node route if enabled
-    if settings.get('advertise_exit_node', False):
+    # Add exit node route ONLY if explicitly enabled
+    advertise_exit = settings.get('advertise_exit_node', False)
+    logger.info(f"advertise_exit_node setting: {advertise_exit}")
+    if advertise_exit is True:
         if '0.0.0.0/0' not in advertised_routes:
             advertised_routes.append('0.0.0.0/0')
+            logger.info("Added 0.0.0.0/0 to advertised routes (exit node enabled)")
+    else:
+        logger.info("Exit node disabled, not adding 0.0.0.0/0")
     
-    # Apply advertised routes
+    # Apply advertised routes only if we have any
     if advertised_routes:
         args.extend(["--advertise-routes", ",".join(advertised_routes)])
+        logger.info(f"Final advertised routes: {advertised_routes}")
+    else:
+        logger.info("No routes to advertise")
     
     # Log the complete command for debugging
     logger.info(f"Applying Tailscale configuration with args: {args}")
