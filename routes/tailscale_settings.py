@@ -54,34 +54,41 @@ async def get_tailscale_settings():
             logger.info(f"Self info type: {type(self_info)}")
             if isinstance(self_info, dict):
                 # Check exit node status using the correct fields
-                exit_node_advertising = self_info.get('ExitNode', False)  # This device advertising as exit node
-                exit_node_status_obj = status.get('ExitNodeStatus', None)  # Other devices using this as exit node
-                is_being_used = exit_node_status_obj is not None
+                # ExitNodeOption: true means approved and available as exit node
+                # ExitNode: true means currently being used as exit node by other peers
+                exit_node_option = self_info.get('ExitNodeOption', False)  # Approved as exit node
+                exit_node_active = self_info.get('ExitNode', False)  # Currently being used as exit node
                 
-                logger.info(f"ExitNode (advertising): {exit_node_advertising}, ExitNodeStatus (being used): {exit_node_status_obj is not None}")
+                # Check if advertising routes (additional confirmation)
+                allowed_ips = self_info.get('AllowedIPs', [])
+                is_advertising_routes = any(ip in allowed_ips for ip in ['0.0.0.0/0', '::/0'])
                 
-                # Set the toggle based on whether we're advertising
-                settings['advertise_exit_node'] = exit_node_advertising
+                logger.info(f"ExitNodeOption (approved): {exit_node_option}, ExitNode (active): {exit_node_active}, Advertising routes: {is_advertising_routes}")
+                
+                # Set the toggle based on whether we're approved and advertising
+                settings['advertise_exit_node'] = exit_node_option and is_advertising_routes
                 
                 # Determine detailed status for UI
-                if exit_node_advertising:
-                    if is_being_used:
+                if exit_node_option and is_advertising_routes:
+                    if exit_node_active:
                         settings['exit_node_status'] = 'active_in_use'
-                        logger.info("Exit node is advertising and being used by peers")
+                        logger.info("Exit node is approved and currently being used by peers")
                     else:
                         settings['exit_node_status'] = 'approved'
-                        logger.info("Exit node is advertising but not yet being used")
+                        logger.info("Exit node is approved and available but not currently being used")
                 else:
+                    # Not approved as exit node
                     # Check if we have a saved setting indicating user requested exit node
-                    # but Tailscale status doesn't show it (pending approval)
+                    # but Tailscale status doesn't show approval yet (pending approval)
                     saved_setting = settings.get('advertise_exit_node', False)
-                    if saved_setting:
+                    if saved_setting and not exit_node_option:
                         settings['exit_node_status'] = 'pending_approval'
                         settings['advertise_exit_node'] = True  # Keep UI consistent with user intent
-                        logger.info("Exit node requested by user but pending approval")
+                        logger.info("Exit node requested but pending approval")
                     else:
                         settings['exit_node_status'] = 'disabled'
-                        logger.info("Exit node not requested")
+                        settings['advertise_exit_node'] = False
+                        logger.info("Exit node is disabled")
                 
                 # Add admin console URL for approval
                 tailnet = os.getenv('TAILSCALE_TAILNET', '-')
