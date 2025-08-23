@@ -155,7 +155,8 @@ async def tailscale_service_control(request: Request):
                 logger.error(f"Failed to get service status: {e}")
                 return JSONResponse({"success": False, "error": f"Failed to get service status: {str(e)}"}, status_code=500)
                 
-        elif action in ["start", "stop", "restart"]:
+        elif action in ["start", "stop"]:
+            # Only allow start/stop, not restart to avoid killing TailSentry
             try:
                 result = TailscaleClient.service_control(action)
                 logger.info(f"Service control {action} result: {result}")
@@ -168,6 +169,35 @@ async def tailscale_service_control(request: Request):
             except Exception as e:
                 logger.error(f"Failed to {action} service: {e}")
                 return JSONResponse({"success": False, "error": f"Failed to {action} service: {str(e)}"}, status_code=500)
+                
+        elif action == "restart":
+            # For restart, use a safer approach with tailscale down/up instead of systemctl restart
+            try:
+                logger.info("Using tailscale down/up sequence instead of systemctl restart for safety")
+                
+                # First try to disconnect
+                down_result = TailscaleClient.down()
+                logger.info(f"Tailscale down result: {down_result}")
+                
+                if down_result is not True:
+                    return JSONResponse({"success": False, "error": f"Failed to disconnect: {str(down_result)}"}, status_code=500)
+                
+                # Small delay to ensure clean disconnect
+                import asyncio
+                await asyncio.sleep(2)
+                
+                # Then reconnect
+                up_result = TailscaleClient.up()
+                logger.info(f"Tailscale up result: {up_result}")
+                
+                if up_result is True:
+                    return JSONResponse({"success": True, "message": "Tailscale restarted successfully (down/up sequence)"})
+                else:
+                    return JSONResponse({"success": False, "error": f"Failed to reconnect after disconnect: {str(up_result)}"}, status_code=500)
+                    
+            except Exception as e:
+                logger.error(f"Failed to restart Tailscale: {e}")
+                return JSONResponse({"success": False, "error": f"Failed to restart Tailscale: {str(e)}"}, status_code=500)
                 
         elif action == "up":
             try:
