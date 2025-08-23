@@ -54,32 +54,31 @@ async def get_tailscale_settings():
             logger.info(f"Self info type: {type(self_info)}")
             if isinstance(self_info, dict):
                 # Check exit node status using the correct fields
-                exit_node_option = self_info.get('ExitNodeOption', False)
-                exit_node_status = self_info.get('ExitNodeStatus', {})
-                is_running = exit_node_status.get('Running', False) if exit_node_status else False
+                exit_node_advertising = self_info.get('ExitNode', False)  # This device advertising as exit node
+                exit_node_status_obj = status.get('ExitNodeStatus', None)  # Other devices using this as exit node
+                is_being_used = exit_node_status_obj is not None
                 
-                logger.info(f"ExitNodeOption: {exit_node_option}, ExitNodeStatus: {exit_node_status}")
+                logger.info(f"ExitNode (advertising): {exit_node_advertising}, ExitNodeStatus (being used): {exit_node_status_obj is not None}")
                 
-                # Exit node is considered active if ExitNodeOption is True (requested)
-                # Running status indicates if it's approved and active
-                settings['advertise_exit_node'] = exit_node_option
+                # Set the toggle based on whether we're advertising
+                settings['advertise_exit_node'] = exit_node_advertising
                 
-                # Add detailed status for UI - handle case where ACL may block requests
-                if exit_node_option:
-                    if is_running:
-                        settings['exit_node_status'] = 'approved'
-                        logger.info("Exit node is requested and running (approved)")
+                # Determine detailed status for UI
+                if exit_node_advertising:
+                    if is_being_used:
+                        settings['exit_node_status'] = 'active_in_use'
+                        logger.info("Exit node is advertising and being used by peers")
                     else:
-                        settings['exit_node_status'] = 'pending_approval'
-                        logger.info("Exit node is requested but pending approval")
+                        settings['exit_node_status'] = 'approved'
+                        logger.info("Exit node is advertising but not yet being used")
                 else:
                     # Check if we have a saved setting indicating user requested exit node
-                    # but Tailscale status doesn't show it (potentially blocked by ACL)
+                    # but Tailscale status doesn't show it (pending approval)
                     saved_setting = settings.get('advertise_exit_node', False)
                     if saved_setting:
-                        settings['exit_node_status'] = 'blocked_by_policy'
+                        settings['exit_node_status'] = 'pending_approval'
                         settings['advertise_exit_node'] = True  # Keep UI consistent with user intent
-                        logger.info("Exit node requested by user but blocked by ACL/policy")
+                        logger.info("Exit node requested by user but pending approval")
                     else:
                         settings['exit_node_status'] = 'disabled'
                         logger.info("Exit node not requested")
