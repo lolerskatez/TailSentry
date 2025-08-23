@@ -303,7 +303,7 @@ function tailscaleSettings() {
 
         async loadStatus() {
             try {
-                const response = await fetch('/api/tailscale/status');
+                const response = await fetch('/api/status');
                 if (response.ok) {
                     this.status = await response.json();
                     this.updateExitNodeInfo();
@@ -316,7 +316,7 @@ function tailscaleSettings() {
 
         async loadSettings() {
             try {
-                const response = await fetch('/api/tailscale/settings');
+                const response = await fetch('/api/tailscale-settings');
                 if (response.ok) {
                     const settings = await response.json();
                     this.acceptRoutes = settings.accept_routes || false;
@@ -356,10 +356,10 @@ function tailscaleSettings() {
 
         async savePatToken() {
             try {
-                const response = await fetch('/api/tailscale/pat', {
+                const response = await fetch('/api/tailscale-settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: this.personalAccessToken })
+                    body: JSON.stringify({ tailscale_pat: this.personalAccessToken })
                 });
                 
                 const result = await response.json();
@@ -375,28 +375,14 @@ function tailscaleSettings() {
         },
 
         async generateAuthKey() {
-            try {
-                const response = await fetch('/api/tailscale/auth-key', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    this.authKey = result.auth_key;
-                    this.showMessage('Auth key generated successfully');
-                } else {
-                    this.showMessage('Error generating auth key: ' + (result.error || 'Unknown error'), 'error');
-                }
-            } catch (error) {
-                this.showMessage('Network error: ' + error.message, 'error');
-            }
+            this.showMessage('Auth key generation not implemented yet', 'error');
+            // Auth key generation requires Tailscale API implementation
         },
 
         async updateRoutes() {
             try {
                 const routes = this.routesToAdvertise.split(',').map(r => r.trim()).filter(r => r);
-                const response = await fetch('/api/tailscale/routes', {
+                const response = await fetch('/api/subnet-routes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ routes })
@@ -416,7 +402,7 @@ function tailscaleSettings() {
 
         async setExitNode() {
             try {
-                const response = await fetch('/api/tailscale/exit-node', {
+                const response = await fetch('/api/exit-node', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ node_id: this.selectedExitNode || null })
@@ -436,10 +422,10 @@ function tailscaleSettings() {
 
         async toggleExitNodeAdvertisement() {
             try {
-                const response = await fetch('/api/tailscale/advertise-exit-node', {
+                const response = await fetch('/api/tailscale-settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ advertise: this.advertiseExitNode })
+                    body: JSON.stringify({ advertise_exit_node: this.advertiseExitNode })
                 });
                 
                 const result = await response.json();
@@ -464,7 +450,7 @@ function tailscaleSettings() {
 
         async updateBooleanSetting(setting, value) {
             try {
-                const response = await fetch('/api/tailscale/settings', {
+                const response = await fetch('/api/tailscale-settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ [setting]: value })
@@ -483,9 +469,10 @@ function tailscaleSettings() {
 
         async serviceAction(action) {
             try {
-                const response = await fetch(`/api/tailscale/service/${action}`, {
+                const response = await fetch('/api/tailscale-service', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action })
                 });
                 
                 const result = await response.json();
@@ -504,7 +491,7 @@ function tailscaleSettings() {
 
         async clearCache() {
             try {
-                const response = await fetch('/api/tailscale/clear-cache', {
+                const response = await fetch('/api/clear-cache', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
