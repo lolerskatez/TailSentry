@@ -1,6 +1,7 @@
 #!/bin/bash
 # TailSentry Interactive Setup & Management Script
-# Version: 2.0.0
+# Version: 2.0.1
+# Last Updated: 2025-08-23
 # 
 # This script handles:
 # - Fresh installation
@@ -16,7 +17,7 @@ set -e  # Exit on any error
 # CONFIGURATION
 # ============================================================================
 
-SCRIPT_VERSION="2.0.0"
+SCRIPT_VERSION="2.0.1"
 APP_NAME="TailSentry"
 INSTALL_DIR="/opt/tailsentry"
 SERVICE_NAME="tailsentry"
@@ -995,8 +996,12 @@ main() {
             echo "  update          - Update existing installation"
             echo "  uninstall       - Remove TailSentry"
             echo "  status          - Show installation status"
+            echo "  --version       - Show script version"
             echo
             echo "Run without arguments for interactive menu."
+            ;;
+        --version)
+            echo "TailSentry Setup Script v$SCRIPT_VERSION (2025-08-23)"
             ;;
         *)
             check_root
