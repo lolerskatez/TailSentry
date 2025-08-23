@@ -53,18 +53,32 @@ async def get_tailscale_settings():
             self_info = status['Self']
             logger.info(f"Self info type: {type(self_info)}")
             if isinstance(self_info, dict):
+                # Check exit node status using the correct fields
+                exit_node_option = self_info.get('ExitNodeOption', False)
+                exit_node_status = self_info.get('ExitNodeStatus', {})
+                is_running = exit_node_status.get('Running', False) if exit_node_status else False
+                
+                logger.info(f"ExitNodeOption: {exit_node_option}, ExitNodeStatus: {exit_node_status}")
+                
+                # Exit node is considered active if ExitNodeOption is True (requested)
+                # Running status indicates if it's approved and active
+                settings['advertise_exit_node'] = exit_node_option
+                
+                if exit_node_option:
+                    if is_running:
+                        logger.info("Exit node is requested and running (approved)")
+                    else:
+                        logger.info("Exit node is requested but pending approval")
+                else:
+                    logger.info("Exit node not requested")
+                
+                # Also get advertised routes for subnet routing (separate from exit node)
                 advertised_routes = self_info.get('AdvertisedRoutes', [])
                 logger.info(f"AdvertisedRoutes: {advertised_routes}")
-                # Check if advertising exit node (both 0.0.0.0/0 AND ::/0 for complete exit node)
-                has_ipv4_exit = '0.0.0.0/0' in advertised_routes if advertised_routes else False
-                has_ipv6_exit = '::/0' in advertised_routes if advertised_routes else False
-                # Consider it an exit node if we have IPv4 exit route (IPv6 is optional but recommended)
-                has_exit_route = has_ipv4_exit
-                settings['advertise_exit_node'] = has_exit_route
-                logger.info(f"Exit node advertisement detected: {has_exit_route} (IPv4: {has_ipv4_exit}, IPv6: {has_ipv6_exit})")
                 
-                # Also update subnet routes from actual state (exclude exit node routes)
+                # Update subnet routes from actual state (exclude exit node routes - these are handled separately)
                 if advertised_routes:
+                    # For subnet routing, we only care about specific subnets, not exit node routes
                     subnet_routes = [r for r in advertised_routes if r not in ('0.0.0.0/0', '::/0')]
                     settings['advertised_routes'] = subnet_routes
             else:
