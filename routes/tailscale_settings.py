@@ -28,30 +28,48 @@ def save_settings(settings):
 async def get_tailscale_settings():
     settings = load_settings()
     
-    # Set default hostname if not configured
-    if not settings.get('hostname'):
-        settings['hostname'] = 'tailsentry-router'
+    # Set defaults for any missing settings
+    defaults = {
+        'hostname': 'tailsentry-router',
+        'accept_routes': True,
+        'accept_dns': False,
+        'advertise_exit_node': False,
+        'advertised_routes': []
+    }
+    
+    for key, default_value in defaults.items():
+        if key not in settings:
+            settings[key] = default_value
     
     # Add PAT status (without exposing the actual value)
     settings['tailscale_pat'] = ''  # Don't expose actual PAT
     settings['has_pat'] = bool(os.getenv('TAILSCALE_PAT'))
     
-    # Add current exit node advertisement status
+    # Override exit node status from actual Tailscale state (more reliable than saved setting)
     try:
         status = TailscaleClient.status_json()
+        logger.info(f"Raw Tailscale status type: {type(status)}")
         if status and isinstance(status, dict) and 'Self' in status:
             self_info = status['Self']
+            logger.info(f"Self info type: {type(self_info)}")
             if isinstance(self_info, dict):
                 advertised_routes = self_info.get('AdvertisedRoutes', [])
+                logger.info(f"AdvertisedRoutes: {advertised_routes}")
                 # Check if advertising exit node (0.0.0.0/0 or ::/0 in routes)
-                settings['advertise_exit_node'] = any(route in ('0.0.0.0/0', '::/0') for route in advertised_routes)
+                has_exit_route = any(route in ('0.0.0.0/0', '::/0') for route in advertised_routes) if advertised_routes else False
+                settings['advertise_exit_node'] = has_exit_route
+                logger.info(f"Exit node advertisement detected: {has_exit_route}")
+                
+                # Also update subnet routes from actual state
+                if advertised_routes:
+                    subnet_routes = [r for r in advertised_routes if r not in ('0.0.0.0/0', '::/0')]
+                    settings['advertised_routes'] = subnet_routes
             else:
-                settings['advertise_exit_node'] = False
+                logger.warning(f"Self info is not a dict: {self_info}")
         else:
-            settings['advertise_exit_node'] = False
+            logger.warning(f"Status is invalid or missing 'Self': {status}")
     except Exception as e:
-        logger.error(f"Failed to get exit node status: {e}")
-        settings['advertise_exit_node'] = False
+        logger.error(f"Failed to get current Tailscale state: {e}")
     
     return JSONResponse(settings)
 
@@ -83,68 +101,87 @@ async def apply_tailscale_settings(request: Request):
             logger.error(f"Failed to update TAILSCALE_PAT in .env: {e}", exc_info=True)
             return JSONResponse({"success": False, "error": f"Failed to update PAT: {e}"}, status_code=500)
     
-    # Remove PAT from data before saving to tailscale_settings.json
-    settings_data = {k: v for k, v in data.items() if k != 'tailscale_pat'}
+    # Load current settings
+    current_settings = load_settings()
     
+    # Update settings with new values (excluding PAT)
+    settings_data = {k: v for k, v in data.items() if k != 'tailscale_pat'}
+    current_settings.update(settings_data)
+    
+    # Save updated settings to file
     try:
-        save_settings(settings_data)
+        save_settings(current_settings)
+        logger.info(f"Settings saved: {settings_data}")
     except Exception as e:
         logger.error(f"Failed to write tailscale_settings.json: {e}", exc_info=True)
         return JSONResponse({"success": False, "error": f"Failed to write settings: {e}"}, status_code=500)
     
+    # Only apply Tailscale configuration in specific cases
     try:
-        # If PAT was updated, use it as authkey for connection
         if pat_was_updated and new_pat_value:
+            # PAT updated - need to authenticate with new PAT
             logger.info("PAT was updated, using it as authkey for tailscale up")
-            result = TailscaleClient.up(authkey=new_pat_value, extra_args=['--reset', '--hostname', data.get('hostname', 'tailsentry-router'), '--accept-routes'])
+            result = TailscaleClient.up(authkey=new_pat_value, extra_args=['--reset'])
+            # After successful auth, apply all saved settings
+            if result is True:
+                result = apply_all_settings_to_tailscale(current_settings)
         else:
-            # Handle different types of settings updates
-            if 'advertise_exit_node' in data:
-                # Exit node advertisement setting
-                advertise_exit = data.get('advertise_exit_node', False)
-                logger.info(f"Updating exit node advertisement: {advertise_exit}")
-                
-                # Get current routes to preserve them
-                current_status = TailscaleClient.status_json()
-                current_routes = []
-                if current_status and isinstance(current_status, dict) and 'Self' in current_status:
-                    self_info = current_status['Self']
-                    if isinstance(self_info, dict):
-                        current_routes = self_info.get('AdvertisedRoutes', [])
-                        # Remove exit node routes to avoid duplication
-                        current_routes = [r for r in current_routes if r not in ('0.0.0.0/0', '::/0')]
-                
-                if advertise_exit:
-                    # Add exit node route
-                    routes_to_advertise = current_routes + ['0.0.0.0/0']
-                else:
-                    # Keep only subnet routes, remove exit node routes
-                    routes_to_advertise = current_routes
-                
-                result = TailscaleClient.set_exit_node_advanced(
-                    advertised_routes=routes_to_advertise,
-                    hostname=data.get('hostname', 'tailsentry-router')
-                )
-            else:
-                # Regular settings update without exit node change
-                result = TailscaleClient.set_exit_node_advanced(
-                    advertised_routes=data.get("advertise_routes"),
-                    firewall=data.get("exit_node_firewall"),
-                    hostname=data.get("hostname")
-                )
+            # Regular setting change - apply all current settings from file
+            result = apply_all_settings_to_tailscale(current_settings)
         
         logger.info(f"TailscaleClient operation result: {result}")
-        status = TailscaleClient.status_json()
         if result is not True:
             logger.error(f"Tailscale operation failed: {result}")
-            return JSONResponse({"success": False, "error": str(result), "status": status}, status_code=500)
+            return JSONResponse({"success": False, "error": str(result)}, status_code=500)
             
-        success_message = "PAT updated and connected to tailnet!" if pat_was_updated else "Settings applied!"
-        return JSONResponse({"success": True, "message": success_message, "status": status})
+        success_message = "PAT updated and connected to tailnet!" if pat_was_updated else "Settings applied successfully!"
+        return JSONResponse({"success": True, "message": success_message})
     except Exception as e:
         logger.error(f"Failed to apply settings via TailscaleClient: {e}", exc_info=True)
-        status = TailscaleClient.status_json()
-        return JSONResponse({"success": False, "error": f"Failed to apply settings: {e}", "status": status}, status_code=500)
+        return JSONResponse({"success": False, "error": f"Failed to apply settings: {e}"}, status_code=500)
+
+def apply_all_settings_to_tailscale(settings):
+    """
+    Build and execute tailscale up command from all current settings.
+    This is the single source of truth for applying configuration.
+    """
+    args = ["--reset"]  # Start clean
+    
+    # Hostname
+    hostname = settings.get('hostname', 'tailsentry-router')
+    args.extend(["--hostname", hostname])
+    
+    # Accept routes
+    if settings.get('accept_routes', True):
+        args.append("--accept-routes")
+    
+    # Accept DNS  
+    if settings.get('accept_dns', False):
+        args.append("--accept-dns")
+    
+    # Build advertised routes
+    advertised_routes = []
+    
+    # Add subnet routes if configured
+    if settings.get('advertised_routes'):
+        subnet_routes = settings.get('advertised_routes', [])
+        if isinstance(subnet_routes, str):
+            subnet_routes = [r.strip() for r in subnet_routes.split(',') if r.strip()]
+        advertised_routes.extend(subnet_routes)
+    
+    # Add exit node route if enabled
+    if settings.get('advertise_exit_node', False):
+        if '0.0.0.0/0' not in advertised_routes:
+            advertised_routes.append('0.0.0.0/0')
+    
+    # Apply advertised routes
+    if advertised_routes:
+        args.extend(["--advertise-routes", ",".join(advertised_routes)])
+    
+    # Log the complete command for debugging
+    logger.info(f"Applying Tailscale configuration with args: {args}")
+    
+    return TailscaleClient.up(extra_args=args)
 
 @router.post("/api/subnet-routes")
 async def set_subnet_routes(request: Request):
@@ -153,13 +190,63 @@ async def set_subnet_routes(request: Request):
         data = await request.json()
         routes = data.get("routes", [])
         
-        result = TailscaleClient.set_subnet_routes(routes)
+        # Save to settings file
+        current_settings = load_settings()
+        current_settings['advertised_routes'] = routes
+        save_settings(current_settings)
+        
+        # Apply all settings (including the new routes)
+        result = apply_all_settings_to_tailscale(current_settings)
         if result is True:
             return JSONResponse({"success": True, "message": "Routes updated successfully"})
         else:
             return JSONResponse({"success": False, "error": str(result)}, status_code=500)
     except Exception as e:
         logger.error(f"Failed to set subnet routes: {e}", exc_info=True)
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+@router.post("/api/accept-routes")
+async def set_accept_routes(request: Request):
+    """Toggle accept routes setting"""
+    try:
+        data = await request.json()
+        accept_routes = data.get("accept_routes", True)
+        
+        # Save to settings file
+        current_settings = load_settings()
+        current_settings['accept_routes'] = accept_routes
+        save_settings(current_settings)
+        
+        # Apply all settings
+        result = apply_all_settings_to_tailscale(current_settings)
+        if result is True:
+            return JSONResponse({"success": True, "message": "Accept routes setting updated"})
+        else:
+            return JSONResponse({"success": False, "error": str(result)}, status_code=500)
+    except Exception as e:
+        logger.error(f"Failed to set accept routes: {e}", exc_info=True)
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+@router.post("/api/accept-dns")
+async def set_accept_dns(request: Request):
+    """Toggle accept DNS setting"""
+    try:
+        data = await request.json()
+        accept_dns = data.get("accept_dns", False)
+        
+        # Save to settings file
+        current_settings = load_settings()
+        current_settings['accept_dns'] = accept_dns
+        save_settings(current_settings)
+        
+        # Apply all settings
+        result = apply_all_settings_to_tailscale(current_settings)
+        if result is True:
+            return JSONResponse({"success": True, "message": "Accept DNS setting updated"})
+        else:
+            return JSONResponse({"success": False, "error": str(result)}, status_code=500)
+    except Exception as e:
+        logger.error(f"Failed to set accept DNS: {e}", exc_info=True)
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
 @router.get("/api/local-subnets")
