@@ -107,9 +107,11 @@ app.add_middleware(
     secret_key=SESSION_SECRET,
     session_cookie="tailsentry_session",
     max_age=SESSION_TIMEOUT,
-    same_site="strict",
-    # Only set https_only=False during development
-    https_only=not os.getenv("DEVELOPMENT", "false").lower() == "true",
+    same_site="lax",  # Changed from "strict" to "lax" to fix redirect issues
+    # Always set https_only=False for local network access
+    https_only=False,
+    # Add domain and path for better compatibility
+    path="/",
 )
 
 # Include user authentication router

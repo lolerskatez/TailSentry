@@ -68,6 +68,8 @@ def login(request: Request, response: Response, username: str = Form(...), passw
     user = verify_user(username, password)
     if user:
         logger.info(f"[LOGIN] Successful login for active user: {username}")
+        
+        # Set session
         request.session["user"] = user["username"]
         if remember_me:
             request.session["remember_me"] = True
@@ -75,6 +77,11 @@ def login(request: Request, response: Response, username: str = Form(...), passw
         else:
             request.session["remember_me"] = False
             request.session["max_age"] = None
+        
+        # Debug: Check if session was set correctly
+        logger.info(f"[LOGIN] Session after setting: {dict(request.session)}")
+        logger.info(f"[LOGIN] Session user after setting: {request.session.get('user')}")
+        
         return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
     else:
         # Check if it's a disabled account vs invalid credentials
