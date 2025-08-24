@@ -305,11 +305,15 @@
                                     <div x-show="exitNodeLoading" class="animate-spin">
                                         <i class="fas fa-spinner text-gray-400"></i>
                                     </div>
-                                    <label class="relative inline-flex items-center cursor-pointer">
+                                    <label class="relative inline-flex items-center cursor-pointer group">
                                         <input type="checkbox" x-model="advertiseExitNode" @change="toggleExitNodeAdvertisement" 
                                                :disabled="exitNodeLoading"
                                                class="sr-only peer">
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                        <div class="relative w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed shadow-sm"></div>
+                                        <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                                            <span x-show="!advertiseExitNode">Enable Exit Node</span>
+                                            <span x-show="advertiseExitNode" class="text-indigo-600 dark:text-indigo-400">Exit Node Enabled</span>
+                                        </span>
                                     </label>
                                 </div>
                             </div>
@@ -514,26 +518,32 @@
                     <h4 class="text-lg font-medium mb-4 text-gray-800 dark:text-gray-200">Advanced Configuration</h4>
                     
                     <div class="space-y-4">
-                        <div>
-                            <label class="flex items-center">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Accept Routes</label>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                    Accept subnet routes advertised by other devices.
+                                </p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer group">
                                 <input type="checkbox" x-model="acceptRoutes" @change="toggleAcceptRoutes" 
-                                       class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Accept Routes</span>
+                                       class="sr-only peer">
+                                <div class="relative w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600 shadow-sm"></div>
                             </label>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                Accept subnet routes advertised by other devices.
-                            </p>
                         </div>
 
-                        <div>
-                            <label class="flex items-center">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Accept DNS</label>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                    Use DNS settings from your tailnet.
+                                </p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer group">
                                 <input type="checkbox" x-model="acceptDns" @change="toggleAcceptDns" 
-                                       class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Accept DNS</span>
+                                       class="sr-only peer">
+                                <div class="relative w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600 shadow-sm"></div>
                             </label>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                Use DNS settings from your tailnet.
-                            </p>
                         </div>
 
                         <div class="border-t border-gray-200 dark:border-gray-600 pt-4">
