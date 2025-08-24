@@ -192,6 +192,11 @@ async def apply_tailscale_settings(request: Request):
                 result = TailscaleClient.set_hostname(hostname_value)
                 if result and 'error' not in result:
                     logger.info(f"Hostname set to: {hostname_value}")
+                    # Update the hostname in the current settings so subsequent configuration applies it correctly
+                    current_settings = load_settings()
+                    current_settings['hostname'] = hostname_value
+                    save_settings(current_settings)
+                    logger.info(f"Hostname updated in settings file: {hostname_value}")
                 else:
                     logger.error(f"Failed to set hostname: {result}")
                     return JSONResponse({"success": False, "error": f"Failed to set hostname: {result.get('error', 'Unknown error')}"}, status_code=500)
@@ -214,9 +219,16 @@ async def apply_tailscale_settings(request: Request):
         logger.error(f"Failed to write tailscale_settings.json: {e}", exc_info=True)
         return JSONResponse({"success": False, "error": f"Failed to write settings: {e}"}, status_code=500)
     
+    # Check if only hostname was changed (no need for full reconfiguration)
+    hostname_only_change = 'hostname' in data and len([k for k in data.keys() if k not in ['hostname']]) == 0
+    
     # Only apply Tailscale configuration in specific cases
     try:
-        if auth_key_was_updated and new_auth_key_value:
+        if hostname_only_change:
+            # Only hostname was changed, no need for full reconfiguration since we already set it
+            logger.info("Only hostname was changed, skipping full configuration application")
+            result = True
+        elif auth_key_was_updated and new_auth_key_value:
             # Auth Key updated - need to authenticate with new Auth Key
             logger.info("Auth Key was updated, using it for tailscale up authentication")
             result = TailscaleClient.up(authkey=new_auth_key_value, extra_args=['--reset'])
