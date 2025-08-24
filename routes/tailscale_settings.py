@@ -45,6 +45,10 @@ async def get_tailscale_settings():
     settings['tailscale_pat'] = ''  # Don't expose actual API Access Token
     settings['has_pat'] = bool(os.getenv('TAILSCALE_PAT'))
     
+    # Add Auth Key status (without exposing the actual value)
+    settings['tailscale_auth_key'] = ''  # Don't expose actual Auth Key
+    settings['has_auth_key'] = bool(os.getenv('TAILSCALE_AUTH_KEY'))
+    
     # Override exit node status from actual Tailscale state (more reliable than saved setting)
     try:
         status = TailscaleClient.status_json()
@@ -146,11 +150,35 @@ async def apply_tailscale_settings(request: Request):
             logger.error(f"Failed to update TAILSCALE_PAT in .env: {e}", exc_info=True)
             return JSONResponse({"success": False, "error": f"Failed to update PAT: {e}"}, status_code=500)
     
+    # Handle Auth Key separately - save to .env file
+    auth_key_was_updated = False
+    new_auth_key_value = None
+    if 'tailscale_auth_key' in data:
+        auth_key_value = data.get('tailscale_auth_key', '').strip()
+        try:
+            env_file = find_dotenv()
+            if not env_file:
+                logger.error("No .env file found")
+                return JSONResponse({"success": False, "error": ".env file not found"}, status_code=500)
+                
+            if auth_key_value:
+                set_key(env_file, 'TAILSCALE_AUTH_KEY', f"'{auth_key_value}'")
+                logger.info("Tailscale Auth Key updated successfully")
+                auth_key_was_updated = True
+                new_auth_key_value = auth_key_value
+            else:
+                # Clear Auth Key if empty
+                set_key(env_file, 'TAILSCALE_AUTH_KEY', '')
+                logger.info("Tailscale Auth Key cleared")
+        except Exception as e:
+            logger.error(f"Failed to update TAILSCALE_AUTH_KEY in .env: {e}", exc_info=True)
+            return JSONResponse({"success": False, "error": f"Failed to update Auth Key: {e}"}, status_code=500)
+
     # Load current settings
     current_settings = load_settings()
     
-    # Update settings with new values (excluding API Access Token)
-    settings_data = {k: v for k, v in data.items() if k not in ['tailscale_pat', 'tailscale_api_token']}
+    # Update settings with new values (excluding API Access Token and Auth Key)
+    settings_data = {k: v for k, v in data.items() if k not in ['tailscale_pat', 'tailscale_api_token', 'tailscale_auth_key']}
     current_settings.update(settings_data)
     
     # Save updated settings to file
@@ -163,8 +191,15 @@ async def apply_tailscale_settings(request: Request):
     
     # Only apply Tailscale configuration in specific cases
     try:
-        if pat_was_updated and new_pat_value:
-            # PAT updated - need to authenticate with new PAT
+        if auth_key_was_updated and new_auth_key_value:
+            # Auth Key updated - need to authenticate with new Auth Key
+            logger.info("Auth Key was updated, using it for tailscale up authentication")
+            result = TailscaleClient.up(authkey=new_auth_key_value, extra_args=['--reset'])
+            # After successful auth, apply all saved settings
+            if result is True:
+                result = apply_all_settings_to_tailscale(current_settings)
+        elif pat_was_updated and new_pat_value:
+            # PAT updated - need to authenticate with new PAT (legacy support)
             logger.info("PAT was updated, using it as authkey for tailscale up")
             result = TailscaleClient.up(authkey=new_pat_value, extra_args=['--reset'])
             # After successful auth, apply all saved settings
@@ -179,7 +214,14 @@ async def apply_tailscale_settings(request: Request):
             logger.error(f"Tailscale operation failed: {result}")
             return JSONResponse({"success": False, "error": str(result)}, status_code=500)
             
-        success_message = "PAT updated and connected to tailnet!" if pat_was_updated else "Settings applied successfully!"
+        # Generate appropriate success message
+        if auth_key_was_updated:
+            success_message = "Auth Key updated and device authenticated successfully!"
+        elif pat_was_updated:
+            success_message = "API Access Token updated and connected to tailnet!"
+        else:
+            success_message = "Settings applied successfully!"
+            
         return JSONResponse({"success": True, "message": success_message})
     except Exception as e:
         logger.error(f"Failed to apply settings via TailscaleClient: {e}", exc_info=True)

@@ -98,7 +98,39 @@
             <!-- Basic Settings Tab -->
             <div x-show="activeTab === 'basic'" class="space-y-6">
                 <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <h4 class="text-lg font-medium mb-4 text-gray-800 dark:text-gray-200">API Access Token</h4>
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200">Auth Key (Device Registration)</h4>
+                        <div x-show="hasAuthKey" class="flex items-center text-green-600 dark:text-green-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="text-sm font-medium">Configured</span>
+                        </div>
+                    </div>
+                    <form @submit.prevent="saveAuthKey">
+                        <div class="flex gap-2">
+                            <input type="password" x-model="authKey" placeholder="Enter Tailscale Auth Key (tskey-auth-...)" 
+                                   class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white">
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium">
+                                Save
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                            Used for device authentication and registration. Required for initial setup and re-authentication.
+                        </p>
+                    </form>
+                </div>
+
+                <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200">API Access Token (Optional)</h4>
+                        <div x-show="hasApiToken" class="flex items-center text-green-600 dark:text-green-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="text-sm font-medium">Configured</span>
+                        </div>
+                    </div>
                     <form @submit.prevent="saveApiToken">
                         <div class="flex gap-2">
                             <input type="password" x-model="apiAccessToken" placeholder="Enter Tailscale API Access Token (tskey-api-...)" 
@@ -107,9 +139,14 @@
                                 Save
                             </button>
                         </div>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                            Required for API access to manage devices and settings. Different from Auth Keys used for device registration.
-                        </p>
+                        <div class="flex items-center mt-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <p class="text-sm text-yellow-600 dark:text-yellow-400">
+                                <strong>Secure Mode:</strong> TailSentry can operate without API tokens for enhanced security. Only required for advanced network management features.
+                            </p>
+                        </div>
                     </form>
                 </div>
 
@@ -522,6 +559,8 @@ function tailscaleSettings() {
         personalAccessToken: '', // Keep for backwards compatibility
         apiAccessToken: '',
         authKey: '',
+        hasAuthKey: false,
+        hasApiToken: false,
         routesToAdvertise: '',
         advertisedRoutes: [],
         availableExitNodes: [],
@@ -578,6 +617,10 @@ function tailscaleSettings() {
                     this.advertiseExitNode = settings.advertise_exit_node || false;
                     this.exitNodeStatus = settings.exit_node_status || 'disabled';
                     this.adminConsoleUrl = settings.admin_console_url || 'https://login.tailscale.com/admin/machines';
+                    
+                    // Load status indicators
+                    this.hasAuthKey = settings.has_auth_key || false;
+                    this.hasApiToken = settings.has_pat || false;
                 }
             } catch (error) {
                 console.error('Error loading settings:', error);
@@ -626,6 +669,26 @@ function tailscaleSettings() {
                     this.apiAccessToken = '';
                 } else {
                     this.showMessage('Error saving API Access Token: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                this.showMessage('Network error: ' + error.message, 'error');
+            }
+        },
+
+        async saveAuthKey() {
+            try {
+                const response = await fetch('/api/tailscale-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tailscale_auth_key: this.authKey })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    this.showMessage('Auth Key saved successfully');
+                    this.authKey = '';
+                } else {
+                    this.showMessage('Error saving Auth Key: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 this.showMessage('Network error: ' + error.message, 'error');
