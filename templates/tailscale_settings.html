@@ -638,7 +638,9 @@ function tailscaleSettings() {
                     ip: peer.TailscaleIPs[0]
                 }));
 
-            this.activeExitNode = this.status.ExitNodeStatus?.ID || '';
+            // Find the active exit node by looking for a peer with ExitNode: true
+            const activeExitNodePeer = Object.values(this.status.Peer || {}).find(peer => peer.ExitNode);
+            this.activeExitNode = activeExitNodePeer ? activeExitNodePeer.HostName : '';
             this.selectedExitNode = this.activeExitNode;
         },
 
