@@ -31,13 +31,13 @@
         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
             <h3 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Connection Status</h3>
             <div class="flex items-center">
-                <div :class="status?.online ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="px-3 py-1 rounded-full text-sm font-medium">
-                    <span x-text="status?.online ? 'Online' : 'Offline'"></span>
+                <div :class="(status?.BackendState === 'Running') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="px-3 py-1 rounded-full text-sm font-medium">
+                    <span x-text="(status?.BackendState === 'Running') ? 'Online' : 'Offline'"></span>
                 </div>
             </div>
             <div class="mt-3">
                 <p class="text-sm text-gray-600 dark:text-gray-400">IP: <span x-text="status?.TailscaleIPs?.[0] || 'N/A'" class="font-mono"></span></p>
-                <p class="text-sm text-gray-600 dark:text-gray-400">Hostname: <span x-text="status?.HostName || 'N/A'"></span></p>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Hostname: <span x-text="status?.Self?.HostName || 'N/A'"></span></p>
             </div>
         </div>
 
