@@ -31,7 +31,7 @@ class SecuritySettings(BaseModel):
     cors_origins: List[str] = ["*"]
 
 class TailscaleSettings(BaseModel):
-    tailscale_pat: Optional[str] = None
+    tailscale_api_key: Optional[str] = None
     tailscale_tailnet: str = "-"
     api_timeout: int = Field(default=10, ge=1, le=60)
     force_live_data: bool = True
@@ -87,7 +87,7 @@ def get_current_config() -> TailSentryConfig:
     cors_origins = os.getenv("ALLOWED_ORIGIN", "*")
     config.security.cors_origins = [cors_origins] if cors_origins != "*" else ["*"]
     
-    config.tailscale.tailscale_pat = os.getenv("TAILSCALE_PAT")
+    config.tailscale.tailscale_api_key = os.getenv("TAILSCALE_API_KEY")
     config.tailscale.tailscale_tailnet = os.getenv("TAILSCALE_TAILNET", "-")
     config.tailscale.api_timeout = int(os.getenv("TAILSCALE_API_TIMEOUT", "10"))
     config.tailscale.force_live_data = os.getenv("TAILSENTRY_FORCE_LIVE_DATA", "true").lower() == "true"
@@ -157,8 +157,8 @@ def save_config_to_env(config: TailSentryConfig) -> bool:
         # Add optional values if they exist
         if config.security.session_secret:
             env_vars["SESSION_SECRET"] = config.security.session_secret
-        if config.tailscale.tailscale_pat:
-            env_vars["TAILSCALE_PAT"] = config.tailscale.tailscale_pat
+        if config.tailscale.tailscale_api_key:
+            env_vars["TAILSCALE_API_KEY"] = config.tailscale.tailscale_api_key
         if config.monitoring.alert_email:
             env_vars["ALERT_EMAIL"] = config.monitoring.alert_email
         if config.monitoring.webhook_url:
@@ -257,7 +257,7 @@ async def get_tailsentry_settings(request: Request):
                 "tailscale_tailnet": config.tailscale.tailscale_tailnet,
                 "api_timeout": config.tailscale.api_timeout,
                 "force_live_data": config.tailscale.force_live_data,
-                "has_pat": bool(config.tailscale.tailscale_pat)
+                "has_api_key": bool(config.tailscale.tailscale_api_key)
             },
             "application": {
                 "development": config.application.development,

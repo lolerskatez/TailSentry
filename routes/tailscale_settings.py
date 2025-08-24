@@ -43,7 +43,7 @@ async def get_tailscale_settings():
     
     # Add API Key status (without exposing the actual value)
     settings['tailscale_api_key'] = ''  # Don't expose actual Tailscale API Key
-    settings['has_api_key'] = bool(os.getenv('TAILSCALE_PAT'))
+    settings['has_api_key'] = bool(os.getenv('TAILSCALE_API_KEY'))
     
     # Check for Auth Key in both new and legacy locations
     env_auth_key = os.getenv('TAILSCALE_AUTH_KEY')
@@ -147,16 +147,16 @@ async def apply_tailscale_settings(request: Request):
                 return JSONResponse({"success": False, "error": ".env file not found"}, status_code=500)
                 
             if pat_value:
-                set_key(env_file, 'TAILSCALE_PAT', f"'{pat_value}'")
+                set_key(env_file, 'TAILSCALE_API_KEY', f"'{pat_value}'")
                 logger.info("Tailscale PAT updated successfully")
                 pat_was_updated = True
                 new_pat_value = pat_value
             else:
                 # Clear PAT if empty
-                set_key(env_file, 'TAILSCALE_PAT', '')
+                set_key(env_file, 'TAILSCALE_API_KEY', '')
                 logger.info("Tailscale PAT cleared")
         except Exception as e:
-            logger.error(f"Failed to update TAILSCALE_PAT in .env: {e}", exc_info=True)
+            logger.error(f"Failed to update TAILSCALE_API_KEY in .env: {e}", exc_info=True)
             return JSONResponse({"success": False, "error": f"Failed to update PAT: {e}"}, status_code=500)
     
     # Handle Auth Key separately - save to .env file

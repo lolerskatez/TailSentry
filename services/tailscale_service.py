@@ -49,9 +49,9 @@ logger = logging.getLogger("tailsentry.tailscale")
 load_dotenv()
 
 # Configuration from environment
-TAILSCALE_PAT = os.getenv("TAILSCALE_PAT")
-if not TAILSCALE_PAT:
-    logger.warning("TAILSCALE_PAT is not set. Tailscale integration will be disabled until an API Access Token is provided.")
+TAILSCALE_API_KEY = os.getenv("TAILSCALE_API_KEY")
+if not TAILSCALE_API_KEY:
+    logger.warning("TAILSCALE_API_KEY is not set. Tailscale integration will be disabled until an API Key is provided.")
 TAILNET = os.getenv("TAILSCALE_TAILNET", "-")  # Default to "-" for personal tailnet
 API_TIMEOUT = int(os.getenv("TAILSCALE_API_TIMEOUT", "10"))  # API timeout in seconds
 DATA_DIR = os.getenv("TAILSENTRY_DATA_DIR", os.path.join(os.path.dirname(__file__), "data"))
@@ -1094,9 +1094,9 @@ class TailscaleClient:
     def _api_request(method: str, endpoint: str, data: Optional[Dict] = None, 
                     params: Optional[Dict] = None) -> Dict:
         """Base method for Tailscale API requests"""
-        if not TAILSCALE_PAT:
-            logger.error("Tailscale API request failed: No PAT set")
-            return {"error": "No Tailscale API Access Token set. Please add to .env file."}
+        if not TAILSCALE_API_KEY:
+            logger.error("Tailscale API request failed: No API Key set")
+            return {"error": "No Tailscale API Key set. Please add to .env file."}
             
         base_url = "https://api.tailscale.com/api/v2"
         # Replace '-' with actual tailnet if specified
@@ -1104,7 +1104,7 @@ class TailscaleClient:
         url = f"{base_url}{endpoint}"
         
         headers = {
-            "Authorization": f"Bearer {TAILSCALE_PAT}",
+            "Authorization": f"Bearer {TAILSCALE_API_KEY}",
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
