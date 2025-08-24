@@ -49,6 +49,10 @@ async def get_tailscale_settings():
     settings['tailscale_auth_key'] = ''  # Don't expose actual Auth Key
     settings['has_auth_key'] = bool(os.getenv('TAILSCALE_AUTH_KEY'))
     
+    # Remove legacy auth_key field to avoid confusion
+    if 'auth_key' in settings:
+        del settings['auth_key']
+    
     # Override exit node status from actual Tailscale state (more reliable than saved setting)
     try:
         status = TailscaleClient.status_json()
