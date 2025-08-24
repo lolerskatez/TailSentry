@@ -699,6 +699,7 @@ function tailscaleSettings() {
         updateExitNodeInfo() {
             if (!this.status) return;
             
+            // Get available exit nodes (peers that can serve as exit nodes)
             this.availableExitNodes = Object.values(this.status.Peer || {})
                 .filter(peer => peer.ExitNodeOption)
                 .map(peer => ({
@@ -707,10 +708,17 @@ function tailscaleSettings() {
                     ip: peer.TailscaleIPs[0]
                 }));
 
-            // Check if this device is advertising as an exit node
+            // Find the currently active exit node (peer that we're routing through)
+            const currentExitNode = Object.values(this.status.Peer || {})
+                .find(peer => peer.ExitNode);
+            
+            // Set activeExitNode for display purposes (shows advertising status)
             const isAdvertisingExitNode = this.status.Self?.ExitNodeOption || false;
             this.activeExitNode = isAdvertisingExitNode ? 'Advertised' : 'Not Advertised';
-            this.selectedExitNode = this.activeExitNode;
+            
+            // Set selectedExitNode based on what we're actually using
+            // Default to empty string (Direct Connection) unless an exit node is active
+            this.selectedExitNode = currentExitNode ? currentExitNode.ID : '';
         },
 
         updateRouteInfo() {
