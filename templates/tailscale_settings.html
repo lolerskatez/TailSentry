@@ -839,6 +839,8 @@ function tailscaleSettings() {
 
         async toggleExitNodeAdvertisement() {
             this.exitNodeLoading = true;
+            const originalValue = this.advertiseExitNode;
+            
             try {
                 const response = await fetch('/api/tailscale-settings', {
                     method: 'POST',
@@ -849,13 +851,18 @@ function tailscaleSettings() {
                 const result = await response.json();
                 if (result.success) {
                     this.showMessage('Exit node advertisement updated');
-                    // Reload both status and settings to ensure UI reflects current state
+                    // Only reload status, not settings, to avoid overriding the user's choice
                     await this.loadStatus();
-                    await this.loadSettings();
+                    // Update exit node status based on the new state
+                    this.updateExitNodeInfo();
                 } else {
+                    // Revert the toggle if the update failed
+                    this.advertiseExitNode = !originalValue;
                     this.showMessage('Error updating exit node advertisement: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
+                // Revert the toggle if there was a network error
+                this.advertiseExitNode = !originalValue;
                 this.showMessage('Network error: ' + error.message, 'error');
             } finally {
                 this.exitNodeLoading = false;
