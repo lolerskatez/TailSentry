@@ -91,29 +91,42 @@ async def websocket_endpoint(websocket: WebSocket):
 @router.get("/status")
 async def get_status(request: Request):
     try:
-        # Check if TAILSCALE_PAT is not set (Tailscale not configured)
-        if not os.getenv("TAILSCALE_PAT"):
-            logger.info("Tailscale not configured - returning offline status")
-            return {
-                "BackendState": "NeedsLogin",
-                "TailscaleIPs": [],
-                "Self": {"Online": False, "HostName": "Not Connected", "TailscaleIPs": []},
-                "Peer": {},
-                "User": {},
-                "CurrentTailnet": {},
-                "MagicDNSSuffix": "",
-                "CertDomains": [],
-                "offline_reason": "tailscale_not_configured"
-            }
-            
+        # Always try to get local daemon status first
         status = TailscaleClient.status_json()
         logger.info(f"API /status called, returning data type: {type(status)}")
+        
+        # Check if we have valid local status
         if isinstance(status, dict) and "error" not in status:
+            # Add mode indicator based on API token availability
+            has_api_token = bool(os.getenv("TAILSCALE_PAT"))
+            status["_tailsentry_mode"] = "api" if has_api_token else "cli_only"
+            status["_tailsentry_secure_mode"] = "true" if not has_api_token else "false"
+            
+            if not has_api_token:
+                logger.info("Running in CLI-only mode (secure mode) - API features disabled")
+            
             return status
         else:
-            error_msg = status.get("error", "Unknown error") if isinstance(status, dict) else "Invalid data format"
-            logger.error(f"Status API error: {error_msg}")
-            return {"error": f"Failed to get Tailscale status: {error_msg}"}
+            # Local daemon failed, check if it's a configuration issue
+            if not os.getenv("TAILSCALE_PAT"):
+                logger.info("Tailscale not configured - returning offline status")
+                return {
+                    "BackendState": "NeedsLogin",
+                    "TailscaleIPs": [],
+                    "Self": {"Online": False, "HostName": "Not Connected", "TailscaleIPs": []},
+                    "Peer": {},
+                    "User": {},
+                    "CurrentTailnet": {},
+                    "MagicDNSSuffix": "",
+                    "CertDomains": [],
+                    "_tailsentry_mode": "cli_only",
+                    "_tailsentry_secure_mode": "true",
+                    "offline_reason": "tailscale_not_configured"
+                }
+            else:
+                error_msg = status.get("error", "Unknown error") if isinstance(status, dict) else "Invalid data format"
+                logger.error(f"Status API error: {error_msg}")
+                return {"error": f"Failed to get Tailscale status: {error_msg}"}
     except Exception as e:
         logger.error(f"Status API exception: {str(e)}")
         return {"error": f"Internal server error: {str(e)}"}
@@ -130,16 +143,22 @@ async def get_device(request: Request):
 @router.get("/peers")
 async def get_peers(request: Request):
     try:
-        # Check if TAILSCALE_PAT is not set (Tailscale not configured)
-        if not os.getenv("TAILSCALE_PAT"):
-            logger.info("Tailscale not configured - returning empty peers")
-            return {"peers": {}}
-            
+        # Get peer information from local daemon (works without API token)
         status = TailscaleClient.status_json()
         if isinstance(status, dict) and "Peer" in status:
-            return {"peers": status["Peer"]}
+            peers_data = {"peers": status["Peer"]}
+            
+            # Add mode indicator
+            has_api_token = bool(os.getenv("TAILSCALE_PAT"))
+            peers_data["_tailsentry_mode"] = "api" if has_api_token else "cli_only"
+            
+            if not has_api_token:
+                logger.info("Peers API running in CLI-only mode - using local daemon data")
+            
+            return peers_data
         else:
-            return {"peers": {}}
+            logger.warning("No peer data available from local daemon")
+            return {"peers": {}, "_tailsentry_mode": "cli_only"}
     except Exception as e:
         logger.error(f"Peers API error: {str(e)}")
         return {"error": str(e)}

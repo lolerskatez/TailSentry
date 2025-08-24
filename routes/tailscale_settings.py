@@ -42,7 +42,7 @@ async def get_tailscale_settings():
             settings[key] = default_value
     
     # Add PAT status (without exposing the actual value)
-    settings['tailscale_pat'] = ''  # Don't expose actual PAT
+    settings['tailscale_pat'] = ''  # Don't expose actual API Access Token
     settings['has_pat'] = bool(os.getenv('TAILSCALE_PAT'))
     
     # Override exit node status from actual Tailscale state (more reliable than saved setting)
@@ -119,11 +119,13 @@ async def get_tailscale_settings():
 async def apply_tailscale_settings(request: Request):
     data = await request.json()
     
-    # Handle PAT separately - save to .env file
+    # Handle API Access Token separately - save to .env file
+    # Support both old 'tailscale_pat' and new 'tailscale_api_token' keys for backward compatibility
     pat_was_updated = False
     new_pat_value = None
-    if 'tailscale_pat' in data:
-        pat_value = data.get('tailscale_pat', '').strip()
+    api_token_key = 'tailscale_api_token' if 'tailscale_api_token' in data else 'tailscale_pat'
+    if api_token_key in data:
+        pat_value = data.get(api_token_key, '').strip()
         try:
             env_file = find_dotenv()
             if not env_file:
@@ -146,8 +148,8 @@ async def apply_tailscale_settings(request: Request):
     # Load current settings
     current_settings = load_settings()
     
-    # Update settings with new values (excluding PAT)
-    settings_data = {k: v for k, v in data.items() if k != 'tailscale_pat'}
+    # Update settings with new values (excluding API Access Token)
+    settings_data = {k: v for k, v in data.items() if k not in ['tailscale_pat', 'tailscale_api_token']}
     current_settings.update(settings_data)
     
     # Save updated settings to file

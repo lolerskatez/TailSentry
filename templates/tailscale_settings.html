@@ -98,23 +98,23 @@
             <!-- Basic Settings Tab -->
             <div x-show="activeTab === 'basic'" class="space-y-6">
                 <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <h4 class="text-lg font-medium mb-4 text-gray-800 dark:text-gray-200">Personal Access Token</h4>
-                    <form @submit.prevent="savePatToken">
+                    <h4 class="text-lg font-medium mb-4 text-gray-800 dark:text-gray-200">API Access Token</h4>
+                    <form @submit.prevent="saveApiToken">
                         <div class="flex gap-2">
-                            <input type="password" x-model="personalAccessToken" placeholder="Enter Tailscale API Token" 
+                            <input type="password" x-model="apiAccessToken" placeholder="Enter Tailscale API Access Token (tskey-api-...)" 
                                    class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white">
                             <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium">
                                 Save
                             </button>
                         </div>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                            Required for API access to manage devices and settings.
+                            Required for API access to manage devices and settings. Different from Auth Keys used for device registration.
                         </p>
                     </form>
                 </div>
 
                 <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <h4 class="text-lg font-medium mb-4 text-gray-800 dark:text-gray-200">Machine Authentication</h4>
+                    <h4 class="text-lg font-medium mb-4 text-gray-800 dark:text-gray-200">Device Authentication</h4>
                     <div class="space-y-4">
                         <button @click="generateAuthKey" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -124,7 +124,7 @@
                         </button>
                         
                         <div x-show="authKey" class="mt-4">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Generated Auth Key:</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Generated Auth Key (for device registration):</label>
                             <div class="flex gap-2">
                                 <input type="text" x-model="authKey" readonly 
                                        class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-600 dark:text-white font-mono text-sm">
@@ -133,7 +133,7 @@
                                 </button>
                             </div>
                             <p class="text-sm text-red-600 dark:text-red-400 mt-2">
-                                ⚠️ This key will only be shown once. Save it securely.
+                                ⚠️ This key will only be shown once. Save it securely. Use this to register new devices to your tailnet.
                             </p>
                         </div>
                     </div>
@@ -519,7 +519,8 @@ function tailscaleSettings() {
     return {
         activeTab: 'basic',
         status: null,
-        personalAccessToken: '',
+        personalAccessToken: '', // Keep for backwards compatibility
+        apiAccessToken: '',
         authKey: '',
         routesToAdvertise: '',
         advertisedRoutes: [],
@@ -611,20 +612,20 @@ function tailscaleSettings() {
             this.showMessage('Status refreshed');
         },
 
-        async savePatToken() {
+        async saveApiToken() {
             try {
                 const response = await fetch('/api/tailscale-settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tailscale_pat: this.personalAccessToken })
+                    body: JSON.stringify({ tailscale_api_token: this.apiAccessToken })
                 });
                 
                 const result = await response.json();
                 if (result.success) {
-                    this.showMessage('PAT token saved successfully');
-                    this.personalAccessToken = '';
+                    this.showMessage('API Access Token saved successfully');
+                    this.apiAccessToken = '';
                 } else {
-                    this.showMessage('Error saving PAT token: ' + (result.error || 'Unknown error'), 'error');
+                    this.showMessage('Error saving API Access Token: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 this.showMessage('Network error: ' + error.message, 'error');

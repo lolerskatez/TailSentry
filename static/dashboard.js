@@ -145,6 +145,7 @@ window.dashboard = function dashboard() {
     refreshInterval: 30,
     lastUpdated: '',
     connectionStatus: 'connecting',
+    secureMode: false,
     loadingStates: {},
     autoRefresh: true,
     showCharts: true,
@@ -578,6 +579,12 @@ window.dashboard = function dashboard() {
         
         const data = await response.json();
         console.log('Status API response:', data);
+        
+        // Check for secure mode (CLI-only)
+        this.secureMode = data._tailsentry_secure_mode === 'true';
+        if (this.secureMode) {
+          console.log('Running in secure mode (CLI-only) - API features disabled');
+        }
         
         // Map fields from data.Self with proper validation
         const self = data.Self || {};

@@ -23,6 +23,17 @@
               </svg>
               <span x-text="connectionStatus === 'connected' ? 'Live' : connectionStatus === 'connecting' ? 'Connecting' : 'Offline'"></span>
             </div>
+            
+            <!-- Secure Mode Indicator -->
+            <div x-show="secureMode" 
+                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                 title="Running in CLI-only mode for enhanced security. API features are disabled.">
+              <svg class="w-2 h-2 mr-1" fill="currentColor" viewBox="0 0 8 8">
+                <path d="M4 0C1.8 0 0 1.8 0 4s1.8 4 4 4 4-1.8 4-4S6.2 0 4 0zm1.5 2.5l-1 1-1-1L4 2l.5.5z"/>
+              </svg>
+              <span>Secure Mode</span>
+            </div>
+            
             <span class="text-sm text-gray-500 dark:text-gray-400" x-text="'Last updated: ' + lastUpdated"></span>
           </div>
         </div>

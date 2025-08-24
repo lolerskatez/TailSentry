@@ -46,7 +46,7 @@ Before installing TailSentry, ensure these components are available:
    sudo tailscale up
    ```
 
-3. Get a Personal Access Token (PAT) from [Tailscale Admin Console](https://login.tailscale.com/admin/settings/keys)
+3. Get an API Access Token from [Tailscale Admin Console](https://login.tailscale.com/admin/settings/keys)
 
 ## Quick Start
 
@@ -172,7 +172,7 @@ BACKUP_RETENTION_DAYS=30
 
 Configure Tailscale integration during installation or later through the web interface:
 
-1. **During Installation**: Enter your Tailscale PAT when prompted
+1. **During Installation**: Enter your Tailscale API Access Token when prompted
 2. **After Installation**: Configure in Settings > System > Tailscale Settings
 
 ### Network Configuration
@@ -284,7 +284,7 @@ sudo ./setup.sh status
 #### 3. Tailscale Integration Issues
 
 - Check Tailscale status: `sudo tailscale status`
-- Verify PAT in web interface: Settings > System > Tailscale Settings
+- Verify API Access Token in web interface: Settings > System > Tailscale Settings
 - Check socket permissions: `ls -la /var/run/tailscale/`
 
 #### 4. Python/Dependency Issues

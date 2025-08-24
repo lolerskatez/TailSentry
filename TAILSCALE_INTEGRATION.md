@@ -144,7 +144,7 @@ sudo tailscale update
 
 ### **Issue 5: "API access denied"**
 ```bash
-# Solution: Generate and configure Personal Access Token
+# Solution: Generate and configure API Access Token
 # 1. Go to https://login.tailscale.com/admin/settings/keys
 # 2. Generate API key
 # 3. Add to .env: TAILSCALE_PAT=tskey-api-xxxxx

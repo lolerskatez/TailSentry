@@ -88,7 +88,7 @@ From your logs, here's what needs attention:
 - ⚠️ **BCrypt version warning** (minor, doesn't affect functionality)
 
 ### 🎯 **Next Steps After Fix**
-1. Set up your Tailscale Personal Access Token
+1. Set up your Tailscale API Access Token
 2. Configure notifications (optional)
 3. Set up regular backups
 4. Configure reverse proxy with SSL (recommended for production)
