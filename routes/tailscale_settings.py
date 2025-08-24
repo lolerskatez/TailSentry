@@ -183,11 +183,27 @@ async def apply_tailscale_settings(request: Request):
             logger.error(f"Failed to update TAILSCALE_AUTH_KEY in .env: {e}", exc_info=True)
             return JSONResponse({"success": False, "error": f"Failed to update Auth Key: {e}"}, status_code=500)
 
+    # Handle hostname setting separately - use tailscale command
+    if 'hostname' in data:
+        hostname_value = data.get('hostname', '').strip()
+        if hostname_value:
+            try:
+                from services.tailscale_service import TailscaleClient
+                result = TailscaleClient.set_hostname(hostname_value)
+                if result and 'error' not in result:
+                    logger.info(f"Hostname set to: {hostname_value}")
+                else:
+                    logger.error(f"Failed to set hostname: {result}")
+                    return JSONResponse({"success": False, "error": f"Failed to set hostname: {result.get('error', 'Unknown error')}"}, status_code=500)
+            except Exception as e:
+                logger.error(f"Exception setting hostname: {e}", exc_info=True)
+                return JSONResponse({"success": False, "error": f"Failed to set hostname: {e}"}, status_code=500)
+
     # Load current settings
     current_settings = load_settings()
     
-    # Update settings with new values (excluding API Access Token and Auth Key)
-    settings_data = {k: v for k, v in data.items() if k not in ['tailscale_pat', 'tailscale_api_token', 'tailscale_auth_key']}
+    # Update settings with new values (excluding API Key, Auth Key, and hostname)
+    settings_data = {k: v for k, v in data.items() if k not in ['tailscale_pat', 'tailscale_api_token', 'tailscale_auth_key', 'hostname']}
     current_settings.update(settings_data)
     
     # Save updated settings to file

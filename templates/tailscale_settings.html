@@ -44,7 +44,7 @@
         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
             <h3 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Network Info</h3>
             <div class="space-y-2">
-                <p class="text-sm text-gray-600 dark:text-gray-400">Exit Node: <span x-text="activeExitNode || 'None'" class="font-medium"></span></p>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Exit Node Status: <span x-text="activeExitNode || 'Not Advertised'" class="font-medium"></span></p>
                 <p class="text-sm text-gray-600 dark:text-gray-400">Advertised Routes: <span x-text="advertisedRoutes.length || '0'"></span></p>
                 <p class="text-sm text-gray-600 dark:text-gray-400">Peers: <span x-text="Object.keys(status?.Peer || {}).length || '0'"></span></p>
             </div>
@@ -147,6 +147,24 @@
                                 <strong>Secure Mode:</strong> TailSentry can operate without API tokens for enhanced security. Only required for advanced network management features.
                             </p>
                         </div>
+                    </form>
+                </div>
+
+                <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200">Device Hostname</h4>
+                    </div>
+                    <form @submit.prevent="saveHostname">
+                        <div class="flex gap-2">
+                            <input type="text" x-model="hostname" :placeholder="status?.Self?.HostName || 'Enter hostname...'" 
+                                   class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white">
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium">
+                                Save
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                            Set a custom hostname for this device in the Tailnet. Current: <span x-text="status?.Self?.HostName || 'Unknown'" class="font-mono"></span>
+                        </p>
                     </form>
                 </div>
 
@@ -559,6 +577,7 @@ function tailscaleSettings() {
         personalAccessToken: '', // Keep for backwards compatibility
         apiAccessToken: '',
         authKey: '',
+        hostname: '',
         hasAuthKey: false,
         hasApiToken: false,
         routesToAdvertise: '',
@@ -638,9 +657,9 @@ function tailscaleSettings() {
                     ip: peer.TailscaleIPs[0]
                 }));
 
-            // Find the active exit node by looking for a peer with ExitNode: true
-            const activeExitNodePeer = Object.values(this.status.Peer || {}).find(peer => peer.ExitNode);
-            this.activeExitNode = activeExitNodePeer ? activeExitNodePeer.HostName : '';
+            // Check if this device is advertising as an exit node
+            const isAdvertisingExitNode = this.status.Self?.ExitNodeOption || false;
+            this.activeExitNode = isAdvertisingExitNode ? 'Advertised' : 'Not Advertised';
             this.selectedExitNode = this.activeExitNode;
         },
 
@@ -691,6 +710,28 @@ function tailscaleSettings() {
                     this.authKey = '';
                 } else {
                     this.showMessage('Error saving Auth Key: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                this.showMessage('Network error: ' + error.message, 'error');
+            }
+        },
+
+        async saveHostname() {
+            try {
+                const response = await fetch('/api/tailscale-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ hostname: this.hostname })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    this.showMessage('Hostname saved successfully');
+                    this.hostname = '';
+                    // Refresh status to show the updated hostname
+                    await this.loadStatus();
+                } else {
+                    this.showMessage('Error saving hostname: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 this.showMessage('Network error: ' + error.message, 'error');

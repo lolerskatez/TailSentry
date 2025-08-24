@@ -567,6 +567,32 @@ class TailscaleClient:
             return str(e)
 
     @staticmethod
+    def set_hostname(hostname: str):
+        """Set the hostname for this Tailscale device"""
+        if not hostname or not hostname.strip():
+            return {"error": "Hostname cannot be empty"}
+            
+        tailscale_path = TailscaleClient.get_tailscale_path()
+        cmd = [tailscale_path, "set", "--hostname", hostname.strip()]
+        
+        try:
+            logger.info(f"Setting Tailscale hostname: {hostname}")
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            
+            if result.returncode == 0:
+                logger.info(f"Hostname set successfully to: {hostname}")
+                return {"success": True, "hostname": hostname}
+            else:
+                error_msg = f"Failed to set hostname (exit code {result.returncode})"
+                if result.stderr:
+                    error_msg += f": {result.stderr}"
+                logger.error(error_msg)
+                return {"error": error_msg}
+        except Exception as e:
+            logger.error(f"Exception setting hostname: {str(e)}")
+            return {"error": str(e)}
+
+    @staticmethod
     def subnet_routes() -> List[str]:
         """Get all advertised subnet routes for this device"""
         status = TailscaleClient.status_json()
