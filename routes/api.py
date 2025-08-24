@@ -135,7 +135,16 @@ async def get_status(request: Request):
 async def get_device(request: Request):
     try:
         device_info = TailscaleClient.get_device_info()
-        return device_info or {}
+        
+        # Add mode indicator
+        has_api_token = bool(os.getenv("TAILSCALE_PAT"))
+        mode = "api" if has_api_token else "cli_only"
+        
+        result = device_info or {}
+        if isinstance(result, dict):
+            result["_tailsentry_mode"] = mode
+        
+        return result
     except Exception as e:
         logger.error(f"Device API error: {str(e)}")
         return {"error": str(e)}
@@ -166,7 +175,16 @@ async def get_peers(request: Request):
 @router.get("/exit-node")
 async def get_exit_node(request: Request):
     try:
-        return {"exit_node": TailscaleClient.get_active_exit_node()}
+        exit_node_data = TailscaleClient.get_active_exit_node()
+        
+        # Add mode indicator
+        has_api_token = bool(os.getenv("TAILSCALE_PAT"))
+        mode = "api" if has_api_token else "cli_only"
+        
+        return {
+            "exit_node": exit_node_data,
+            "_tailsentry_mode": mode
+        }
     except Exception as e:
         logger.error(f"Exit node API error: {str(e)}")
         return {"error": str(e)}
@@ -174,7 +192,16 @@ async def get_exit_node(request: Request):
 @router.get("/subnet-routes")
 async def get_subnet_routes(request: Request):
     try:
-        return {"routes": TailscaleClient.subnet_routes()}
+        routes_data = TailscaleClient.subnet_routes()
+        
+        # Add mode indicator
+        has_api_token = bool(os.getenv("TAILSCALE_PAT"))
+        mode = "api" if has_api_token else "cli_only"
+        
+        return {
+            "routes": routes_data,
+            "_tailsentry_mode": mode
+        }
     except Exception as e:
         logger.error(f"Subnet routes API error: {str(e)}")
         return {"error": str(e)}
@@ -182,7 +209,16 @@ async def get_subnet_routes(request: Request):
 @router.get("/local-subnets")
 async def get_local_subnets(request: Request):
     try:
-        return {"subnets": TailscaleClient.detect_local_subnets()}
+        subnets_data = TailscaleClient.detect_local_subnets()
+        
+        # Add mode indicator
+        has_api_token = bool(os.getenv("TAILSCALE_PAT"))
+        mode = "api" if has_api_token else "cli_only"
+        
+        return {
+            "subnets": subnets_data,
+            "_tailsentry_mode": mode
+        }
     except Exception as e:
         logger.error(f"Local subnets API error: {str(e)}")
         return {"error": str(e)}
