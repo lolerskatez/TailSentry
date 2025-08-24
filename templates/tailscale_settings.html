@@ -308,8 +308,26 @@
                                     <label class="relative inline-flex items-center cursor-pointer group">
                                         <input type="checkbox" x-model="advertiseExitNode" @change="toggleExitNodeAdvertisement" 
                                                :disabled="exitNodeLoading"
-                                               class="sr-only peer">
-                                        <div class="relative w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed shadow-sm"></div>
+                                               class="sr-only">
+                                        <div class="relative">
+                                            <div class="block bg-gray-300 dark:bg-gray-600 w-14 h-8 rounded-full shadow-inner transition-colors duration-300"
+                                                 :class="advertiseExitNode ? 'bg-indigo-500 dark:bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'"></div>
+                                            <div class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 shadow-md flex items-center justify-center"
+                                                 :class="advertiseExitNode ? 'transform translate-x-6' : 'transform translate-x-0'"
+                                                 :style="exitNodeLoading ? 'opacity: 0.7' : ''">
+                                                <div x-show="exitNodeLoading" class="w-3 h-3">
+                                                    <svg class="animate-spin w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                </div>
+                                                <div x-show="!exitNodeLoading && advertiseExitNode" class="w-3 h-3">
+                                                    <svg class="w-3 h-3 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
                                             <span x-show="!advertiseExitNode">Enable Exit Node</span>
                                             <span x-show="advertiseExitNode" class="text-indigo-600 dark:text-indigo-400">Exit Node Enabled</span>
@@ -518,31 +536,53 @@
                     <h4 class="text-lg font-medium mb-4 text-gray-800 dark:text-gray-200">Advanced Configuration</h4>
                     
                     <div class="space-y-4">
-                        <div class="flex items-center justify-between">
+                        <div class="flex items-center justify-between py-3">
                             <div>
                                 <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Accept Routes</label>
                                 <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                     Accept subnet routes advertised by other devices.
                                 </p>
                             </div>
-                            <label class="relative inline-flex items-center cursor-pointer group">
+                            <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" x-model="acceptRoutes" @change="toggleAcceptRoutes" 
-                                       class="sr-only peer">
-                                <div class="relative w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600 shadow-sm"></div>
+                                       class="sr-only">
+                                <div class="relative">
+                                    <div class="block bg-gray-300 dark:bg-gray-600 w-14 h-8 rounded-full shadow-inner transition-colors duration-300"
+                                         :class="acceptRoutes ? 'bg-indigo-500 dark:bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'"></div>
+                                    <div class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 shadow-md flex items-center justify-center"
+                                         :class="acceptRoutes ? 'transform translate-x-6' : 'transform translate-x-0'">
+                                        <div x-show="acceptRoutes" class="w-3 h-3">
+                                            <svg class="w-3 h-3 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
                             </label>
                         </div>
 
-                        <div class="flex items-center justify-between">
+                        <div class="flex items-center justify-between py-3">
                             <div>
                                 <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Accept DNS</label>
                                 <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                     Use DNS settings from your tailnet.
                                 </p>
                             </div>
-                            <label class="relative inline-flex items-center cursor-pointer group">
+                            <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" x-model="acceptDns" @change="toggleAcceptDns" 
-                                       class="sr-only peer">
-                                <div class="relative w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600 shadow-sm"></div>
+                                       class="sr-only">
+                                <div class="relative">
+                                    <div class="block bg-gray-300 dark:bg-gray-600 w-14 h-8 rounded-full shadow-inner transition-colors duration-300"
+                                         :class="acceptDns ? 'bg-indigo-500 dark:bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'"></div>
+                                    <div class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 shadow-md flex items-center justify-center"
+                                         :class="acceptDns ? 'transform translate-x-6' : 'transform translate-x-0'">
+                                        <div x-show="acceptDns" class="w-3 h-3">
+                                            <svg class="w-3 h-3 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
                             </label>
                         </div>
 
