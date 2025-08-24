@@ -97,12 +97,12 @@ async def get_status(request: Request):
         
         # Check if we have valid local status
         if isinstance(status, dict) and "error" not in status:
-            # Add mode indicator based on API token availability
-            has_api_token = bool(os.getenv("TAILSCALE_PAT"))
-            status["_tailsentry_mode"] = "api" if has_api_token else "cli_only"
-            status["_tailsentry_secure_mode"] = "true" if not has_api_token else "false"
+            # Add mode indicator based on API key availability
+            has_api_key = bool(os.getenv("TAILSCALE_PAT"))
+            status["_tailsentry_mode"] = "api" if has_api_key else "cli_only"
+            status["_tailsentry_secure_mode"] = "true" if not has_api_key else "false"
             
-            if not has_api_token:
+            if not has_api_key:
                 logger.info("Running in CLI-only mode (secure mode) - API features disabled")
             
             return status
@@ -137,8 +137,8 @@ async def get_device(request: Request):
         device_info = TailscaleClient.get_device_info()
         
         # Add mode indicator
-        has_api_token = bool(os.getenv("TAILSCALE_PAT"))
-        mode = "api" if has_api_token else "cli_only"
+        has_api_key = bool(os.getenv("TAILSCALE_PAT"))
+        mode = "api" if has_api_key else "cli_only"
         
         result = device_info or {}
         if isinstance(result, dict):
@@ -158,10 +158,10 @@ async def get_peers(request: Request):
             peers_data = {"peers": status["Peer"]}
             
             # Add mode indicator
-            has_api_token = bool(os.getenv("TAILSCALE_PAT"))
-            peers_data["_tailsentry_mode"] = "api" if has_api_token else "cli_only"
+            has_api_key = bool(os.getenv("TAILSCALE_PAT"))
+            peers_data["_tailsentry_mode"] = "api" if has_api_key else "cli_only"
             
-            if not has_api_token:
+            if not has_api_key:
                 logger.info("Peers API running in CLI-only mode - using local daemon data")
             
             return peers_data
@@ -178,8 +178,8 @@ async def get_exit_node(request: Request):
         exit_node_data = TailscaleClient.get_active_exit_node()
         
         # Add mode indicator
-        has_api_token = bool(os.getenv("TAILSCALE_PAT"))
-        mode = "api" if has_api_token else "cli_only"
+        has_api_key = bool(os.getenv("TAILSCALE_PAT"))
+        mode = "api" if has_api_key else "cli_only"
         
         return {
             "exit_node": exit_node_data,
@@ -195,8 +195,8 @@ async def get_subnet_routes(request: Request):
         routes_data = TailscaleClient.subnet_routes()
         
         # Add mode indicator
-        has_api_token = bool(os.getenv("TAILSCALE_PAT"))
-        mode = "api" if has_api_token else "cli_only"
+        has_api_key = bool(os.getenv("TAILSCALE_PAT"))
+        mode = "api" if has_api_key else "cli_only"
         
         return {
             "routes": routes_data,
@@ -212,8 +212,8 @@ async def get_local_subnets(request: Request):
         subnets_data = TailscaleClient.detect_local_subnets()
         
         # Add mode indicator
-        has_api_token = bool(os.getenv("TAILSCALE_PAT"))
-        mode = "api" if has_api_token else "cli_only"
+        has_api_key = bool(os.getenv("TAILSCALE_PAT"))
+        mode = "api" if has_api_key else "cli_only"
         
         return {
             "subnets": subnets_data,
@@ -248,7 +248,7 @@ async def set_subnet_routes(request: Request, payload: dict = Body(...)):
 async def get_network_stats(request: Request):
     """Get real-time network statistics for dashboard charts."""
     try:
-        # Check if TAILSCALE_PAT is not set (Tailscale not configured)
+        # Check if TAILSCALE_PAT is not set (Tailscale API Key not configured)
         if not os.getenv("TAILSCALE_PAT"):
             logger.info("Tailscale not configured - returning empty network stats")
             return JSONResponse(content={

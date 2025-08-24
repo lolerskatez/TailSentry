@@ -123,7 +123,7 @@
 
                 <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                     <div class="flex items-center justify-between mb-4">
-                        <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200">API Access Token (Optional)</h4>
+                        <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200">Tailscale API Key (Optional)</h4>
                         <div x-show="hasApiToken" class="flex items-center text-green-600 dark:text-green-400">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -133,7 +133,7 @@
                     </div>
                     <form @submit.prevent="saveApiToken">
                         <div class="flex gap-2">
-                            <input type="password" x-model="apiAccessToken" placeholder="Enter Tailscale API Access Token (tskey-api-...)" 
+                            <input type="password" x-model="apiAccessToken" placeholder="Enter Tailscale API Key (tskey-api-...)" 
                                    class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white">
                             <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium">
                                 Save
@@ -620,7 +620,7 @@ function tailscaleSettings() {
                     
                     // Load status indicators
                     this.hasAuthKey = settings.has_auth_key || false;
-                    this.hasApiToken = settings.has_pat || false;
+                    this.hasApiToken = settings.has_api_key || false;
                 }
             } catch (error) {
                 console.error('Error loading settings:', error);
@@ -665,10 +665,10 @@ function tailscaleSettings() {
                 
                 const result = await response.json();
                 if (result.success) {
-                    this.showMessage('API Access Token saved successfully');
+                    this.showMessage('Tailscale API Key saved successfully');
                     this.apiAccessToken = '';
                 } else {
-                    this.showMessage('Error saving API Access Token: ' + (result.error || 'Unknown error'), 'error');
+                    this.showMessage('Error saving Tailscale API Key: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 this.showMessage('Network error: ' + error.message, 'error');

@@ -41,9 +41,9 @@ async def get_tailscale_settings():
         if key not in settings:
             settings[key] = default_value
     
-    # Add PAT status (without exposing the actual value)
-    settings['tailscale_pat'] = ''  # Don't expose actual API Access Token
-    settings['has_pat'] = bool(os.getenv('TAILSCALE_PAT'))
+    # Add API Key status (without exposing the actual value)
+    settings['tailscale_api_key'] = ''  # Don't expose actual Tailscale API Key
+    settings['has_api_key'] = bool(os.getenv('TAILSCALE_PAT'))
     
     # Check for Auth Key in both new and legacy locations
     env_auth_key = os.getenv('TAILSCALE_AUTH_KEY')
