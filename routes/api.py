@@ -244,6 +244,53 @@ async def set_subnet_routes(request: Request, payload: dict = Body(...)):
         logger.error(f"Set subnet routes API error: {str(e)}")
         return {"success": False, "error": str(e)}
 
+@router.get("/detect-networks")
+async def detect_networks(request: Request):
+    """Detect local networks for subnet route suggestions."""
+    try:
+        import psutil
+        import ipaddress
+        
+        detected = []
+        
+        # Get network interfaces
+        for interface_name, interface_addresses in psutil.net_if_addrs().items():
+            # Skip loopback and non-ethernet interfaces
+            if interface_name.startswith(('lo', 'Loopback', 'isatap', 'Teredo')):
+                continue
+                
+            for addr in interface_addresses:
+                if addr.family == 2:  # AF_INET (IPv4)
+                    try:
+                        # Calculate network from IP and netmask
+                        ip = ipaddress.IPv4Address(addr.address)
+                        if ip.is_private and not ip.is_loopback:
+                            # Convert netmask to prefix length
+                            netmask = ipaddress.IPv4Address(addr.netmask)
+                            prefix_len = bin(int(netmask)).count('1')
+                            
+                            # Calculate network address
+                            network = ipaddress.IPv4Network(f"{addr.address}/{prefix_len}", strict=False)
+                            
+                            detected.append({
+                                "cidr": str(network),
+                                "interface": interface_name,
+                                "ip": addr.address
+                            })
+                    except Exception:
+                        continue
+        
+        # Remove duplicates and sort
+        unique_networks = {}
+        for net in detected:
+            unique_networks[net["cidr"]] = net
+        
+        return list(unique_networks.values())
+        
+    except Exception as e:
+        logger.error(f"Network detection error: {str(e)}")
+        return []
+
 @router.get("/network-stats")
 async def get_network_stats(request: Request):
     """Get real-time network statistics for dashboard charts."""
