@@ -45,11 +45,16 @@ async def get_tailscale_settings():
     settings['tailscale_pat'] = ''  # Don't expose actual API Access Token
     settings['has_pat'] = bool(os.getenv('TAILSCALE_PAT'))
     
+    # Check for Auth Key in both new and legacy locations
+    env_auth_key = os.getenv('TAILSCALE_AUTH_KEY')
+    legacy_auth_key = settings.get('auth_key', '')
+    has_auth_key = bool(env_auth_key or (legacy_auth_key and legacy_auth_key.startswith('tskey-auth-')))
+    
     # Add Auth Key status (without exposing the actual value)
     settings['tailscale_auth_key'] = ''  # Don't expose actual Auth Key
-    settings['has_auth_key'] = bool(os.getenv('TAILSCALE_AUTH_KEY'))
+    settings['has_auth_key'] = has_auth_key
     
-    # Remove legacy auth_key field to avoid confusion
+    # Remove legacy auth_key field to avoid confusion (but keep the detection logic above)
     if 'auth_key' in settings:
         del settings['auth_key']
     
