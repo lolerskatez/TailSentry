@@ -221,9 +221,8 @@ window.dashboard = function dashboard() {
     peerFilter: '',
     deviceFilter: 'all', // 'all', 'using-exit', 'online'
     exitNodeClients: [],
-    onlinePeers: [],
     searchFilter: '',
-    sortBy: 'name',
+    sortBy: 'hostname',
     viewMode: 'table',
     subnets: [],
     logs: [],
@@ -277,7 +276,7 @@ window.dashboard = function dashboard() {
       // Apply sorting
       filtered.sort((a, b) => {
         switch (this.sortBy) {
-          case 'name':
+          case 'hostname':
             return (a.hostname || '').localeCompare(b.hostname || '');
           case 'status':
             if (a.online !== b.online) return b.online - a.online;
@@ -293,6 +292,11 @@ window.dashboard = function dashboard() {
       
       return filtered;
     },
+    
+    onlinePeers() {
+      return this.peers.filter(peer => peer.online);
+    },
+    
     refresh() {
       this.loadAll();
     },

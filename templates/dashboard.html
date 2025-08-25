@@ -372,7 +372,7 @@
               <button @click="deviceFilter = 'all'" 
                       :class="deviceFilter === 'all' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
                       class="px-3 py-1 text-sm font-medium rounded-md transition-colors">
-                All (<span x-text="filteredPeers.length"></span>)
+                All (<span x-text="peers.length"></span>)
               </button>
               <button @click="deviceFilter = 'using-exit'" 
                       :class="deviceFilter === 'using-exit' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
@@ -382,14 +382,14 @@
               <button @click="deviceFilter = 'online'" 
                       :class="deviceFilter === 'online' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
                       class="px-3 py-1 text-sm font-medium rounded-md transition-colors ml-1">
-                Online (<span x-text="onlinePeers.length"></span>)
+                Online (<span x-text="onlinePeers().length"></span>)
               </button>
             </div>
             
             <!-- Sort -->
             <select x-model="sortBy" @change="filterPeers()" 
                     class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-              <option value="name">Sort by Name</option>
+              <option value="hostname">Sort by Name</option>
               <option value="status">Sort by Status</option>
               <option value="lastSeen">Sort by Last Seen</option>
               <option value="ip">Sort by IP</option>
