@@ -868,6 +868,13 @@ window.dashboard = function dashboard() {
       return `${Math.floor(diff/86400)}d ago`;
     },
 
+    showPeerDetails(peer) {
+      // Set the selected peer and show the modal
+      this.selectedPeer = peer || {};
+      this.peerModal = true;
+      this.showPeerModal = true;
+    },
+
 
     // Settings page Alpine.js methods
     async applyExitNode() {
