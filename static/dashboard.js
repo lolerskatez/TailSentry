@@ -874,10 +874,22 @@ window.dashboard = function dashboard() {
     },
 
     showPeerDetails(peer) {
+      // Only show modal if a valid peer is provided
+      if (!peer || !peer.id) {
+        console.warn('showPeerDetails called without valid peer data');
+        return;
+      }
+      
       // Set the selected peer and show the modal
-      this.selectedPeer = peer || {};
+      this.selectedPeer = peer;
       this.peerModal = true;
       this.showPeerModal = true;
+    },
+
+    closePeerModal() {
+      this.showPeerModal = false;
+      this.peerModal = false;
+      this.selectedPeer = {};
     },
 
     sortPeers() {
