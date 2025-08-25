@@ -1,75 +1,73 @@
 {% extends "base.html" %}
-{% block title %}TailSentry - Advanced Dashboard{% endblock %}
+{% block title %}TailSentry - Command Center{% endblock %}
 {% block content %}
 
-<script>
-  // Helper function to test the modal directly
-  function testModal() {
-    const modal = document.getElementById('peerModal');
-    if (modal) {
-      modal.style.display = 'flex';
-      console.log('Test modal opened via direct DOM manipulation');
-    } else {
-      console.error('Modal element not found');
-    }
-  }
-</script>
-
-<!-- Dashboard Container -->
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900" x-data="dashboard()" x-init="init()">
+<!-- Enhanced Dashboard Container -->
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900" x-data="enhancedDashboard()" x-init="init()">
   
-  <!-- Header Section -->
-  <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+  <!-- Header Section with Enhanced Status -->
+  <header class="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
+      <div class="flex items-center justify-between h-20">
         
-        <!-- Left: Title and Status -->
-        <div class="flex items-center space-x-4">
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">TailSentry Dashboard</h1>
-          <div class="flex items-center space-x-2">
-            <div :class="connectionStatus === 'connected' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 
-                         connectionStatus === 'connecting' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 
-                         'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'"
-                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
-              <svg class="w-2 h-2 mr-1" fill="currentColor" viewBox="0 0 8 8">
-                <circle cx="4" cy="4" r="3"/>
+        <!-- Left: Title and Primary Status -->
+        <div class="flex items-center space-x-6">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
               </svg>
-              <span x-text="connectionStatus === 'connected' ? 'Live' : connectionStatus === 'connecting' ? 'Connecting' : 'Offline'"></span>
             </div>
-            
-            <!-- Secure Mode Indicator -->
-            <div x-show="secureMode" 
-                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                 title="Running in CLI-only mode for enhanced security. API features are disabled.">
-              <svg class="w-2 h-2 mr-1" fill="currentColor" viewBox="0 0 8 8">
-                <path d="M4 0C1.8 0 0 1.8 0 4s1.8 4 4 4 4-1.8 4-4S6.2 0 4 0zm1.5 2.5l-1 1-1-1L4 2l.5.5z"/>
-              </svg>
-              <span>Secure Mode</span>
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900 dark:text-white">TailSentry Command Center</h1>
+              <p class="text-sm text-gray-600 dark:text-gray-400" x-text="'Managing ' + (tailnetName || 'Tailnet')"></p>
             </div>
-            
-            <span class="text-sm text-gray-500 dark:text-gray-400" x-text="'Last updated: ' + lastUpdated"></span>
+          </div>
+          
+          <!-- Device Status Indicator -->
+          <div class="flex items-center space-x-4 bg-gray-50 dark:bg-gray-700 rounded-lg px-4 py-2">
+            <div class="flex items-center space-x-2">
+              <div :class="deviceStatus.online ? 'bg-green-400' : 'bg-red-400'" 
+                   class="w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-white dark:ring-gray-800"></div>
+              <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="deviceStatus.hostname"></span>
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+              <span x-text="deviceStatus.ip"></span>
+            </div>
           </div>
         </div>
 
-        <!-- Right: Actions -->
-        <div class="flex items-center space-x-3">
-          <!-- Test Modal Button - For Debugging -->
-          <button @click="showPeerModal = true; selectedPeer = {hostname: 'Test Device', ip: '100.100.100.100', online: true, os: 'Test OS', lastSeen: Date.now()/1000}" 
-                  class="px-2 py-1 bg-red-500 text-white text-xs rounded">
-            Test Modal
-          </button>
+        <!-- Right: Control Actions -->
+        <div class="flex items-center space-x-4">
+          <!-- Quick Stats -->
+          <div class="hidden md:flex items-center space-x-6 text-sm">
+            <div class="text-center">
+              <div class="text-lg font-semibold text-gray-900 dark:text-white" x-text="stats.totalPeers"></div>
+              <div class="text-gray-500 dark:text-gray-400">Devices</div>
+            </div>
+            <div class="text-center">
+              <div class="text-lg font-semibold text-green-600 dark:text-green-400" x-text="stats.onlinePeers"></div>
+              <div class="text-gray-500 dark:text-gray-400">Online</div>
+            </div>
+            <div class="text-center" x-show="stats.exitNodeClients > 0">
+              <div class="text-lg font-semibold text-blue-600 dark:text-blue-400" x-text="stats.exitNodeClients"></div>
+              <div class="text-gray-500 dark:text-gray-400">Using Exit</div>
+            </div>
+          </div>
+          
+          <!-- Action Buttons -->
           <button @click="refreshAll()" 
                   :disabled="isRefreshing"
-                  class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
+                  class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all duration-200">
             <svg :class="isRefreshing ? 'animate-spin' : ''" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
             </svg>
             <span x-text="isRefreshing ? 'Refreshing...' : 'Refresh'"></span>
           </button>
           
-          <!-- Quick Settings Toggle -->
-          <button @click="showQuickSettings = !showQuickSettings"
-                  class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200">
+          <!-- Settings -->
+          <button @click="showSettings = !showSettings"
+                  class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -80,73 +78,112 @@
     </div>
   </header>
 
-  <!-- Quick Settings Panel -->
-  <div x-show="showQuickSettings" 
+  <!-- Settings Panel -->
+  <div x-show="showSettings" 
        x-transition:enter="transition ease-out duration-200"
-       x-transition:enter-start="opacity-0 transform scale-95"
-       x-transition:enter-end="opacity-100 transform scale-100"
-       x-transition:leave="transition ease-in duration-75"
-       x-transition:leave-start="opacity-100 transform scale-100"
-       x-transition:leave-end="opacity-0 transform scale-95"
+       x-transition:enter-start="opacity-0 transform -translate-y-4"
+       x-transition:enter-end="opacity-100 transform translate-y-0"
+       x-transition:leave="transition ease-in duration-150"
+       x-transition:leave-start="opacity-100 transform translate-y-0"
+       x-transition:leave-end="opacity-0 transform -translate-y-4"
        class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
-        <!-- Auto Refresh Toggle -->
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Auto Refresh</span>
-          <button @click="toggleAutoRefresh()" 
-                  :class="autoRefresh ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'"
-                  class="relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            <span :class="autoRefresh ? 'translate-x-5' : 'translate-x-0'"
-                  class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"></span>
-          </button>
+        <!-- Auto Refresh Controls -->
+        <div class="space-y-3">
+          <h4 class="text-sm font-medium text-gray-900 dark:text-white">Auto Refresh</h4>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Enabled</span>
+            <button @click="toggleAutoRefresh()" 
+                    :class="autoRefresh ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'"
+                    class="relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200">
+              <span :class="autoRefresh ? 'translate-x-5' : 'translate-x-0'"
+                    class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"></span>
+            </button>
+          </div>
+          <div>
+            <label class="text-sm text-gray-600 dark:text-gray-400">Interval</label>
+            <select x-model="refreshInterval" 
+                    @change="updateRefreshInterval()"
+                    class="mt-1 block w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md">
+              <option value="5">5 seconds</option>
+              <option value="10">10 seconds</option>
+              <option value="30">30 seconds</option>
+              <option value="60">1 minute</option>
+              <option value="300">5 minutes</option>
+            </select>
+          </div>
         </div>
 
-        <!-- Refresh Interval -->
-        <div class="flex items-center justify-between">
-          <label class="text-sm font-medium text-gray-700 dark:text-gray-300" for="refresh-interval">Interval (s)</label>
-          <select x-model="refreshInterval" 
-                  @change="updateRefreshInterval()"
-                  id="refresh-interval"
-                  class="ml-2 text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-            <option value="5">5s</option>
-            <option value="10">10s</option>
-            <option value="30">30s</option>
-            <option value="60">1m</option>
-            <option value="300">5m</option>
-          </select>
+        <!-- View Options -->
+        <div class="space-y-3">
+          <h4 class="text-sm font-medium text-gray-900 dark:text-white">Display</h4>
+          <div>
+            <label class="text-sm text-gray-600 dark:text-gray-400">View Mode</label>
+            <select x-model="viewMode" 
+                    @change="savePreferences()"
+                    class="mt-1 block w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md">
+              <option value="grid">Grid Cards</option>
+              <option value="table">Table View</option>
+              <option value="compact">Compact List</option>
+            </select>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Show Charts</span>
+            <button @click="toggleCharts()" 
+                    :class="showCharts ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'"
+                    class="relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200">
+              <span :class="showCharts ? 'translate-x-5' : 'translate-x-0'"
+                    class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"></span>
+            </button>
+          </div>
         </div>
 
-        <!-- View Mode -->
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">View</span>
-          <select x-model="viewMode" 
-                  @change="savePreferences()"
-                  class="ml-2 text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-            <option value="detailed">Detailed</option>
-            <option value="compact">Compact</option>
-            <option value="cards">Cards</option>
-          </select>
+        <!-- Filter Options -->
+        <div class="space-y-3">
+          <h4 class="text-sm font-medium text-gray-900 dark:text-white">Filters</h4>
+          <div>
+            <label class="text-sm text-gray-600 dark:text-gray-400">Show Devices</label>
+            <select x-model="deviceFilter" 
+                    @change="filterDevices()"
+                    class="mt-1 block w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md">
+              <option value="all">All Devices</option>
+              <option value="online">Online Only</option>
+              <option value="offline">Offline Only</option>
+              <option value="exit-nodes">Exit Nodes</option>
+              <option value="subnet-routers">Subnet Routers</option>
+            </select>
+          </div>
+          <div>
+            <input x-model="searchQuery" 
+                   @input="filterDevices()"
+                   type="text" 
+                   placeholder="Search devices..." 
+                   class="block w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md">
+          </div>
         </div>
 
-        <!-- Show Charts -->
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Charts</span>
-          <button @click="toggleCharts()" 
-                  :class="showCharts ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'"
-                  class="relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            <span :class="showCharts ? 'translate-x-5' : 'translate-x-0'"
-                  class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"></span>
-          </button>
+        <!-- Actions -->
+        <div class="space-y-3">
+          <h4 class="text-sm font-medium text-gray-900 dark:text-white">Actions</h4>
+          <div class="space-y-2">
+            <button @click="exportData()" 
+                    class="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600">
+              Export Data
+            </button>
+            <button @click="showTailscaleControls = !showTailscaleControls" 
+                    class="w-full px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-md hover:bg-blue-200 dark:hover:bg-blue-800">
+              Tailscale Controls
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Main Dashboard Content -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
     <!-- Alert Banner -->
     <div x-show="alertMessage" 
          x-transition:enter="transition ease-out duration-300"
@@ -155,10 +192,10 @@
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="opacity-100 transform translate-y-0"
          x-transition:leave-end="opacity-0 transform -translate-y-2"
-         :class="alertType === 'error' ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900 dark:border-red-700 dark:text-red-200' : 
-                 alertType === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-200' : 
-                 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900 dark:border-green-700 dark:text-green-200'"
-         class="mb-6 rounded-md border p-4">
+         :class="alertType === 'error' ? 'bg-red-50 border-l-4 border-red-400 text-red-800 dark:bg-red-900/20 dark:border-red-500 dark:text-red-200' : 
+                 alertType === 'warning' ? 'bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-500 dark:text-yellow-200' : 
+                 'bg-green-50 border-l-4 border-green-400 text-green-800 dark:bg-green-900/20 dark:border-green-500 dark:text-green-200'"
+         class="rounded-md p-4">
       <div class="flex items-start">
         <div class="flex-shrink-0">
           <svg x-show="alertType === 'error'" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
@@ -175,7 +212,7 @@
           <p class="text-sm font-medium" x-text="alertMessage"></p>
         </div>
         <div class="ml-auto pl-3">
-          <button @click="dismissAlert()" class="inline-flex text-sm">
+          <button @click="dismissAlert()" class="inline-flex text-sm hover:opacity-75">
             <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
             </svg>
@@ -184,120 +221,125 @@
       </div>
     </div>
 
-    <!-- Stats Overview Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Status Overview Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
       
-      <!-- Device Status Card -->
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+      <!-- Local Device Status -->
+      <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center space-x-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
               </svg>
             </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Device Status</dt>
-                <dd class="flex items-baseline">
-                  <div :class="deviceStatus.online ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'" 
-                       class="text-2xl font-semibold" x-text="deviceStatus.online ? 'Online' : 'Offline'"></div>
-                  <div class="ml-2 flex items-baseline text-sm">
-                    <span class="text-gray-500 dark:text-gray-400" x-text="deviceStatus.uptime"></span>
-                  </div>
-                </dd>
-              </dl>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">This Device</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400" x-text="deviceStatus.hostname"></p>
             </div>
           </div>
+          <div class="text-right">
+            <div :class="deviceStatus.online ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'" 
+                 class="text-sm font-medium" x-text="deviceStatus.online ? 'Online' : 'Offline'"></div>
+            <div class="text-xs text-gray-500 dark:text-gray-400" x-text="'Updated ' + (lastUpdated || 'never')"></div>
+          </div>
         </div>
-        <div class="bg-gray-50 dark:bg-gray-700 px-5 py-3">
-          <div class="text-sm">
-            <span class="font-medium text-gray-900 dark:text-white" x-text="deviceStatus.hostname"></span>
-            <span class="text-gray-500 dark:text-gray-400 ml-1" x-text="'(' + deviceStatus.ip + ')'"></span>
+        
+        <div class="mt-6 grid grid-cols-2 gap-4">
+          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+            <div class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+              </svg>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">IP Address</span>
+            </div>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400 font-mono" x-text="deviceStatus.ip || 'Not assigned'"></p>
+          </div>
+          
+          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+            <div class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">Uptime</span>
+            </div>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400" x-text="deviceStatus.uptime || 'Unknown'"></p>
+          </div>
+        </div>
+
+        <!-- Exit Node Status -->
+        <div x-show="deviceStatus.isExitNode || exitNodeClients.length > 0" class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div class="flex items-center space-x-2 mb-2">
+            <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+            </svg>
+            <span class="text-sm font-medium text-blue-900 dark:text-blue-100">Exit Node Active</span>
+          </div>
+          <p class="text-xs text-blue-700 dark:text-blue-300">
+            <span x-text="exitNodeClients.length"></span> device<span x-show="exitNodeClients.length !== 1">s</span> using this as exit node
+          </p>
+        </div>
+      </div>
+
+      <!-- Network Statistics -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Network</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Connected Devices</p>
+          </div>
+        </div>
+        
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Total Devices</span>
+            <span class="text-lg font-semibold text-gray-900 dark:text-white" x-text="stats.totalPeers"></span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Online</span>
+            <span class="text-lg font-semibold text-green-600 dark:text-green-400" x-text="stats.onlinePeers"></span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Offline</span>
+            <span class="text-lg font-semibold text-red-600 dark:text-red-400" x-text="stats.offlinePeers"></span>
           </div>
         </div>
       </div>
 
-      <!-- Peers Count Card -->
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-              </svg>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Connected Peers</dt>
-                <dd class="flex items-baseline">
-                  <div class="text-2xl font-semibold text-gray-900 dark:text-white" x-text="peersStats.total"></div>
-                  <div class="ml-2 flex items-baseline text-sm">
-                    <span :class="peersStats.onlineChange >= 0 ? 'text-green-600' : 'text-red-600'" 
-                          x-text="(peersStats.onlineChange >= 0 ? '+' : '') + peersStats.onlineChange"></span>
-                    <span class="text-gray-500 dark:text-gray-400 ml-1">online</span>
-                  </div>
-                </dd>
-              </dl>
-            </div>
+      <!-- Subnet Router Status -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Subnets</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Route Management</p>
           </div>
         </div>
-        <div class="bg-gray-50 dark:bg-gray-700 px-5 py-3">
-          <div class="text-sm">
-            <span class="text-green-600 dark:text-green-400 font-medium" x-text="peersStats.online + ' online'"></span>
-            <span class="text-gray-500 dark:text-gray-400 mx-1">•</span>
-            <span class="text-red-600 dark:text-red-400 font-medium" x-text="peersStats.offline + ' offline'"></span>
+        
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Advertised</span>
+            <span class="text-lg font-semibold text-gray-900 dark:text-white" x-text="subnetStats.advertised || 0"></span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Accepted</span>
+            <span class="text-lg font-semibold text-blue-600 dark:text-blue-400" x-text="subnetStats.accepted || 0"></span>
+          </div>
+          <div x-show="subnetStats.advertised > 0" class="text-xs text-gray-500 dark:text-gray-400">
+            This device is advertising subnet routes
           </div>
         </div>
       </div>
-
-      <!-- Network Traffic Card -->
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
-              </svg>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Network Traffic</dt>
-                <dd class="flex items-baseline">
-                  <div class="text-lg font-semibold text-gray-900 dark:text-white" x-text="networkStats.throughput"></div>
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-        <div class="bg-gray-50 dark:bg-gray-700 px-5 py-3">
-          <div class="text-sm space-y-1">
-            <div class="flex justify-between">
-              <span class="text-gray-500 dark:text-gray-400">↑ Upload:</span>
-              <span class="text-gray-900 dark:text-white font-medium" x-text="networkStats.upload"></span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-500 dark:text-gray-400">↓ Download:</span>
-              <span class="text-gray-900 dark:text-white font-medium" x-text="networkStats.download"></span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Subnet Routes Card -->
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-              </svg>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Subnet Routes</dt>
-                <dd class="flex items-baseline">
-                  <div class="text-2xl font-semibold text-gray-900 dark:text-white" x-text="subnetStats.total"></div>
+    </div>
                   <div class="ml-2 flex items-baseline text-sm">
                     <span :class="deviceStatus.isExitNode ? 'text-green-600' : 'text-gray-500'" 
                           x-text="deviceStatus.isExitNode ? 'Exit Node' : 'Regular'"></span>
