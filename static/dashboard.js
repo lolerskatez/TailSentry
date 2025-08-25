@@ -156,6 +156,7 @@ window.dashboard = function dashboard() {
     // Alert system
     alertType: null,
     alertMessage: '',
+    showAlert: false,
     
     // Search and filtering
     searchFilter: '',
@@ -873,6 +874,23 @@ window.dashboard = function dashboard() {
       this.selectedPeer = peer || {};
       this.peerModal = true;
       this.showPeerModal = true;
+    },
+
+    sortPeers() {
+      // This function is called when the sort dropdown changes
+      // Alpine.js will automatically re-compute filteredPeers() when sortBy changes
+      // No additional action needed since filtering/sorting is handled in filteredPeers()
+    },
+
+    filterPeers() {
+      // This function is called when filter dropdown changes
+      // Alpine.js will automatically re-compute filteredPeers() when filter changes
+      // No additional action needed since filtering is handled in filteredPeers()
+    },
+
+    dismissAlert() {
+      // Dismiss dashboard alerts
+      this.showAlert = false;
     },
 
 
