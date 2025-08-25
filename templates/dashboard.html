@@ -40,6 +40,11 @@
 
         <!-- Right: Actions -->
         <div class="flex items-center space-x-3">
+          <!-- Test Modal Button - For Debugging -->
+          <button @click="showPeerModal = true; selectedPeer = {hostname: 'Test Device', ip: '100.100.100.100', online: true, os: 'Test OS', lastSeen: Date.now()/1000}" 
+                  class="px-2 py-1 bg-red-500 text-white text-xs rounded">
+            Test Modal
+          </button>
           <button @click="refreshAll()" 
                   :disabled="isRefreshing"
                   class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
@@ -657,12 +662,11 @@
     </div>
   </main>
 
-  <!-- Peer Details Modal -->
-  <div x-show="showPeerModal" x-cloak
-       class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" 
-       style="z-index: 9999 !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important;">
-    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-800"
-         style="position: relative !important; z-index: 10000 !important;">
+  <!-- Peer Details Modal - Simplified for Reliability -->
+  <div x-show.transition.opacity="showPeerModal"
+       class="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+    <div class="relative mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-800"
+         @click.away="showPeerModal = false">
       <div class="mt-3">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">Device Details</h3>

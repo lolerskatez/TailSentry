@@ -883,24 +883,41 @@ window.dashboard = function dashboard() {
         return;
       }
       
-      // Set the selected peer and show the modal - ensure order is correct for Alpine.js reactivity
-      console.log('Setting selectedPeer and showing modal');
-      this.selectedPeer = { ...peer }; // Create a new object to ensure reactivity
-      this.$nextTick(() => {
-        this.showPeerModal = true;
-        this.peerModal = true;
+      try {
+        // Create a clean copy of the peer data to avoid reactivity issues
+        const peerCopy = JSON.parse(JSON.stringify(peer));
+        console.log('Setting selectedPeer with clean copy:', peerCopy);
         
-        // Log current state
-        console.log('Modal state - showPeerModal:', this.showPeerModal, 'peerModal:', this.peerModal);
-      });
+        // First set the peer data, then show the modal
+        this.selectedPeer = peerCopy;
+        
+        // Force a manual DOM update before showing the modal
+        setTimeout(() => {
+          this.showPeerModal = true;
+          console.log('Modal should be visible now. showPeerModal =', this.showPeerModal);
+          
+          // Extra safety check - if modal still not visible, try once more
+          setTimeout(() => {
+            if (!document.querySelector('[x-show\\.transition\\.opacity="showPeerModal"]')?.offsetHeight) {
+              console.log('Modal still not visible, forcing visibility');
+              document.querySelector('[x-show\\.transition\\.opacity="showPeerModal"]').style.display = 'flex';
+            }
+          }, 100);
+        }, 50);
+      } catch (error) {
+        console.error('Error showing peer modal:', error);
+      }
     },
 
     closePeerModal() {
+      console.log('Closing peer modal');
       this.showPeerModal = false;
-      this.peerModal = false;
-      this.$nextTick(() => {
+      
+      // Clean up after animation completes
+      setTimeout(() => {
         this.selectedPeer = {};
-      });
+        console.log('Modal closed and peer data cleared');
+      }, 300);
     },
 
     sortPeers() {
