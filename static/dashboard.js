@@ -218,6 +218,12 @@ window.dashboard = function dashboard() {
     },
     peers: [],
     peerFilter: '',
+    deviceFilter: 'all', // 'all', 'using-exit', 'online'
+    exitNodeClients: [],
+    onlinePeers: [],
+    searchFilter: '',
+    sortBy: 'name',
+    viewMode: 'table',
     subnets: [],
     logs: [],
     toast: '',
@@ -247,14 +253,44 @@ window.dashboard = function dashboard() {
     tailscaleCtlFeedback: '',
     // Peer filtering and refresh methods for dashboard
     filteredPeers() {
-      if (!this.peerFilter) return this.peers;
-      const filter = this.peerFilter.toLowerCase();
-      return this.peers.filter(peer =>
-        (peer.hostname && peer.hostname.toLowerCase().includes(filter)) ||
-        (peer.ip && peer.ip.toLowerCase().includes(filter)) ||
-        (peer.os && peer.os.toLowerCase().includes(filter)) ||
-        (peer.tags && peer.tags.join(',').toLowerCase().includes(filter))
-      );
+      let filtered = this.peers;
+      
+      // Apply search filter
+      if (this.searchFilter) {
+        const search = this.searchFilter.toLowerCase();
+        filtered = filtered.filter(peer =>
+          (peer.hostname || '').toLowerCase().includes(search) ||
+          (peer.ip || '').toLowerCase().includes(search) ||
+          (peer.os || '').toLowerCase().includes(search) ||
+          (peer.user || '').toLowerCase().includes(search)
+        );
+      }
+      
+      // Apply device type filter
+      if (this.deviceFilter === 'using-exit') {
+        filtered = filtered.filter(peer => peer.isUsingAsExitNode);
+      } else if (this.deviceFilter === 'online') {
+        filtered = filtered.filter(peer => peer.online);
+      }
+      
+      // Apply sorting
+      filtered.sort((a, b) => {
+        switch (this.sortBy) {
+          case 'name':
+            return (a.hostname || '').localeCompare(b.hostname || '');
+          case 'status':
+            if (a.online !== b.online) return b.online - a.online;
+            return (a.hostname || '').localeCompare(b.hostname || '');
+          case 'lastSeen':
+            return new Date(b.lastSeen || 0) - new Date(a.lastSeen || 0);
+          case 'ip':
+            return (a.ip || '').localeCompare(b.ip || '');
+          default:
+            return 0;
+        }
+      });
+      
+      return filtered;
     },
     refresh() {
       this.loadAll();
@@ -534,8 +570,14 @@ window.dashboard = function dashboard() {
         const results = await Promise.allSettled([
           this.loadStatus(),
           this.loadPeers(),
-          this.loadSubnets()
+          this.loadSubnets(),
+          this.loadExitNodeClients()
         ]);
+        
+        // After loading both peers and exit node clients, update the peer status
+        if (this.peers && this.exitNodeClients) {
+          this.updatePeerExitNodeStatus();
+        }
         
         // Check for any failures
         const failures = results.filter(result => result.status === 'rejected');
@@ -709,7 +751,8 @@ window.dashboard = function dashboard() {
           lastSeen: this.formatLastSeen(peer.LastSeen),
           tags: Array.isArray(peer.Tags) ? peer.Tags : [],
           online: Boolean(peer.Online),
-          exitNode: peer.ExitNode || null
+          exitNode: peer.ExitNode || null,
+          isUsingAsExitNode: false  // Will be updated by exit node clients data
         }));
         
         // Update peer status chart if controller is available
@@ -754,6 +797,37 @@ window.dashboard = function dashboard() {
       this.subnetsLoading = false;
       this.subnetsChanged = false;
     },
+    
+    async loadExitNodeClients() {
+      try {
+        const res = await fetch('/api/exit-node-clients');
+        if (res.ok) {
+          const data = await res.json();
+          this.exitNodeClients = Array.isArray(data.clients) ? data.clients : [];
+          
+          // Update peer exit node usage information
+          this.updatePeerExitNodeStatus();
+        } else {
+          console.warn('Failed to load exit node clients');
+          this.exitNodeClients = [];
+        }
+      } catch (e) {
+        console.error('Error loading exit node clients:', e);
+        this.exitNodeClients = [];
+      }
+    },
+    
+    updatePeerExitNodeStatus() {
+      // Mark peers that are using this device as exit node
+      if (this.peers && this.exitNodeClients.length > 0) {
+        this.peers.forEach(peer => {
+          peer.isUsingAsExitNode = this.exitNodeClients.some(
+            client => client.id === peer.id || client.hostname === peer.hostname
+          );
+        });
+      }
+    },
+    
     toggleSubnet(subnet) {
       if (!this.advertisedRoutes) this.advertisedRoutes = [];
       if (this.advertisedRoutes.includes(subnet)) {

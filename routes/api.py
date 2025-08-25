@@ -189,6 +189,23 @@ async def get_exit_node(request: Request):
         logger.error(f"Exit node API error: {str(e)}")
         return {"error": str(e)}
 
+@router.get("/exit-node-clients")
+async def get_exit_node_clients(request: Request):
+    try:
+        clients_data = TailscaleClient.get_exit_node_clients()
+        
+        # Add mode indicator
+        has_api_key = bool(os.getenv("TAILSCALE_API_KEY"))
+        mode = "api" if has_api_key else "cli_only"
+        
+        return {
+            "clients": clients_data,
+            "_tailsentry_mode": mode
+        }
+    except Exception as e:
+        logger.error(f"Exit node clients API error: {str(e)}")
+        return {"error": str(e)}
+
 @router.get("/subnet-routes")
 async def get_subnet_routes(request: Request):
     try:

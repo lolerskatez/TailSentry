@@ -765,6 +765,80 @@ class TailscaleClient:
             return None
 
     @staticmethod
+    def get_exit_node_clients() -> List[Dict[str, Any]]:
+        """Get devices that are likely using this device as an exit node"""
+        try:
+            status = TailscaleClient.status_json()
+            
+            if isinstance(status, dict) and "error" in status:
+                logger.warning(f"Error getting exit node clients: {status['error']}")
+                return []
+            
+            # Check if this device is advertising as an exit node
+            self_data = safe_get_dict(status, "Self")
+            advertised_routes = self_data.get("AdvertisedRoutes", [])
+            
+            # Check if we're advertising exit node routes (0.0.0.0/0 or ::/0)
+            is_advertising_exit = any(
+                route in ["0.0.0.0/0", "::/0"] for route in advertised_routes
+            )
+            
+            if not is_advertising_exit:
+                logger.info("This device is not advertising as an exit node")
+                return []
+            
+            exit_node_clients = []
+            peers = safe_get_dict(status, "Peer")
+            
+            # For each peer, determine if they might be using this as exit node
+            for peer_id, peer in peers.items():
+                if not isinstance(peer, dict):
+                    continue
+                    
+                # Check if peer has recent activity and is online
+                is_online = peer.get("Online", False)
+                last_seen = peer.get("LastSeen", "")
+                
+                # If peer is using an exit node, they might be using this one
+                # Unfortunately, Tailscale status doesn't directly tell us which specific
+                # exit node a peer is using, so we use heuristics
+                peer_using_exit = peer.get("ExitNode", False)
+                
+                # Additional heuristics: recent activity, data transfer
+                has_recent_activity = (
+                    is_online or 
+                    (last_seen and last_seen != "0001-01-01T00:00:00Z")
+                )
+                
+                tx_bytes = peer.get("TxBytes", 0)
+                rx_bytes = peer.get("RxBytes", 0)
+                has_data_transfer = tx_bytes > 0 or rx_bytes > 0
+                
+                # If this peer is using exit node functionality and has activity,
+                # they might be using this device as exit node
+                if peer_using_exit or (has_recent_activity and has_data_transfer):
+                    client_info = {
+                        "id": peer_id,
+                        "hostname": peer.get("HostName", "Unknown"),
+                        "ip": peer.get("TailscaleIPs", [""])[0] if peer.get("TailscaleIPs") else "",
+                        "online": is_online,
+                        "last_seen": last_seen,
+                        "os": peer.get("OS", ""),
+                        "tx_bytes": tx_bytes,
+                        "rx_bytes": rx_bytes,
+                        "is_exit_node_user": peer_using_exit,
+                        "confidence": "high" if peer_using_exit else "medium"
+                    }
+                    exit_node_clients.append(client_info)
+            
+            logger.info(f"Found {len(exit_node_clients)} potential exit node clients")
+            return exit_node_clients
+            
+        except Exception as e:
+            logger.error(f"Error getting exit node clients: {str(e)}")
+            return []
+
+    @staticmethod
     def service_control(action):
         """Control the tailscaled service: start/stop/restart/status/down"""
         # Validate action to prevent command injection
