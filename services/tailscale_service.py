@@ -814,9 +814,9 @@ class TailscaleClient:
                 rx_bytes = peer.get("RxBytes", 0)
                 has_data_transfer = tx_bytes > 0 or rx_bytes > 0
                 
-                # If this peer is using exit node functionality and has activity,
-                # they might be using this device as exit node
-                if peer_using_exit or (has_recent_activity and has_data_transfer):
+                # Only include peers that are actually using exit nodes (ExitNode: true)
+                # or have significant recent data transfer suggesting exit node usage
+                if peer_using_exit:
                     client_info = {
                         "id": peer_id,
                         "hostname": peer.get("HostName", "Unknown"),
@@ -827,7 +827,7 @@ class TailscaleClient:
                         "tx_bytes": tx_bytes,
                         "rx_bytes": rx_bytes,
                         "is_exit_node_user": peer_using_exit,
-                        "confidence": "high" if peer_using_exit else "medium"
+                        "confidence": "high"
                     }
                     exit_node_clients.append(client_info)
             
