@@ -883,20 +883,24 @@ window.dashboard = function dashboard() {
         return;
       }
       
-      // Set the selected peer and show the modal
+      // Set the selected peer and show the modal - ensure order is correct for Alpine.js reactivity
       console.log('Setting selectedPeer and showing modal');
-      this.selectedPeer = peer;
-      this.peerModal = true;
-      this.showPeerModal = true;
-      
-      // Log current state
-      console.log('Modal state - showPeerModal:', this.showPeerModal, 'peerModal:', this.peerModal);
+      this.selectedPeer = { ...peer }; // Create a new object to ensure reactivity
+      this.$nextTick(() => {
+        this.showPeerModal = true;
+        this.peerModal = true;
+        
+        // Log current state
+        console.log('Modal state - showPeerModal:', this.showPeerModal, 'peerModal:', this.peerModal);
+      });
     },
 
     closePeerModal() {
       this.showPeerModal = false;
       this.peerModal = false;
-      this.selectedPeer = {};
+      this.$nextTick(() => {
+        this.selectedPeer = {};
+      });
     },
 
     sortPeers() {
