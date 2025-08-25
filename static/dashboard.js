@@ -884,29 +884,64 @@ window.dashboard = function dashboard() {
       }
       
       try {
-        // Create a clean copy of the peer data to avoid reactivity issues
+        // Create a clean copy of the peer data
         const peerCopy = JSON.parse(JSON.stringify(peer));
         console.log('Setting selectedPeer with clean copy:', peerCopy);
         
-        // First set the peer data, then show the modal
+        // Set the selected peer
         this.selectedPeer = peerCopy;
         
-        // Force a manual DOM update before showing the modal
-        setTimeout(() => {
-          this.showPeerModal = true;
-          console.log('Modal should be visible now. showPeerModal =', this.showPeerModal);
-          
-          // Extra safety check - if modal still not visible, try once more
-          setTimeout(() => {
-            if (!document.querySelector('[x-show\\.transition\\.opacity="showPeerModal"]')?.offsetHeight) {
-              console.log('Modal still not visible, forcing visibility');
-              document.querySelector('[x-show\\.transition\\.opacity="showPeerModal"]').style.display = 'flex';
-            }
-          }, 100);
-        }, 50);
+        // Populate the modal fields
+        this.populateModalFields(peerCopy);
+        
+        // Show the modal using plain JavaScript
+        const modal = document.getElementById('peerModal');
+        if (modal) {
+          console.log('Showing modal with plain JS');
+          modal.style.display = 'flex';
+        } else {
+          console.error('Modal element not found');
+        }
       } catch (error) {
         console.error('Error showing peer modal:', error);
       }
+    },
+    
+    populateModalFields(peer) {
+      // Populate modal fields manually - basic info
+      const hostnameEl = document.querySelector('#peerModal [data-field="hostname"]');
+      if (hostnameEl) hostnameEl.textContent = peer.hostname || 'Unknown';
+      
+      const statusEl = document.querySelector('#peerModal [data-field="status"]');
+      if (statusEl) {
+        statusEl.textContent = peer.online ? 'Online' : 'Offline';
+        statusEl.className = peer.online ? 'text-green-600 dark:text-green-400 font-medium' : 'text-red-600 dark:text-red-400 font-medium';
+      }
+      
+      const ipEl = document.querySelector('#peerModal [data-field="ip"]');
+      if (ipEl) ipEl.textContent = peer.ip || 'N/A';
+      
+      const userEl = document.querySelector('#peerModal [data-field="user"]');
+      if (userEl) userEl.textContent = peer.user || 'No user';
+      
+      const osEl = document.querySelector('#peerModal [data-field="os"]');
+      if (osEl) osEl.textContent = peer.os || 'Unknown';
+      
+      const lastSeenEl = document.querySelector('#peerModal [data-field="lastSeen"]');
+      if (lastSeenEl) lastSeenEl.textContent = this.formatLastSeen(peer.lastSeen);
+      
+      // Network info
+      const connectionTypeEl = document.querySelector('#peerModal [data-field="connectionType"]');
+      if (connectionTypeEl) connectionTypeEl.textContent = peer.relay ? 'Relay' : 'Direct';
+      
+      const versionEl = document.querySelector('#peerModal [data-field="version"]');
+      if (versionEl) versionEl.textContent = peer.version || 'Unknown';
+      
+      const exitNodeEl = document.querySelector('#peerModal [data-field="exitNode"]');
+      if (exitNodeEl) exitNodeEl.textContent = peer.isExitNode ? 'Yes' : 'No';
+      
+      const tagsEl = document.querySelector('#peerModal [data-field="tags"]');
+      if (tagsEl) tagsEl.textContent = peer.tags && peer.tags.length ? peer.tags.join(', ') : 'None';
     },
 
     closePeerModal() {
@@ -1079,7 +1114,10 @@ window.dashboard = function dashboard() {
     },
     openKeyModal() { this.toastMsg('Key management coming soon!'); },
     openLogsModal() { this.toastMsg('Logs coming soon!'); },
-    openPeerModal(peer) { this.selectedPeer = peer; this.peerModal = true; },
+    openPeerModal(peer) { 
+      // For backward compatibility
+      return this.showPeerDetails(peer); 
+    },
     pingPeer(peer) { this.toastMsg('Ping to ' + peer.hostname + ' -> 12ms (mock)'); },
     logout() { window.location.href = '/logout'; },
     toastMsg(msg) { this.toast = msg; setTimeout(() => this.toast = '', 3500); },

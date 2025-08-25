@@ -2,6 +2,19 @@
 {% block title %}TailSentry - Advanced Dashboard{% endblock %}
 {% block content %}
 
+<script>
+  // Helper function to test the modal directly
+  function testModal() {
+    const modal = document.getElementById('peerModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      console.log('Test modal opened via direct DOM manipulation');
+    } else {
+      console.error('Modal element not found');
+    }
+  }
+</script>
+
 <!-- Dashboard Container -->
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900" x-data="dashboard()" x-init="init()">
   
@@ -662,15 +675,14 @@
     </div>
   </main>
 
-  <!-- Peer Details Modal - Simplified for Reliability -->
-  <div x-show.transition.opacity="showPeerModal"
+  <!-- Peer Details Modal - Plain HTML approach -->
+  <div id="peerModal" style="display: none;" 
        class="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-    <div class="relative mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-800"
-         @click.away="showPeerModal = false">
+    <div class="relative mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-800">
       <div class="mt-3">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">Device Details</h3>
-          <button @click="closePeerModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <button onclick="document.getElementById('peerModal').style.display='none';" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
@@ -684,30 +696,29 @@
             <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <dt class="font-medium text-gray-500 dark:text-gray-400">Hostname</dt>
-                <dd class="mt-1 text-gray-900 dark:text-white" x-text="selectedPeer.hostname || 'Unknown'"></dd>
+                <dd class="mt-1 text-gray-900 dark:text-white" data-field="hostname">Unknown</dd>
               </div>
               <div>
                 <dt class="font-medium text-gray-500 dark:text-gray-400">Status</dt>
                 <dd class="mt-1">
-                  <span :class="selectedPeer.online ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'" 
-                        class="font-medium" x-text="selectedPeer.online ? 'Online' : 'Offline'"></span>
+                  <span class="font-medium" data-field="status">Offline</span>
                 </dd>
               </div>
               <div>
                 <dt class="font-medium text-gray-500 dark:text-gray-400">IP Address</dt>
-                <dd class="mt-1 text-gray-900 dark:text-white font-mono" x-text="selectedPeer.ip || 'N/A'"></dd>
+                <dd class="mt-1 text-gray-900 dark:text-white font-mono" data-field="ip">N/A</dd>
               </div>
               <div>
                 <dt class="font-medium text-gray-500 dark:text-gray-400">User</dt>
-                <dd class="mt-1 text-gray-900 dark:text-white" x-text="selectedPeer.user || 'No user'"></dd>
+                <dd class="mt-1 text-gray-900 dark:text-white" data-field="user">No user</dd>
               </div>
               <div>
                 <dt class="font-medium text-gray-500 dark:text-gray-400">Operating System</dt>
-                <dd class="mt-1 text-gray-900 dark:text-white" x-text="selectedPeer.os || 'Unknown'"></dd>
+                <dd class="mt-1 text-gray-900 dark:text-white" data-field="os">Unknown</dd>
               </div>
               <div>
                 <dt class="font-medium text-gray-500 dark:text-gray-400">Last Seen</dt>
-                <dd class="mt-1 text-gray-900 dark:text-white" x-text="formatLastSeen(selectedPeer.lastSeen)"></dd>
+                <dd class="mt-1 text-gray-900 dark:text-white" data-field="lastSeen">N/A</dd>
               </div>
             </dl>
           </div>
@@ -718,30 +729,30 @@
             <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <dt class="font-medium text-gray-500 dark:text-gray-400">Connection Type</dt>
-                <dd class="mt-1 text-gray-900 dark:text-white" x-text="selectedPeer.relay ? 'Relay' : 'Direct'"></dd>
+                <dd class="mt-1 text-gray-900 dark:text-white" data-field="connectionType">Direct</dd>
               </div>
               <div>
                 <dt class="font-medium text-gray-500 dark:text-gray-400">Tailscale Version</dt>
-                <dd class="mt-1 text-gray-900 dark:text-white" x-text="selectedPeer.version || 'Unknown'"></dd>
+                <dd class="mt-1 text-gray-900 dark:text-white" data-field="version">Unknown</dd>
               </div>
               <div>
                 <dt class="font-medium text-gray-500 dark:text-gray-400">Exit Node</dt>
-                <dd class="mt-1 text-gray-900 dark:text-white" x-text="selectedPeer.isExitNode ? 'Yes' : 'No'"></dd>
+                <dd class="mt-1 text-gray-900 dark:text-white" data-field="exitNode">No</dd>
               </div>
               <div>
                 <dt class="font-medium text-gray-500 dark:text-gray-400">Tags</dt>
-                <dd class="mt-1 text-gray-900 dark:text-white" x-text="selectedPeer.tags && selectedPeer.tags.length ? selectedPeer.tags.join(', ') : 'None'"></dd>
+                <dd class="mt-1 text-gray-900 dark:text-white" data-field="tags">None</dd>
               </div>
             </dl>
           </div>
 
           <!-- Actions -->
           <div class="flex justify-end space-x-3">
-            <button @click="pingPeer(selectedPeer)" 
+            <button onclick="window.dashboard().pingPeer(window.dashboard().selectedPeer)" 
                     class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200">
               Ping Device
             </button>
-            <button @click="closePeerModal()" 
+            <button onclick="document.getElementById('peerModal').style.display='none';" 
                     class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200">
               Close
             </button>
