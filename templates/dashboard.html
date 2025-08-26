@@ -4,11 +4,12 @@
 
 <!-- Enhanced Dashboard Container -->
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900"
-     x-data="$store.dashboard"
-     x-init="init()">
+     x-data="dashboardComponent"
+     x-init="init()"
+     x-cloak>
   <!-- Header Section with Enhanced Status -->
   <header class="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700">
-    <div class="max-w-7xl mx-auto px-4 sm                <span class="text-gray-900 dark:text-white" x-text="secureMode ? 'CLI Only' : 'Full API'"></span>px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-20">
         
         <!-- Left: Title and Primary Status -->

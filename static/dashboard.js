@@ -253,7 +253,7 @@ document.addEventListener('alpine:init', () => {
     authSuccess: false,
     tailscaleCtlFeedback: '',
     // Peer filtering and refresh methods for dashboard
-    filteredPeers() {
+    get filteredPeers() {
       let filtered = this.peers;
       
       // Apply search filter
@@ -294,7 +294,7 @@ document.addEventListener('alpine:init', () => {
       return filtered;
     },
     
-    onlinePeers() {
+    get onlinePeers() {
       return this.peers.filter(peer => peer.online);
     },
     
@@ -1214,3 +1214,8 @@ document.addEventListener('alpine:init', () => {
     }
   });
 });
+
+// Create a dashboard component that properly exposes store properties
+function dashboardComponent() {
+  return Alpine.store('dashboard');
+}
