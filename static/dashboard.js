@@ -1,6 +1,7 @@
 // --- Enhanced Alpine.js Dashboard with Robust Error Handling ---
-window.dashboard = function dashboard() {
-  return {
+// Initialize Alpine.js store for better reactivity
+document.addEventListener('alpine:init', () => {
+  Alpine.store('dashboard', {
     // --- Enhanced Settings Export/Import Methods ---
     async exportSettings() {
       this.showLoading('export', true);
@@ -1211,5 +1212,5 @@ window.dashboard = function dashboard() {
       
       console.log('✅ Dashboard initialization complete');
     }
-  }
-}
+  });
+});

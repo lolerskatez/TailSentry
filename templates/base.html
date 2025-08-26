@@ -10,20 +10,22 @@
   <style>
     [x-cloak] { display: none !important; }
   </style>
+  <!-- Load Alpine.js before dashboard.js -->
+  <script src="/static/alpine.min.js"></script>
+  <script src="/static/alpine-focus.min.js"></script>
+  <!-- Load dashboard.js after Alpine.js for proper store registration -->
   <script src="/static/dashboard.js"></script>
   <script>
-    // Verify the dashboard function is properly loaded
-    console.log('Dashboard function check:', typeof window.dashboard);
-    if (typeof window.dashboard === 'function') {
-      console.log('✅ Dashboard function is available');
-      const testData = window.dashboard();
-      console.log('✅ Dashboard data structure:', Object.keys(testData));
-    } else {
-      console.error('❌ Dashboard function not found!');
-    }
+    // Verify the Alpine store is properly loaded
+    document.addEventListener('alpine:initialized', () => {
+      console.log('✅ Alpine.js initialized');
+      if (window.Alpine && Alpine.store('dashboard')) {
+        console.log('✅ Dashboard store available');
+      } else {
+        console.error('❌ Dashboard store not found!');
+      }
+    });
   </script>
-  <script src="/static/alpine.min.js" defer></script>
-  <script src="/static/alpine-focus.min.js" defer></script>
   <script>
     // Global theme initialization - runs before Alpine.js
     (function() {

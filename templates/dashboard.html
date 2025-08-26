@@ -3,28 +3,8 @@
 {% block content %}
 
 <!-- Enhanced Dashboard Container -->
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900" 
-     x-data="{
-       /* Initialize all required variables with defaults */
-       device: { online: false, hostname: 'Loading...', ip: '', isExit: false },
-       peersStats: { total: 0, online: 0 },
-       exitNodePeerCount: 0,
-       isRefreshing: false,
-       subnetStats: { advertised: 0, accepted: 0 },
-       secureMode: true,
-       searchFilter: '',
-       deviceFilter: 'all',
-       viewMode: 'grid',
-       exitNodeClients: [],
-       tailscaleStatus: 'loading',
-       filteredPeers: [],
-       selectedPeer: null,
-       alertType: 'info',
-       alertMessage: '',
-       
-       /* Then initialize with actual data from dashboard.js */
-       ...window.dashboard()
-     }"
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900"
+     x-data="$store.dashboard"
      x-init="init()">
   <!-- Header Section with Enhanced Status -->
   <header class="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700">
