@@ -3,14 +3,29 @@
 {% block content %}
 
 <!-- Enhanced Dashboard Container -->
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900" x-init="init()">
-  
-  <!-- Debug Information -->
-  <div class="p-4 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
-    <p>Alpine.js Debug: <span x-text="typeof device"></span></p>
-    <p>Device Object: <span x-text="JSON.stringify(device)"></span></p>
-  </div>
-  
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900" 
+     x-data="{
+       /* Initialize all required variables with defaults */
+       device: { online: false, hostname: 'Loading...', ip: '', isExit: false },
+       peersStats: { total: 0, online: 0 },
+       exitNodePeerCount: 0,
+       isRefreshing: false,
+       subnetStats: { advertised: 0, accepted: 0 },
+       secureMode: true,
+       searchFilter: '',
+       deviceFilter: 'all',
+       viewMode: 'grid',
+       exitNodeClients: [],
+       tailscaleStatus: 'loading',
+       filteredPeers: [],
+       selectedPeer: null,
+       alertType: 'info',
+       alertMessage: '',
+       
+       /* Then initialize with actual data from dashboard.js */
+       ...window.dashboard()
+     }"
+     x-init="init()">
   <!-- Header Section with Enhanced Status -->
   <header class="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700">
     <div class="max-w-7xl mx-auto px-4 sm                <span class="text-gray-900 dark:text-white" x-text="secureMode ? 'CLI Only' : 'Full API'"></span>px-6 lg:px-8">

@@ -1197,6 +1197,19 @@ window.dashboard = function dashboard() {
         if (val < 5) this.refreshInterval = 5;
         if (this.autoRefresh) this.updateRefreshInterval();
       }
+    },
+    
+    // Initialize function called from x-init
+    init() {
+      console.log('🚀 Initializing TailSentry Dashboard');
+      this.loadPreferences();
+      this.applyTheme();
+      this.setupRefreshInterval();
+      
+      // Initial data load
+      this.refresh();
+      
+      console.log('✅ Dashboard initialization complete');
     }
   }
 }
