@@ -10,9 +10,10 @@
   <style>
     [x-cloak] { display: none !important; }
   </style>
+  <!-- Load dashboard definition BEFORE Alpine so window.dashboard exists when Alpine initializes -->
+  <script src="/static/dashboard.js"></script>
   <script src="/static/alpine.min.js" defer></script>
   <script src="/static/alpine-focus.min.js" defer></script>
-  <script src="/static/dashboard.js" defer></script>
   <script>
     // Global theme initialization - runs before Alpine.js
     (function() {
@@ -32,7 +33,7 @@
   </script>
   {% block head %}{% endblock %}
 </head>
-<body x-data="window.dashboard()" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
+<body x-data="{ darkMode: document.documentElement.classList.contains('dark') }" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
   <!-- Main Navigation -->
   <nav class="flex items-center justify-between px-6 py-4 bg-indigo-700 dark:bg-gray-800 text-white shadow border-b border-indigo-800 dark:border-gray-700" role="navigation" aria-label="Main Navigation">
     <div class="flex items-center gap-3">
@@ -41,6 +42,7 @@
     </div>
     <div class="flex items-center gap-4">
       <a href="/" class="hover:bg-indigo-800 dark:hover:bg-gray-700 px-3 py-1 rounded transition {% if active_nav == 'dashboard' %}bg-indigo-900 dark:bg-gray-600 font-semibold{% endif %}" aria-label="Dashboard" title="Dashboard">Dashboard</a>
+      <a href="/alt-dashboard" class="hover:bg-indigo-800 dark:hover:bg-gray-700 px-3 py-1 rounded transition {% if active_nav == 'alt-dashboard' %}bg-indigo-900 dark:bg-gray-600 font-semibold{% endif %}" aria-label="Alternative Dashboard" title="Alternative Dashboard">Alt Dashboard</a>
   {% if user and user.role == 'admin' %}
   <a href="/settings/tailsentry" class="hover:bg-indigo-800 dark:hover:bg-gray-700 px-3 py-1 rounded transition {% if active_nav == 'settings' %}bg-indigo-900 dark:bg-gray-600 font-semibold{% endif %}" aria-label="Settings" title="Settings">Settings</a>
   {% endif %}
@@ -48,7 +50,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
         Profile
       </a>
-      <button @click="logout()" class="bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 px-3 py-1 rounded transition-colors" aria-label="Logout" title="Logout">Logout</button>
+      <a href="/logout" class="bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 px-3 py-1 rounded transition-colors" aria-label="Logout" title="Logout">Logout</a>
     </div>
   </nav>
   <main>

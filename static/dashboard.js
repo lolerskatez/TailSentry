@@ -1,19 +1,22 @@
 // --- Enhanced Alpine.js Dashboard with Robust Error Handling ---
+// Keep single instance to prevent double Alpine component creation when multiple x-data use same factory
+let __dashboardInstance = null;
 window.dashboard = function dashboard() {
-  return {
+  if (__dashboardInstance) return __dashboardInstance;
+  __dashboardInstance = {
     // --- Enhanced Settings Export/Import Methods ---
     async exportSettings() {
       this.showLoading('export', true);
       try {
-        const response = await fetch('/api/settings/export', { 
+        const response = await fetch('/api/settings/export', {
           credentials: 'same-origin',
           headers: { 'Accept': 'application/json' }
         });
-        
+
         if (!response.ok) {
           throw new Error(`Export failed: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         const filename = `tailsentry-settings-${new Date().toISOString().slice(0,10)}.json`;
         this.downloadFile(filename, JSON.stringify(data, null, 2));
@@ -28,28 +31,28 @@ window.dashboard = function dashboard() {
     async importSettings(e) {
       const file = e.target.files[0];
       if (!file) return;
-      
+
       this.showLoading('import', true);
       const reader = new FileReader();
-      
+
       reader.onload = async (evt) => {
         try {
           const settings = JSON.parse(evt.target.result);
-          
+
           const response = await fetch('/api/settings/import', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
             body: JSON.stringify(settings)
           });
-          
+
           if (!response.ok) {
             throw new Error(`Import failed: ${response.status} ${response.statusText}`);
           }
-          
+
           await response.json();
           this.showToast('Settings imported successfully', 'success');
-          
+
           // Refresh dashboard data after import
           setTimeout(() => this.loadAll(), 1000);
         } catch (error) {
@@ -60,12 +63,12 @@ window.dashboard = function dashboard() {
           e.target.value = ''; // Clear file input
         }
       };
-      
+
       reader.onerror = () => {
         this.showToast('Failed to read file', 'error');
         this.showLoading('import', false);
       };
-      
+
       reader.readAsText(file);
     },
     downloadFile(filename, content) {
@@ -78,7 +81,7 @@ window.dashboard = function dashboard() {
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
-        
+
         // Cleanup
         setTimeout(() => {
           document.body.removeChild(a);
@@ -89,25 +92,23 @@ window.dashboard = function dashboard() {
         this.showToast('Failed to download file', 'error');
       }
     },
-    
+
     showToast(message, type = 'info') {
       this.toast = { message, type, timestamp: Date.now() };
-      setTimeout(() => { 
-        this.toast = ''; 
-      }, type === 'error' ? 5000 : 3000);
-      
+      setTimeout(() => {
+        this.toast = '';
+      }, 4000);
       // Screen reader accessibility
       const aria = document.getElementById('aria-feedback');
       if (aria) aria.textContent = message;
-      
       console.log(`Toast [${type.toUpperCase()}]: ${message}`);
     },
-    
+
     showLoading(operation, isLoading) {
       if (!this.loadingStates) this.loadingStates = {};
       this.loadingStates[operation] = isLoading;
     },
-    
+
     isLoading(operation) {
       return this.loadingStates && this.loadingStates[operation] === true;
     },
@@ -127,22 +128,19 @@ window.dashboard = function dashboard() {
       if (type === 'exitNode') this.exitNodeLoading = val;
       if (type === 'subnet') this.subnetApplyLoading = val;
     },
-    
+
     // --- Enhanced state variables with better organization ---
     darkMode: false,
     theme: localStorage.getItem('theme') || 'system',
     emailAlerts: false,
     showToasts: true,
     openSettings: false,
-    
-    // Modal states
     peerModal: false,
-    subnetModalOpen: false,
     selectedPeer: {},
     showPeerModal: false,
-    
     // Dashboard settings
     refreshInterval: 30,
+    refreshIntervalId: null,
     lastUpdated: '',
     connectionStatus: 'connecting',
     secureMode: false,
@@ -150,22 +148,27 @@ window.dashboard = function dashboard() {
     autoRefresh: true,
     showCharts: true,
     showQuickSettings: false,
-    viewMode: 'detailed',
+    viewMode: 'table',
     isRefreshing: false,
-    
+    showSettings: false,
+    tailnetName: '',
+    stats: { totalPeers: 0, onlinePeers: 0, exitNodeClients: 0, offlinePeers: 0 },
+    subnetStats: { total: 0, advertised: 0, accepted: 0 },
+
     // Alert system
     alertType: null,
     alertMessage: '',
     showAlert: false,
-    
+
     // Search and filtering
     searchFilter: '',
     sortBy: 'hostname',
-    
+    searchQuery: '',
+
     // Toast system
     toastType: null,
     toastMessage: '',
-    
+
     // Enhanced data structures for new dashboard
     deviceStatus: {
       online: false,
@@ -174,27 +177,21 @@ window.dashboard = function dashboard() {
       uptime: '0m',
       isExitNode: false
     },
-    
+
     peersStats: {
       total: 0,
       online: 0,
       offline: 0,
       onlineChange: 0
     },
-    
+
     networkStats: {
       throughput: '0 Mbps',
       upload: '0 KB/s',
       download: '0 KB/s',
       history: []
     },
-    
-    subnetStats: {
-      total: 0,
-      advertised: 0,
-      accepted: 0
-    },
-    
+
     // Device information
     device: {
       hostname: 'Loading...',
@@ -209,21 +206,18 @@ window.dashboard = function dashboard() {
       subnetRoutes: 0,
       accept_routes: true
     },
-    
+
     // Network statistics
-    net: { 
-      tx: '0.0 MB/s', 
-      rx: '0.0 MB/s', 
+    net: {
+      tx: '0.0 MB/s',
+      rx: '0.0 MB/s',
       activity: 0,
       history: []
     },
     peers: [],
     peerFilter: '',
-    deviceFilter: 'all', // 'all', 'using-exit', 'online'
+    deviceFilter: 'all',
     exitNodeClients: [],
-    searchFilter: '',
-    sortBy: 'hostname',
-    viewMode: 'table',
     subnets: [],
     logs: [],
     toast: '',
@@ -233,7 +227,7 @@ window.dashboard = function dashboard() {
     isExitNode: false,
     isSubnetRouting: false,
     advertisedRoutes: [],
-    exitNodeFirewall: false, // UI only
+    exitNodeFirewall: false,
     exitNodePeerCount: 0,
     exitNodeLastChanged: '',
     exitNodeLastError: '',
@@ -251,10 +245,15 @@ window.dashboard = function dashboard() {
     authFeedback: '',
     authSuccess: false,
     tailscaleCtlFeedback: '',
+
+    // UI State
+    showTailscaleControls: false,
+    isLoading: false,
+
     // Peer filtering and refresh methods for dashboard
     filteredPeers() {
       let filtered = this.peers;
-      
+
       // Apply search filter
       if (this.searchFilter) {
         const search = this.searchFilter.toLowerCase();
@@ -265,14 +264,14 @@ window.dashboard = function dashboard() {
           (peer.user || '').toLowerCase().includes(search)
         );
       }
-      
+
       // Apply device type filter
       if (this.deviceFilter === 'using-exit') {
         filtered = filtered.filter(peer => peer.isUsingAsExitNode);
       } else if (this.deviceFilter === 'online') {
         filtered = filtered.filter(peer => peer.online);
       }
-      
+
       // Apply sorting
       filtered.sort((a, b) => {
         switch (this.sortBy) {
@@ -289,14 +288,14 @@ window.dashboard = function dashboard() {
             return 0;
         }
       });
-      
+
       return filtered;
     },
-    
+
     onlinePeers() {
       return this.peers.filter(peer => peer.online);
     },
-    
+
     refresh() {
       this.loadAll();
     },
@@ -433,14 +432,14 @@ window.dashboard = function dashboard() {
 
     init() {
       console.log('🚀 Initializing TailSentry Dashboard');
-      
+
       // Load user preferences first
       this.loadPreferences();
-      
+
       // Initialize theme system - unified with appearance settings
       this.theme = localStorage.getItem('theme') || 'system';
       this.applyTheme();
-      
+
       // Watch for system theme changes
       if (this.theme === 'system') {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
@@ -449,72 +448,72 @@ window.dashboard = function dashboard() {
           }
         });
       }
-      
+
       // Listen for theme changes from appearance settings
       window.addEventListener('theme-changed', (event) => {
         this.theme = event.detail.theme;
         this.applyTheme();
       });
-      
+
       // Listen for dashboard errors from controller
       window.addEventListener('dashboard-error', (event) => {
         this.showToast(event.detail.error, 'error');
       });
-      
+
       // Initialize connection monitoring
       window.addEventListener('online', () => {
         this.connectionStatus = 'connecting';
         this.showToast('Connection restored', 'success');
         this.loadAll();
       });
-      
+
       window.addEventListener('offline', () => {
         this.connectionStatus = 'offline';
         this.showToast('Connection lost', 'warning');
       });
-      
+
       // Load stored auth key
       const key = localStorage.getItem('tailscale_auth_key');
       if (key) this.authKey = key;
-      
+
       // Initial data load
       this.loadAll();
-      
+
       // Setup refresh interval with error handling
       if (this.autoRefresh) {
         this.setupRefreshInterval();
       }
-      
+
       console.log('✅ Dashboard initialization complete');
     },
-    
+
     setupRefreshInterval() {
       if (this.refreshIntervalId) {
         clearInterval(this.refreshIntervalId);
       }
-      
+
       this.refreshIntervalId = setInterval(() => {
         // Only refresh if page is visible and online
         if (!document.hidden && navigator.onLine && this.connectionStatus !== 'error') {
           this.loadAll();
         }
       }, this.refreshInterval * 1000);
-      
+
       console.log(`⏰ Refresh interval set to ${this.refreshInterval}s`);
     },
 
     applyTheme() {
-      const isDark = this.theme === 'dark' || 
+      const isDark = this.theme === 'dark' ||
                     (this.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      
+
       this.darkMode = isDark;
-      
+
       if (isDark) {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
       }
-      
+
       // Update dashboard controller theme if available
       if (window.dashboardMethods && window.dashboardMethods.updateTheme) {
         window.dashboardMethods.updateTheme(isDark);
@@ -569,7 +568,7 @@ window.dashboard = function dashboard() {
     async loadAll() {
       this.connectionStatus = 'loading';
       const startTime = performance.now();
-      
+
       try {
         // Load all data concurrently with individual error handling
         const results = await Promise.allSettled([
@@ -578,18 +577,18 @@ window.dashboard = function dashboard() {
           this.loadSubnets(),
           this.loadExitNodeClients()
         ]);
-        
+
         // After loading both peers and exit node clients, update the peer status
         if (this.peers && this.exitNodeClients) {
           this.updatePeerExitNodeStatus();
         }
-        
+
         // Check for any failures
         const failures = results.filter(result => result.status === 'rejected');
         if (failures.length > 0) {
           console.warn(`${failures.length} API calls failed:`, failures);
         }
-        
+
         // Update connection status
         const successCount = results.filter(result => result.status === 'fulfilled').length;
         if (successCount === 0) {
@@ -600,12 +599,12 @@ window.dashboard = function dashboard() {
         } else {
           this.connectionStatus = 'connected';
         }
-        
+
         this.lastUpdated = new Date().toLocaleTimeString();
-        
+
         const loadTime = Math.round(performance.now() - startTime);
         console.log(`Dashboard refresh completed in ${loadTime}ms (${successCount}/${results.length} successful)`);
-        
+
       } catch (error) {
         console.error('Critical error during dashboard refresh:', error);
         this.connectionStatus = 'error';
@@ -619,27 +618,27 @@ window.dashboard = function dashboard() {
           credentials: 'same-origin',
           headers: { 'Accept': 'application/json' }
         });
-        
+
         if (!response.ok) {
           throw new Error(`Status API error: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         console.log('Status API response:', data);
-        
+
         // Check for secure mode (CLI-only)
         this.secureMode = data._tailsentry_secure_mode === 'true';
         if (this.secureMode) {
           console.log('Running in secure mode (CLI-only) - API features disabled');
         }
-        
+
         // Map fields from data.Self with proper validation
         const self = data.Self || {};
         this.device.hostname = self.HostName || 'Unknown';
         this.device.ip = (self.TailscaleIPs && self.TailscaleIPs[0]) || '0.0.0.0';
         this.device.role = self.OS || 'Unknown';
         this.device.uptime = this.formatUptime(self.Created || null);
-        
+
         // Check if AdvertisedRoutes contains 0.0.0.0/0 or ::/0 (exit node)
         const advRoutes = Array.isArray(self.AdvertisedRoutes) ? self.AdvertisedRoutes : [];
         this.advertisedRoutes = advRoutes;
@@ -648,7 +647,7 @@ window.dashboard = function dashboard() {
         this.device.online = data.BackendState === 'Running';
         this.isExitNode = isExitNode;
         this.device.subnetRoutes = (self.AllowedIPs && self.AllowedIPs.length) || 0;
-        
+
         // Count peers using this as exit node
         const myId = self.ID;
         let peerCount = 0;
@@ -659,15 +658,16 @@ window.dashboard = function dashboard() {
           }
         }
         this.exitNodePeerCount = peerCount;
-        
+
         // Load persistent UI state
         this.exitNodeLastChanged = localStorage.getItem('exitNodeLastChanged') || '';
         this.exitNodeLastError = localStorage.getItem('exitNodeLastError') || '';
-        
+
         // Additional device info
         this.device.user = (data.User && (data.User.DisplayName || data.User.LoginName)) || '';
         this.device.magicDnsSuffix = data.MagicDNSSuffix || '';
         this.device.version = data.Version || '';
+        this.tailnetName = data.TailnetName || (this.device.magicDnsSuffix ? this.device.magicDnsSuffix.replace(/^\./,'') : '');
 
         // Set tailscaleStatus based on backend state and IP
         if (data.BackendState === 'Running' && this.device.ip && this.device.ip !== '0.0.0.0') {
@@ -684,10 +684,10 @@ window.dashboard = function dashboard() {
           this.tailscaleStatus = 'not_authenticated';
           this.tailscaleIp = '';
         }
-        
+
         // Update enhanced data structures
         this.updateEnhancedDataStructures();
-        
+
         return data;
       } catch (error) {
         console.error('Failed to load status:', error);
@@ -707,7 +707,7 @@ window.dashboard = function dashboard() {
         uptime: this.device.uptime,
         isExitNode: this.device.isExit
       };
-      
+
       // Update peersStats
       const onlinePeers = this.peers.filter(p => p.online).length;
       const offlinePeers = this.peers.length - onlinePeers;
@@ -717,7 +717,7 @@ window.dashboard = function dashboard() {
         offline: offlinePeers,
         onlineChange: 0 // This would need historical data
       };
-      
+
       // Update networkStats (placeholder values - would need actual network monitoring)
       this.networkStats = {
         throughput: this.net.activity ? `${this.net.activity} Mbps` : '0 Mbps',
@@ -725,12 +725,20 @@ window.dashboard = function dashboard() {
         download: this.net.rx || '0 KB/s',
         history: this.net.history || []
       };
-      
+
       // Update subnetStats
       this.subnetStats = {
         total: this.subnets.length,
         advertised: this.advertisedRoutes.length,
         accepted: this.device.subnetRoutes || 0
+      };
+
+      // After peersStats/subnetStats update (ensure stats aggregate consistent)
+      this.stats = {
+        totalPeers: this.peers.length,
+        onlinePeers: onlinePeers,
+        offlinePeers: offlinePeers,
+        exitNodeClients: this.exitNodePeerCount || 0
       };
     },
 
@@ -740,14 +748,14 @@ window.dashboard = function dashboard() {
           credentials: 'same-origin',
           headers: { 'Accept': 'application/json' }
         });
-        
+
         if (!response.ok) {
           throw new Error(`Peers API error: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         const peersObj = data.peers || {};
-        
+
         this.peers = Object.values(peersObj).map(peer => ({
           id: peer.ID || peer.HostName || 'unknown',
           hostname: peer.HostName || 'unknown',
@@ -759,17 +767,17 @@ window.dashboard = function dashboard() {
           exitNode: peer.ExitNode || null,
           isUsingAsExitNode: false  // Will be updated by exit node clients data
         }));
-        
+
         // Update peer status chart if controller is available
         if (window.dashboardMethods && window.dashboardMethods.updatePeerChart) {
           window.dashboardMethods.updatePeerChart(this.peers);
         }
-        
+
         console.log(`Loaded ${this.peers.length} peers`);
-        
+
         // Update enhanced data structures
         this.updateEnhancedDataStructures();
-        
+
         return this.peers;
       } catch (error) {
         console.error('Failed to load peers:', error);
@@ -802,14 +810,14 @@ window.dashboard = function dashboard() {
       this.subnetsLoading = false;
       this.subnetsChanged = false;
     },
-    
+
     async loadExitNodeClients() {
       try {
         const res = await fetch('/api/exit-node-clients');
         if (res.ok) {
           const data = await res.json();
           this.exitNodeClients = Array.isArray(data.clients) ? data.clients : [];
-          
+
           // Update peer exit node usage information
           this.updatePeerExitNodeStatus();
         } else {
@@ -821,7 +829,7 @@ window.dashboard = function dashboard() {
         this.exitNodeClients = [];
       }
     },
-    
+
     updatePeerExitNodeStatus() {
       // Mark peers that are using this device as exit node
       if (this.peers && this.exitNodeClients.length > 0) {
@@ -832,7 +840,7 @@ window.dashboard = function dashboard() {
         });
       }
     },
-    
+
     toggleSubnet(subnet) {
       if (!this.advertisedRoutes) this.advertisedRoutes = [];
       if (this.advertisedRoutes.includes(subnet)) {
@@ -876,70 +884,65 @@ window.dashboard = function dashboard() {
     showPeerDetails(peer) {
       // Log for debugging
       console.log('showPeerDetails called with:', peer);
-      
+
       // Only show modal if a valid peer is provided
       if (!peer || (!peer.id && !peer.hostname)) {
         console.warn('showPeerDetails called without valid peer data:', peer);
         return;
       }
-      
+
       try {
         // Create a clean copy of the peer data
         const peerCopy = JSON.parse(JSON.stringify(peer));
         console.log('Setting selectedPeer with clean copy:', peerCopy);
-        
+
         // Set the selected peer
         this.selectedPeer = peerCopy;
-        
+
         // Populate the modal fields
         this.populateModalFields(peerCopy);
-        
-        // Show the modal using plain JavaScript
-        const modal = document.getElementById('peerModal');
-        if (modal) {
-          console.log('Showing modal with plain JS');
-          modal.style.display = 'flex';
-        } else {
-          console.error('Modal element not found');
-        }
+
+        // Show the modal using Alpine.js
+        this.showPeerModal = true;
+        console.log('Modal shown via Alpine.js');
       } catch (error) {
         console.error('Error showing peer modal:', error);
       }
     },
-    
+
     populateModalFields(peer) {
       // Populate modal fields manually - basic info
       const hostnameEl = document.querySelector('#peerModal [data-field="hostname"]');
       if (hostnameEl) hostnameEl.textContent = peer.hostname || 'Unknown';
-      
+
       const statusEl = document.querySelector('#peerModal [data-field="status"]');
       if (statusEl) {
         statusEl.textContent = peer.online ? 'Online' : 'Offline';
         statusEl.className = peer.online ? 'text-green-600 dark:text-green-400 font-medium' : 'text-red-600 dark:text-red-400 font-medium';
       }
-      
+
       const ipEl = document.querySelector('#peerModal [data-field="ip"]');
       if (ipEl) ipEl.textContent = peer.ip || 'N/A';
-      
+
       const userEl = document.querySelector('#peerModal [data-field="user"]');
       if (userEl) userEl.textContent = peer.user || 'No user';
-      
+
       const osEl = document.querySelector('#peerModal [data-field="os"]');
       if (osEl) osEl.textContent = peer.os || 'Unknown';
-      
+
       const lastSeenEl = document.querySelector('#peerModal [data-field="lastSeen"]');
       if (lastSeenEl) lastSeenEl.textContent = this.formatLastSeen(peer.lastSeen);
-      
+
       // Network info
       const connectionTypeEl = document.querySelector('#peerModal [data-field="connectionType"]');
       if (connectionTypeEl) connectionTypeEl.textContent = peer.relay ? 'Relay' : 'Direct';
-      
+
       const versionEl = document.querySelector('#peerModal [data-field="version"]');
       if (versionEl) versionEl.textContent = peer.version || 'Unknown';
-      
+
       const exitNodeEl = document.querySelector('#peerModal [data-field="exitNode"]');
       if (exitNodeEl) exitNodeEl.textContent = peer.isExitNode ? 'Yes' : 'No';
-      
+
       const tagsEl = document.querySelector('#peerModal [data-field="tags"]');
       if (tagsEl) tagsEl.textContent = peer.tags && peer.tags.length ? peer.tags.join(', ') : 'None';
     },
@@ -947,7 +950,7 @@ window.dashboard = function dashboard() {
     closePeerModal() {
       console.log('Closing peer modal');
       this.showPeerModal = false;
-      
+
       // Clean up after animation completes
       setTimeout(() => {
         this.selectedPeer = {};
@@ -967,182 +970,112 @@ window.dashboard = function dashboard() {
       // No additional action needed since filtering is handled in filteredPeers()
     },
 
-    dismissAlert() {
-      // Dismiss dashboard alerts
-      this.showAlert = false;
+    // Template now binds x-model="searchQuery" and calls filterDevices()
+    filterDevices() {
+      // Keep internal searchFilter in sync
+      this.searchFilter = this.searchQuery;
+      // No extra work needed; filteredPeers() uses searchFilter
     },
 
-
-    // Settings page Alpine.js methods
-    async applyExitNode() {
-      // Call backend to apply exit node setting
-      const payload = {
-  routes: this.advertisedRoutes,
-  hostname: this.device.hostname,
-      };
-      this.exitNodeFeedback = '';
-      try {
-        const res = await fetch('/api/exit-node', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (data.success) {
-          this.exitNodeFeedback = 'Exit node setting applied!';
-        } else {
-          this.exitNodeFeedback = data.message || 'Failed to apply Exit Node setting.';
-        }
-      } catch (e) {
-        this.exitNodeFeedback = 'Network or server error.';
-      }
-      // Always refresh the real state from backend after apply
-      this.loadStatus();
-    },
-
-    toggleSelectAllSubnets(e) {
-      if (e.target.checked) {
-        this.advertisedRoutes = this.allSubnets.map(s => s.cidr);
-      } else {
-        this.advertisedRoutes = [];
-      }
-      this.subnetsChanged = true;
-    },
-    openSubnetModal() {
-      this.loadSubnets();
-      this.subnetModalOpen = true;
-  this.manualSubnet = '';
-  this.manualSubnetError = '';
-    },
-    addManualSubnet() {
-      // Validate subnet format (basic CIDR check)
-      const cidr = this.manualSubnet.trim();
-      const cidrRegex = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/;
-      if (!cidrRegex.test(cidr)) {
-        this.manualSubnetError = 'Invalid CIDR format (e.g. 192.168.1.0/24)';
-        return;
-      }
-      // Check for duplicate
-      if (this.allSubnets.some(s => s.cidr === cidr)) {
-        this.manualSubnetError = 'Subnet already in list.';
-        return;
-      }
-      // Add to allSubnets
-      this.allSubnets.push({ cidr, interface: 'manual', family: 'IPv4' });
-      this.manualSubnet = '';
-      this.manualSubnetError = '';
-      this.subnetsChanged = true;
-    },
-    async applySubnets() {
-      // Use helpers for feedback and loading state
-      const payload = {
-        routes: this.advertisedRoutes
-      };
-      this.setFeedback('subnet', '');
-      this.setLoading('subnet', true);
-      try {
-        const res = await fetch('/api/subnet-routes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (data.success) {
-          this.setFeedback('subnet', 'Subnet routes applied!');
-          this.toastMsg('Subnet routes applied!');
-          this.subnetModalOpen = false;
-          // Always reload subnets and status to reflect new state
-          await this.loadSubnets();
-          await this.loadStatus();
-        } else {
-          this.setFeedback('subnet', data.error || data.message || 'Failed to apply subnet routes.');
-        }
-      } catch (e) {
-        this.setFeedback('subnet', (e && e.message) ? e.message : 'Network or server error.');
-      } finally {
-        this.setLoading('subnet', false);
-      }
-    },
-    // ...existing code...
-    // Advanced Exit Node apply
-    async applyExitNodeAdvanced() {
-      // Use helpers for feedback and loading state
-      const routes = [];
-      // Build routes based on isExitNode and advertisedRoutes
-      if (this.isExitNode) {
-        routes.push('0.0.0.0/0', '::/0');
-      }
-      for (const r of this.advertisedRoutes) {
-        if (!routes.includes(r) && r !== '0.0.0.0/0' && r !== '::/0') routes.push(r);
-      }
-      const payload = {
-        advertise_routes: routes,
-        hostname: this.device.hostname,
-        exit_node_firewall: this.exitNodeFirewall
-      };
-      this.setFeedback('exitNode', '');
-      this.setLoading('exitNode', true);
-      try {
-        const res = await fetch('/api/exit-node', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (data.success) {
-          this.setFeedback('exitNode', 'Exit node setting applied!');
-          const now = new Date().toLocaleString();
-          this.exitNodeLastChanged = now;
-          localStorage.setItem('exitNodeLastChanged', now);
-        } else {
-          this.setFeedback('exitNode', data.message || 'Failed to apply Exit Node setting.');
-        }
-      } catch (e) {
-        this.setFeedback('exitNode', 'Network or server error.');
-      } finally {
-        this.setLoading('exitNode', false);
-      }
-      this.loadStatus();
-    },
-  // Removed toggleExitNode: always use backend state
-    toggleExitNode() {
-      this.isExitNode = !this.isExitNode;
-      this.applyExitNodeAdvanced();
-    },
-    regenerateAuthKey() {
-      this.toastMsg('Auth key regeneration coming soon!');
-    },
-    openKeyModal() { this.toastMsg('Key management coming soon!'); },
-    openLogsModal() { this.toastMsg('Logs coming soon!'); },
-    openPeerModal(peer) { 
-      // For backward compatibility
-      return this.showPeerDetails(peer); 
-    },
-    pingPeer(peer) { this.toastMsg('Ping to ' + peer.hostname + ' -> 12ms (mock)'); },
-    logout() { window.location.href = '/logout'; },
-    toastMsg(msg) { this.toast = msg; setTimeout(() => this.toast = '', 3500); },
-    
-    // --- Additional methods for enhanced dashboard ---
+    // --- Dashboard Control Functions ---
     refreshAll() {
       this.isRefreshing = true;
       this.loadAll().finally(() => {
         this.isRefreshing = false;
       });
     },
-    
+
     toggleAutoRefresh() {
       this.autoRefresh = !this.autoRefresh;
       if (this.autoRefresh) {
         this.setupRefreshInterval();
+        this.showToast('Auto-refresh enabled', 'success');
       } else {
         if (this.refreshIntervalId) {
           clearInterval(this.refreshIntervalId);
           this.refreshIntervalId = null;
         }
+        this.showToast('Auto-refresh disabled', 'info');
       }
       this.savePreferences();
     },
-    
+
+    toggleCharts() {
+      this.showCharts = !this.showCharts;
+      this.savePreferences();
+    },
+
+    exportData() {
+      try {
+        const data = {
+          timestamp: new Date().toISOString(),
+          device: this.device,
+          peers: this.peers,
+          stats: this.stats,
+          networkStats: this.networkStats
+        };
+        const filename = `tailsentry-dashboard-${new Date().toISOString().slice(0,10)}.json`;
+        this.downloadFile(filename, JSON.stringify(data, null, 2));
+        this.showToast('Dashboard data exported', 'success');
+      } catch (error) {
+        console.error('Export error:', error);
+        this.showToast('Failed to export data', 'error');
+      }
+    },
+
+    dismissAlert() {
+      this.showAlert = false;
+      this.alertMessage = '';
+      this.alertType = null;
+    },
+
+    hideToast() {
+      this.toast = '';
+    },
+
+    pingPeer(peer) {
+      if (!peer || !peer.ip) {
+        this.showToast('No valid peer selected', 'warning');
+        return;
+      }
+
+      this.showToast(`Pinging ${peer.hostname || peer.ip}...`, 'info');
+
+      // This would typically make an API call to ping the peer
+      // For now, we'll just show a success message
+      setTimeout(() => {
+        this.showToast(`Ping sent to ${peer.hostname || peer.ip}`, 'success');
+      }, 1000);
+    },
+
+    loadPreferences() {
+      try {
+        const prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
+        this.autoRefresh = prefs.autoRefresh !== undefined ? prefs.autoRefresh : true;
+        this.showCharts = prefs.showCharts !== undefined ? prefs.showCharts : true;
+        this.viewMode = prefs.viewMode || 'table';
+        this.refreshInterval = prefs.refreshInterval || 30;
+        this.theme = prefs.theme || localStorage.getItem('theme') || 'system';
+      } catch (error) {
+        console.error('Error loading preferences:', error);
+      }
+    },
+
+    savePreferences() {
+      try {
+        const prefs = {
+          autoRefresh: this.autoRefresh,
+          showCharts: this.showCharts,
+          viewMode: this.viewMode,
+          refreshInterval: this.refreshInterval,
+          theme: this.theme
+        };
+        localStorage.setItem('dashboardPreferences', JSON.stringify(prefs));
+      } catch (error) {
+        console.error('Error saving preferences:', error);
+      }
+    },
+
     updateRefreshInterval() {
       if (this.refreshInterval < 5) this.refreshInterval = 5;
       if (this.autoRefresh) {
@@ -1150,53 +1083,27 @@ window.dashboard = function dashboard() {
       }
       this.savePreferences();
     },
-    
-    toggleCharts() {
-      this.showCharts = !this.showCharts;
-      this.savePreferences();
-      
-      // Restart dashboard controller charts when shown
-      if (this.showCharts && window.dashboardMethods) {
-        setTimeout(() => {
-          window.dashboardMethods.restart();
-        }, 100);
-      }
+
+    logout() {
+      window.location.href = '/logout';
     },
-    
-    savePreferences() {
-      const prefs = {
-        autoRefresh: this.autoRefresh,
-        showCharts: this.showCharts,
-        viewMode: this.viewMode,
-        refreshInterval: this.refreshInterval
-      };
-      localStorage.setItem('dashboard_preferences', JSON.stringify(prefs));
-    },
-    
-    loadPreferences() {
-      try {
-        const prefs = localStorage.getItem('dashboard_preferences');
-        if (prefs) {
-          const parsed = JSON.parse(prefs);
-          this.autoRefresh = parsed.autoRefresh !== false;
-          this.showCharts = parsed.showCharts !== false;
-          this.viewMode = parsed.viewMode || 'detailed';
-          this.refreshInterval = parsed.refreshInterval || 30;
-        }
-      } catch (error) {
-        console.warn('Failed to load dashboard preferences:', error);
-      }
-    },
-    
+
     $watch: {
-      theme(val) { 
-        localStorage.setItem('theme', val); 
+      theme(val) {
+        localStorage.setItem('theme', val);
         this.applyTheme();
       },
-      refreshInterval(val) { 
+      refreshInterval(val) {
         if (val < 5) this.refreshInterval = 5;
         if (this.autoRefresh) this.updateRefreshInterval();
       }
     }
+  };
+  return __dashboardInstance;
+}
+// Provide backwards-compatible alias expected by template: enhancedDashboard()
+if (!window.enhancedDashboard) {
+  window.enhancedDashboard = function enhancedDashboard() {
+    return window.dashboard();
   }
 }

@@ -271,7 +271,7 @@
         <div x-show="deviceStatus.isExitNode || exitNodeClients.length > 0" class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
           <div class="flex items-center space-x-2 mb-2">
             <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
             </svg>
             <span class="text-sm font-medium text-blue-900 dark:text-blue-100">Exit Node Active</span>
           </div>
@@ -351,9 +351,9 @@
         </div>
         <div class="bg-gray-50 dark:bg-gray-700 px-5 py-3">
           <div class="text-sm">
-            <span class="text-gray-900 dark:text-white font-medium" x-text="subnetStats.advertised + ' advertised'"></span>
+            <span class="text-gray-900 dark:text-white font-medium" x-text="(subnetStats?.advertised || 0) + ' advertised'"></span>
             <span class="text-gray-500 dark:text-gray-400 mx-1">•</span>
-            <span class="text-gray-900 dark:text-white font-medium" x-text="subnetStats.accepted + ' accepted'"></span>
+            <span class="text-gray-900 dark:text-white font-medium" x-text="(subnetStats?.accepted || 0) + ' accepted'"></span>
           </div>
         </div>
       </div>
@@ -371,10 +371,10 @@
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Network Activity</h3>
         <div class="h-64">
           <!-- Show chart when online, notice when offline -->
-          <div x-show="tailscaleStatus === 'authenticated'">
+          <div x-show="(tailscaleStatus || 'unknown') === 'authenticated'">
             <canvas id="networkChart"></canvas>
           </div>
-          <div x-show="tailscaleStatus !== 'authenticated'" 
+          <div x-show="(tailscaleStatus || 'unknown') !== 'authenticated'" 
                class="h-full flex items-center justify-center">
             <div class="text-center">
               <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -392,10 +392,10 @@
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Peer Status Distribution</h3>
         <div class="h-64 flex items-center justify-center">
           <!-- Show chart when online, notice when offline -->
-          <div x-show="tailscaleStatus === 'authenticated'">
+          <div x-show="(tailscaleStatus || 'unknown') === 'authenticated'">
             <canvas id="peerChart"></canvas>
           </div>
-          <div x-show="tailscaleStatus !== 'authenticated'" 
+          <div x-show="(tailscaleStatus || 'unknown') !== 'authenticated'" 
                class="text-center">
             <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -410,19 +410,6 @@
     <!-- Connected Devices Section -->
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
       <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-        <!-- Test Modal Button -->
-        <div class="mb-4 bg-red-100 p-2 border-l-4 border-red-500">
-          <button @click="console.log('Test button clicked, setting showPeerModal to true'); showPeerModal = true; console.log('showPeerModal is now:', showPeerModal)" 
-                  class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-            Test Modal (Debug)
-          </button>
-          <span class="ml-2 text-sm text-gray-600">Modal state: <span x-text="showPeerModal"></span></span>
-          <button @click="console.log('Close button clicked'); showPeerModal = false" 
-                  class="ml-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-            Close Modal
-          </button>
-        </div>
-        
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">Connected Devices</h3>
           <div class="flex items-center space-x-3">
@@ -443,19 +430,19 @@
             <!-- Filter Tabs -->
             <div class="flex bg-gray-100 dark:bg-gray-700 rounded-md p-1">
               <button @click="deviceFilter = 'all'" 
-                      :class="deviceFilter === 'all' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
+                      :class="(deviceFilter || 'all') === 'all' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
                       class="px-3 py-1 text-sm font-medium rounded-md transition-colors">
-                All (<span x-text="peers.length"></span>)
+                All (<span x-text="(peers || []).length"></span>)
               </button>
               <button @click="deviceFilter = 'using-exit'" 
-                      :class="deviceFilter === 'using-exit' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
+                      :class="(deviceFilter || 'all') === 'using-exit' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
                       class="px-3 py-1 text-sm font-medium rounded-md transition-colors ml-1">
-                Using Exit (<span x-text="exitNodeClients.length"></span>)
+                Using Exit (<span x-text="(exitNodeClients || []).length"></span>)
               </button>
               <button @click="deviceFilter = 'online'" 
-                      :class="deviceFilter === 'online' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
+                      :class="(deviceFilter || 'all') === 'online' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
                       class="px-3 py-1 text-sm font-medium rounded-md transition-colors ml-1">
-                Online (<span x-text="onlinePeers().length"></span>)
+                Online (<span x-text="onlinePeers ? onlinePeers().length : 0"></span>)
               </button>
             </div>
             
@@ -471,14 +458,14 @@
             <!-- View Toggle -->
             <div class="flex bg-gray-100 dark:bg-gray-700 rounded-md p-1">
               <button @click="viewMode = 'table'" 
-                      :class="viewMode === 'table' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
+                      :class="(viewMode || 'table') === 'table' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
                       class="p-2 rounded-md transition-colors">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 6h18M3 14h18M3 18h18"></path>
                 </svg>
               </button>
               <button @click="viewMode = 'cards'" 
-                      :class="viewMode === 'cards' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
+                      :class="(viewMode || 'table') === 'cards' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
                       class="p-2 rounded-md transition-colors ml-1">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14-7H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2z"></path>
@@ -490,7 +477,7 @@
       </div>
 
       <!-- Exit Node Clients Section -->
-      <div x-show="(deviceFilter === 'using-exit' || deviceFilter === 'all') && exitNodeClients.length > 0" 
+      <div x-show="((deviceFilter || 'all') === 'using-exit' || (deviceFilter || 'all') === 'all') && (exitNodeClients || []).length > 0" 
            class="px-6 py-4 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800">
         <div class="flex items-center space-x-3 mb-3">
           <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
@@ -501,12 +488,12 @@
               Devices Using This Exit Node
             </h4>
             <p class="text-xs text-blue-700 dark:text-blue-300">
-              <span x-text="exitNodeClients.length"></span> device<span x-show="exitNodeClients.length !== 1">s</span> routing traffic through this device
+              <span x-text="(exitNodeClients || []).length"></span> device<span x-show="(exitNodeClients || []).length !== 1">s</span> routing traffic through this device
             </p>
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <template x-for="client in exitNodeClients" :key="client.id">
+          <template x-for="client in (exitNodeClients || [])" :key="client.id">
             <div class="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
               <div class="flex items-center space-x-3">
                 <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
@@ -529,9 +516,9 @@
     </div>
 
       <!-- Table View -->
-      <div x-show="viewMode === 'table'" class="overflow-x-auto">
+      <div x-show="(viewMode || 'table') === 'table'" class="overflow-x-auto">
         <!-- Show table when authenticated -->
-        <div x-show="tailscaleStatus === 'authenticated'">
+        <div x-show="(tailscaleStatus || 'unknown') === 'authenticated'">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -544,7 +531,7 @@
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <template x-for="peer in filteredPeers" :key="peer.id">
+              <template x-for="peer in (filteredPeers ? filteredPeers() : [])" :key="peer.id">
               <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
                   :class="peer.isUsingAsExitNode ? 'bg-blue-50 dark:bg-blue-900/20' : ''">
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -606,7 +593,7 @@
         </div>
         
         <!-- Show offline notice when not authenticated -->
-        <div x-show="tailscaleStatus !== 'authenticated'" 
+        <div x-show="(tailscaleStatus || 'unknown') !== 'authenticated'" 
              class="flex flex-col items-center justify-center py-12">
           <svg class="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
@@ -640,10 +627,10 @@
       </div>
 
       <!-- Cards View -->
-      <div x-show="viewMode === 'cards'" class="p-6">
+      <div x-show="(viewMode || 'table') === 'cards'" class="p-6">
         <!-- Show cards when authenticated -->
-        <div x-show="tailscaleStatus === 'authenticated'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <template x-for="peer in filteredPeers" :key="peer.id">
+        <div x-show="(tailscaleStatus || 'unknown') === 'authenticated'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <template x-for="peer in (filteredPeers ? filteredPeers() : [])" :key="peer.id">
             <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow duration-150">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center">
@@ -691,7 +678,7 @@
         </div>
         
         <!-- Show offline notice when not authenticated -->
-        <div x-show="tailscaleStatus !== 'authenticated'" 
+        <div x-show="(tailscaleStatus || 'unknown') !== 'authenticated'" 
              class="flex flex-col items-center justify-center py-12">
           <svg class="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14-7H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2z"></path>
@@ -704,34 +691,40 @@
       </div>
 
       <!-- Empty State -->
-      <div x-show="tailscaleStatus === 'authenticated' && filteredPeers.length === 0" class="text-center py-12">
+      <div x-show="(tailscaleStatus || 'unknown') === 'authenticated' && (filteredPeers ? filteredPeers().length === 0 : true)" class="text-center py-12">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.29-1.004-5.714-2.598M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
         </svg>
         <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No devices found</h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          <span x-show="searchFilter">No devices match your search criteria.</span>
-          <span x-show="!searchFilter">No devices are currently connected.</span>
+          <span x-show="searchFilter || ''">No devices match your search criteria.</span>
+          <span x-show="!(searchFilter || '')">No devices are currently connected.</span>
         </p>
       </div>
     </div>
   </main>
 
-  <!-- Peer Details Modal - Plain HTML approach -->
-  <div id="peerModal" style="display: none;" 
+  <!-- Peer Details Modal -->
+  <div x-show="showPeerModal || false" 
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0"
        class="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
     <div class="relative mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-800">
       <div class="mt-3">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">Device Details</h3>
-          <button onclick="document.getElementById('peerModal').style.display='none';" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <button @click="closePeerModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </button>
         </div>
         
-        <div x-show="selectedPeer" class="space-y-6">
+        <div x-show="selectedPeer || false" class="space-y-6">
           <!-- Basic Info -->
           <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
             <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Basic Information</h4>
@@ -790,11 +783,11 @@
 
           <!-- Actions -->
           <div class="flex justify-end space-x-3">
-            <button onclick="window.dashboard().pingPeer(window.dashboard().selectedPeer)" 
+            <button @click="pingPeer(selectedPeer)" 
                     class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200">
               Ping Device
             </button>
-            <button onclick="document.getElementById('peerModal').style.display='none';" 
+            <button @click="closePeerModal()" 
                     class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200">
               Close
             </button>
@@ -805,7 +798,7 @@
   </div>
 
   <!-- Loading Overlay -->
-  <div x-show="isLoading" 
+  <div x-show="isLoading || false" 
        x-transition:enter="transition ease-out duration-300"
        x-transition:enter-start="opacity-0"
        x-transition:enter-end="opacity-100"
@@ -823,17 +816,17 @@
   </div>
 
   <!-- Toast Notifications -->
-  <div x-show="toastMessage" 
+  <div x-show="toastMessage || ''" 
        x-transition:enter="transition ease-out duration-300"
        x-transition:enter-start="opacity-0 transform translate-y-2"
        x-transition:enter-end="opacity-100 transform translate-y-0"
        x-transition:leave="transition ease-in duration-200"
        x-transition:leave-start="opacity-100 transform translate-y-0"
        x-transition:leave-end="opacity-0 transform translate-y-2"
-       :class="toastType === 'error' ? 'bg-red-500' : toastType === 'warning' ? 'bg-yellow-500' : 'bg-green-500'"
+       :class="(toastType || 'info') === 'error' ? 'bg-red-500' : (toastType || 'info') === 'warning' ? 'bg-yellow-500' : 'bg-green-500'"
        class="fixed bottom-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-50">
     <div class="flex items-center">
-      <span x-text="toastMessage"></span>
+      <span x-text="toastMessage || ''"></span>
       <button @click="hideToast()" class="ml-3 text-white hover:text-gray-200">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
