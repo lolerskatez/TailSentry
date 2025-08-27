@@ -140,8 +140,10 @@ function altDashboard() {
         if (data.Self) {
           this.device.hostname = data.Self.HostName || '';
           this.device.ip = data.Self.TailscaleIPs?.[0] || '';
+          // Check if device is advertising exit node routes
+          const advRoutes = data.Self.AdvertisedRoutes || [];
+          this.device.isExitNode = advRoutes.includes('0.0.0.0/0') || advRoutes.includes('::/0');
         }
-        
       } catch (error) {
         console.error('Failed to load status:', error);
         this.tailscaleStatus = 'Error';
@@ -178,17 +180,8 @@ function altDashboard() {
     },
 
     async loadExitNodeStatus() {
-      try {
-        const response = await fetch('/api/exit-node-clients');
-        if (!response.ok) throw new Error('Exit node API failed');
-        
-        const data = await response.json();
-        this.device.isExitNode = (data.clients && data.clients.length > 0) || false;
-        
-      } catch (error) {
-        console.error('Failed to load exit node status:', error);
-        this.device.isExitNode = false;
-      }
+  // No longer sets isExitNode here; handled in loadStatus
+  return;
     },
 
     // === Data Processing ===
