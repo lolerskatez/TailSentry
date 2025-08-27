@@ -1,7 +1,6 @@
 // --- Enhanced Alpine.js Dashboard with Robust Error Handling ---
-// Initialize Alpine.js store for better reactivity
-document.addEventListener('alpine:init', () => {
-  Alpine.store('dashboard', {
+window.dashboard = function dashboard() {
+  return {
     // --- Enhanced Settings Export/Import Methods ---
     async exportSettings() {
       this.showLoading('export', true);
@@ -253,7 +252,7 @@ document.addEventListener('alpine:init', () => {
     authSuccess: false,
     tailscaleCtlFeedback: '',
     // Peer filtering and refresh methods for dashboard
-    get filteredPeers() {
+    filteredPeers() {
       let filtered = this.peers;
       
       // Apply search filter
@@ -294,7 +293,7 @@ document.addEventListener('alpine:init', () => {
       return filtered;
     },
     
-    get onlinePeers() {
+    onlinePeers() {
       return this.peers.filter(peer => peer.online);
     },
     
@@ -1198,24 +1197,6 @@ document.addEventListener('alpine:init', () => {
         if (val < 5) this.refreshInterval = 5;
         if (this.autoRefresh) this.updateRefreshInterval();
       }
-    },
-    
-    // Initialize function called from x-init
-    init() {
-      console.log('🚀 Initializing TailSentry Dashboard');
-      this.loadPreferences();
-      this.applyTheme();
-      this.setupRefreshInterval();
-      
-      // Initial data load
-      this.refresh();
-      
-      console.log('✅ Dashboard initialization complete');
     }
-  });
-});
-
-// Create a dashboard component that properly exposes store properties
-function dashboardComponent() {
-  return Alpine.store('dashboard');
+  }
 }

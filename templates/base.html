@@ -10,6 +10,9 @@
   <style>
     [x-cloak] { display: none !important; }
   </style>
+  <script src="/static/alpine.min.js" defer></script>
+  <script src="/static/alpine-focus.min.js" defer></script>
+  <script src="/static/dashboard.js" defer></script>
   <script>
     // Global theme initialization - runs before Alpine.js
     (function() {
@@ -29,7 +32,7 @@
   </script>
   {% block head %}{% endblock %}
 </head>
-<body :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900" x-data="{ darkMode: false, logout: () => window.location.href = '/logout' }">
+<body x-data="window.dashboard()" :class="{ 'dark': darkMode }" class="min-h-screen bg-gray-50 dark:bg-gray-900">
   <!-- Main Navigation -->
   <nav class="flex items-center justify-between px-6 py-4 bg-indigo-700 dark:bg-gray-800 text-white shadow border-b border-indigo-800 dark:border-gray-700" role="navigation" aria-label="Main Navigation">
     <div class="flex items-center gap-3">
@@ -51,12 +54,6 @@
   <main>
     {% block content %}{% endblock %}
   </main>
-  
-  <!-- Load Alpine.js first, then dashboard scripts -->
-  <script defer src="/static/alpine.min.js"></script>
-  <script defer src="/static/alpine-focus.min.js"></script>
-  <script defer src="/static/dashboard.js"></script>
-  
   {% block scripts %}{% endblock %}
 </body>
 </html>
