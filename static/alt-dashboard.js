@@ -4,6 +4,7 @@
 function altDashboard() {
   return {
     // === Core State ===
+    _initialized: false,
     isLoading: false,
     isOnline: false,
     lastUpdate: '',
@@ -50,7 +51,14 @@ function altDashboard() {
 
     // === Initialization ===
     async init() {
+      // Prevent double initialization
+      if (this._initialized) {
+        console.log('🔄 Alternative dashboard already initialized, skipping...');
+        return;
+      }
+      
       console.log('🚀 Initializing Alternative TailSentry Dashboard');
+      this._initialized = true;
       
       // Apply theme
       this.applyTheme();
@@ -146,11 +154,12 @@ function altDashboard() {
         if (!response.ok) throw new Error('Peers API failed');
         
         const data = await response.json();
-        this.devices = data.peers || [];
+        // Ensure devices is always an array
+        this.devices = Array.isArray(data.peers) ? data.peers : [];
         
       } catch (error) {
         console.error('Failed to load peers:', error);
-        this.devices = [];
+        this.devices = []; // Ensure it's always an array
       }
     },
 
@@ -184,6 +193,12 @@ function altDashboard() {
 
     // === Data Processing ===
     updateStats() {
+      // Ensure devices is an array before processing
+      if (!Array.isArray(this.devices)) {
+        console.warn('Devices is not an array:', this.devices);
+        this.devices = [];
+      }
+      
       const total = this.devices.length;
       const online = this.devices.filter(d => d.online).length;
       const offline = total - online;
@@ -192,6 +207,13 @@ function altDashboard() {
     },
 
     filterDevices() {
+      // Ensure devices is an array before filtering
+      if (!Array.isArray(this.devices)) {
+        console.warn('Devices is not an array for filtering:', this.devices);
+        this.filteredDevices = [];
+        return;
+      }
+      
       let filtered = this.devices;
       
       // Apply search filter
