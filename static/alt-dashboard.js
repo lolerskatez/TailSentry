@@ -38,9 +38,11 @@ function altDashboard() {
     subnets: [],
     tailscaleStatus: 'Unknown',
     
-    // === Filters ===
+  // === Filters ===
     searchQuery: '',
     deviceFilter: 'all',
+  // Persisted exit node setting
+  advertiseExitNode: false,
     
     // === Toast System ===
     toast: {
@@ -56,26 +58,30 @@ function altDashboard() {
         console.log('🔄 Alternative dashboard already initialized, skipping...');
         return;
       }
-      
-      console.log('🚀 Initializing Alternative TailSentry Dashboard');
       this._initialized = true;
-      
-      // Apply theme
       this.applyTheme();
-      
-      // Setup auto-refresh
-      if (this.autoRefresh) {
-        this.setupAutoRefresh();
-      }
-      
-      // Load initial data
+      if (this.autoRefresh) this.setupAutoRefresh();
+      // Load settings first to get exit node state
+      await this.loadSettings();
+      // Load all data (status, peers, subnets)
       await this.loadAllData();
-      
-      // Setup event listeners
       this.setupEventListeners();
-      
       this.showToast('Dashboard initialized', 'success');
-      console.log('✅ Alternative dashboard ready');
+    },
+
+    // Fetch persisted Tailscale settings (exit node state)
+    async loadSettings() {
+      try {
+        const response = await fetch('/api/tailscale-settings');
+        if (!response.ok) throw new Error('Settings API failed');
+        const data = await response.json();
+        // Load persisted exit node setting into UI state
+        this.advertiseExitNode = data.advertise_exit_node || false;
+        // Also reflect in device state before actual status fetch
+        this.device.isExitNode = data.advertise_exit_node || false;
+      } catch (error) {
+        console.error('Failed to load Tailscale settings:', error);
+      }
     },
 
     setupEventListeners() {
@@ -238,37 +244,30 @@ function altDashboard() {
 
     async toggleExitNode() {
       if (this.isLoading) return;
-      
       this.isLoading = true;
-      
+      // Toggle based on persisted setting
+      const newValue = !this.advertiseExitNode;
       try {
-        const payload = {
-          advertised_routes: this.device.isExitNode ? [] : ['0.0.0.0/0', '::/0'],
-          hostname: this.device.hostname || ''
-        };
-        
-        const response = await fetch('/api/exit-node', {
+        const response = await fetch('/api/tailscale-settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ advertise_exit_node: newValue })
         });
-        
-        if (!response.ok) throw new Error('Exit node toggle failed');
-        
+        if (!response.ok) throw new Error('Settings update failed');
         const result = await response.json();
-        
         if (result.success) {
-          this.device.isExitNode = !this.device.isExitNode;
-          this.showToast(
-            this.device.isExitNode ? 'Exit node enabled' : 'Exit node disabled', 
-            'success'
-          );
+          // Update UI state
+          this.advertiseExitNode = newValue;
+          this.device.isExitNode = newValue;
+           this.showToast(newValue ? 'Exit node enabled' : 'Exit node disabled', 'success');
+           // reload settings and status
+           await this.loadSettings();
+           await this.loadAllData();
         } else {
-          throw new Error(result.error || 'Unknown error');
+          this.showToast('Failed to toggle exit node: ' + (result.error || 'Unknown error'), 'error');
         }
-        
       } catch (error) {
-        console.error('Exit node toggle failed:', error);
+        console.error('Toggle exit node error:', error);
         this.showToast('Failed to toggle exit node', 'error');
       } finally {
         this.isLoading = false;
