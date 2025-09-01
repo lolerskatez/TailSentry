@@ -534,6 +534,10 @@ class TailscaleClient:
         """Parse the text output of tailscale status to extract device information"""
         devices = []
         
+        # Get JSON status for additional data like timestamps
+        json_status = TailscaleClient.status_json()
+        peer_data = json_status.get("Peer", {}) if isinstance(json_status, dict) else {}
+        
         # Split output into lines and process each device line
         lines = output.strip().split('\n')
         
@@ -586,6 +590,24 @@ class TailscaleClient:
                     # Check for tagged devices
                     is_tagged = 'tagged' in status or '@' in hostname
                     
+                    # Get proper lastSeen timestamp from JSON data
+                    last_seen = None
+                    if isinstance(peer_data, dict):
+                        for peer_key, peer_info in peer_data.items():
+                            if isinstance(peer_info, dict):
+                                peer_hostname = peer_info.get('HostName', '')
+                                peer_ip = peer_info.get('TailscaleIPs', [None])[0]
+                                if peer_hostname == hostname or (peer_ip and peer_ip == ip):
+                                    # Found matching peer, get the timestamp
+                                    last_seen_raw = peer_info.get('LastSeen')
+                                    if last_seen_raw and last_seen_raw != '0001-01-01T00:00:00Z':
+                                        last_seen = last_seen_raw
+                                    break
+                    
+                    # Fallback to text-based determination if no timestamp found
+                    if not last_seen:
+                        last_seen = "recent" if is_online else "unknown"
+                    
                     device = {
                         "id": f"device_{len(devices)}",  # Generate simple ID
                         "hostname": hostname,
@@ -597,7 +619,7 @@ class TailscaleClient:
                         "isExitNodeUser": is_exit_node_user,
                         "isSubnetRouter": is_subnet_router,
                         "isTagged": is_tagged,
-                        "lastSeen": "recent" if is_online else "unknown"
+                        "lastSeen": last_seen
                     }
                     
                     devices.append(device)

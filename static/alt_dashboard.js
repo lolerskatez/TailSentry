@@ -397,14 +397,39 @@ window.altTailSentry = function altTailSentry() {
     },
 
     formatLastSeen(lastSeen) {
-      if (!lastSeen || lastSeen.startsWith('0001')) return 'unknown';
-      const then = new Date(lastSeen);
-      const now = new Date();
-      const diff = Math.floor((now - then) / 1000);
-      if (diff < 60) return `${diff}s ago`;
-      if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
-      if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
-      return `${Math.floor(diff/86400)}d ago`;
+      if (!lastSeen || lastSeen === 'Never' || lastSeen === 'unknown' || lastSeen.startsWith('0001')) return 'Never';
+      if (lastSeen === 'recent') return 'Just now';
+      
+      try {
+        const date = new Date(lastSeen);
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+          return 'Unknown';
+        }
+        
+        const now = new Date();
+        const diffMs = now - date;
+        
+        // Handle negative differences (future dates)
+        if (diffMs < 0) {
+          return 'Just now';
+        }
+        
+        const diffMins = Math.floor(diffMs / 60000);
+        
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours}h ago`;
+        
+        const diffDays = Math.floor(diffHours / 24);
+        return `${diffDays}d ago`;
+      } catch (error) {
+        console.warn('Error formatting last seen date:', lastSeen, error);
+        return 'Unknown';
+      }
     },
 
 

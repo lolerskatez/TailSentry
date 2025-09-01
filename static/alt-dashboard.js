@@ -48,7 +48,7 @@ function altDashboard() {
     
   // === Filters ===
     searchQuery: '',
-    deviceFilter: 'all',
+    deviceFilter: 'online',
   // Persisted exit node setting
   advertiseExitNode: false,
     
@@ -490,21 +490,39 @@ function altDashboard() {
 
     // === Utility Functions ===
     formatLastSeen(lastSeen) {
-      if (!lastSeen) return 'Never';
+      if (!lastSeen || lastSeen === 'Never' || lastSeen === 'unknown') return 'Never';
+      if (lastSeen === 'recent') return 'Just now';
       
-      const date = new Date(lastSeen);
-      const now = new Date();
-      const diffMs = now - date;
-      const diffMins = Math.floor(diffMs / 60000);
-      
-      if (diffMins < 1) return 'Just now';
-      if (diffMins < 60) return `${diffMins}m ago`;
-      
-      const diffHours = Math.floor(diffMins / 60);
-      if (diffHours < 24) return `${diffHours}h ago`;
-      
-      const diffDays = Math.floor(diffHours / 24);
-      return `${diffDays}d ago`;
+      try {
+        const date = new Date(lastSeen);
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+          return 'Unknown';
+        }
+        
+        const now = new Date();
+        const diffMs = now - date;
+        
+        // Handle negative differences (future dates)
+        if (diffMs < 0) {
+          return 'Just now';
+        }
+        
+        const diffMins = Math.floor(diffMs / 60000);
+        
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours}h ago`;
+        
+        const diffDays = Math.floor(diffHours / 24);
+        return `${diffDays}d ago`;
+      } catch (error) {
+        console.warn('Error formatting last seen date:', lastSeen, error);
+        return 'Unknown';
+      }
     },
 
     // === Settings & Preferences ===
