@@ -18,6 +18,13 @@ function altDashboard() {
     showSubnetModal: false,
     theme: localStorage.getItem('alt-dashboard-theme') || 'system',
     
+    // === Data ===
+    stats: {
+      total: 0,
+      online: 0,
+      offline: 0
+    },
+    
     // === Subnet Routes State ===
     currentSubnetRoutes: [],
     newSubnetRoute: '',

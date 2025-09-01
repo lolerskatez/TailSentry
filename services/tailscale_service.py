@@ -628,11 +628,14 @@ class TailscaleClient:
             cmd += extra_args
         try:
             logger.info(f"Running Tailscale command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
             
             if result.returncode == 0:
                 if result.stdout:
                     logger.info(f"Tailscale stdout: {result.stdout}")
+                if result.stderr:
+                    logger.warning(f"Tailscale stderr: {result.stderr}")
+                logger.info(f"Tailscale command completed successfully with return code {result.returncode}")
                 return True
             else:
                 error_msg = f"Command failed with exit code {result.returncode}"
@@ -642,8 +645,47 @@ class TailscaleClient:
                     error_msg += f", stdout: {result.stdout}"
                 logger.error(f"Tailscale command failed: {error_msg}")
                 return error_msg
+        except subprocess.TimeoutExpired:
+            logger.error("Tailscale command timed out")
+            return "Command timed out"
         except Exception as e:
             logger.error(f"Tailscale command exception: {str(e)}")
+            return str(e)
+
+    @staticmethod
+    def _set_advertised_routes(routes):
+        """Set advertised routes using tailscale set command"""
+        tailscale_path = TailscaleClient.get_tailscale_path()
+        
+        # Build the advertise-routes argument
+        if routes:
+            routes_str = ",".join(routes)
+            cmd = [tailscale_path, "set", "--advertise-routes", routes_str]
+        else:
+            # Clear advertised routes
+            cmd = [tailscale_path, "set", "--advertise-routes", ""]
+        
+        try:
+            logger.info(f"Running Tailscale set command: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            
+            if result.returncode == 0:
+                if result.stdout:
+                    logger.info(f"Tailscale set stdout: {result.stdout}")
+                if result.stderr:
+                    logger.warning(f"Tailscale set stderr: {result.stderr}")
+                logger.info(f"Tailscale set command completed successfully")
+                return True
+            else:
+                error_msg = f"tailscale set failed with exit code {result.returncode}"
+                if result.stderr:
+                    error_msg += f", stderr: {result.stderr}"
+                if result.stdout:
+                    error_msg += f", stdout: {result.stdout}"
+                logger.error(f"Tailscale set command failed: {error_msg}")
+                return error_msg
+        except Exception as e:
+            logger.error(f"Tailscale set command exception: {str(e)}")
             return str(e)
 
     @staticmethod
@@ -705,9 +747,18 @@ class TailscaleClient:
             logger.warning(f"Error getting subnet routes: {status['error']}")
             return []
         self_obj = safe_get_dict(status, "Self")
-        adv_routes = self_obj.get("AdvertisedRoutes", [])
-        logger.info(f"AdvertisedRoutes from Tailscale status: {adv_routes}")
-        return adv_routes
+        allowed_ips = self_obj.get("AllowedIPs", [])
+        
+        # Filter out the node's own IPs and exit node routes (0.0.0.0/0, ::/0)
+        # The remaining IPs should be the advertised subnet routes
+        subnet_routes = []
+        for ip in allowed_ips:
+            if ip not in ("0.0.0.0/0", "::/0") and not ip.endswith("/32") and not ip.endswith("/128"):
+                # This should be a subnet route
+                subnet_routes.append(ip)
+        
+        logger.info(f"Subnet routes from AllowedIPs: {subnet_routes}")
+        return subnet_routes
             
     @staticmethod
     def detect_local_subnets() -> List[Dict[str, str]]:
@@ -804,8 +855,18 @@ class TailscaleClient:
             args += [f"--advertise-routes={','.join(adv_routes)}"]
         if adv_exit:
             args.append("--advertise-exit-node")
-        logger.info(f"Setting subnet routes with all flags: {args}")
-        return TailscaleClient.up(extra_args=args)
+        logger.info(f"Setting subnet routes: {adv_routes}")
+        
+        # Use tailscale set command for advertised routes (this is the correct approach)
+        result = TailscaleClient._set_advertised_routes(adv_routes)
+        
+        # Add a small delay to allow Tailscale to apply the changes
+        if result is True:
+            import time
+            time.sleep(2)  # Wait 2 seconds for changes to take effect
+            logger.info("Subnet routes applied successfully")
+        
+        return result
 
     @staticmethod
     def set_exit_node(enable=True, settings=None):

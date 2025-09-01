@@ -269,10 +269,13 @@ async def set_subnet_routes(request: Request, payload: dict = Body(...)):
             except Exception:
                 return {"success": False, "error": f"Invalid subnet: {subnet}"}
         result = TailscaleClient.set_subnet_routes(routes)
-        if isinstance(result, str) and result.lower().startswith("invalid"):
-            logger.error(f"Subnet routes set error: {result}")
-            return {"success": False, "error": result}
-        return {"success": True, "result": result}
+        if result is True:
+            logger.info("Subnet routes set successfully")
+            return {"success": True, "result": result}
+        else:
+            # Any non-True result indicates an error
+            logger.error(f"Subnet routes set failed: {result}")
+            return {"success": False, "error": str(result)}
     except Exception as e:
         logger.error(f"Set subnet routes API error: {str(e)}")
         return {"success": False, "error": str(e)}
