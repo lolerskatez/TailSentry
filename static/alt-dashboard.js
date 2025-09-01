@@ -36,6 +36,7 @@ function altDashboard() {
     filteredDevices: [],
     selectedDevice: null,
     subnets: [],
+    exitNodeClients: [],
     tailscaleStatus: 'Unknown',
     
   // === Filters ===
@@ -116,9 +117,11 @@ function altDashboard() {
         await Promise.allSettled([
           this.loadStatus(),
           this.loadPeers(),
-          this.loadSubnets(),
-          this.loadExitNodeStatus()
+          this.loadSubnets()
         ]);
+        
+        // Load exit node clients after peers are loaded
+        await this.loadExitNodeClients();
         
         this.updateStats();
         this.filterDevices();
@@ -162,8 +165,15 @@ function altDashboard() {
         if (!response.ok) throw new Error('Peers API failed');
         
         const data = await response.json();
-        // Ensure devices is always an array
-        this.devices = Array.isArray(data.peers) ? data.peers : [];
+        // Convert peers object to array and add ID field
+        if (data.peers && typeof data.peers === 'object') {
+          this.devices = Object.entries(data.peers).map(([id, peer]) => ({
+            id,
+            ...peer
+          }));
+        } else {
+          this.devices = [];
+        }
         
       } catch (error) {
         console.error('Failed to load peers:', error);
@@ -185,9 +195,33 @@ function altDashboard() {
       }
     },
 
-    async loadExitNodeStatus() {
-  // No longer sets isExitNode here; handled in loadStatus
-  return;
+    async loadExitNodeClients() {
+      try {
+        const response = await fetch('/api/exit-node-clients');
+        if (!response.ok) throw new Error('Exit node clients API failed');
+        
+        const data = await response.json();
+        this.exitNodeClients = data.clients || [];
+        
+        // Mark devices that are exit node clients
+        this.devices.forEach(device => {
+          const client = this.exitNodeClients.find(c => c.id === device.id);
+          if (client) {
+            device.isExitNodeUser = true;
+            device.exitNodeConfidence = client.confidence || 'unknown';
+          } else {
+            device.isExitNodeUser = false;
+            delete device.exitNodeConfidence;
+          }
+        });
+        
+        // Update filtered devices to reflect the changes
+        this.filterDevices();
+        
+      } catch (error) {
+        console.error('Failed to load exit node clients:', error);
+        this.exitNodeClients = [];
+      }
     },
 
     // === Data Processing ===

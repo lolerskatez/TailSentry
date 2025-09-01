@@ -819,6 +819,12 @@ class TailscaleClient:
                 # Unfortunately, Tailscale status doesn't directly tell us which specific
                 # exit node a peer is using, so we use heuristics
                 peer_using_exit = peer.get("ExitNode", False)
+                peer_exit_option = peer.get("ExitNodeOption", False)
+                
+                # Consider a peer as an exit node user if:
+                # 1. ExitNode is true (currently using exit node)
+                # 2. ExitNodeOption is true (configured to use exit node)
+                is_exit_node_user = peer_using_exit or peer_exit_option
                 
                 # Additional heuristics: recent activity, data transfer
                 has_recent_activity = (
@@ -830,11 +836,10 @@ class TailscaleClient:
                 rx_bytes = peer.get("RxBytes", 0)
                 has_data_transfer = tx_bytes > 0 or rx_bytes > 0
                 
-                # Only include peers that are actually using exit nodes (ExitNode: true)
-                # or have significant recent data transfer suggesting exit node usage
-                if peer_using_exit:
+                # Only include peers that are configured to use exit nodes
+                if is_exit_node_user:
                     client_info = {
-                        "id": peer_id,
+                        "id": peer.get("ID", peer_id),  # Use the peer's ID field, fallback to dict key
                         "hostname": peer.get("HostName", "Unknown"),
                         "ip": peer.get("TailscaleIPs", [""])[0] if peer.get("TailscaleIPs") else "",
                         "online": is_online,
@@ -842,8 +847,8 @@ class TailscaleClient:
                         "os": peer.get("OS", ""),
                         "tx_bytes": tx_bytes,
                         "rx_bytes": rx_bytes,
-                        "is_exit_node_user": peer_using_exit,
-                        "confidence": "high"
+                        "is_exit_node_user": is_exit_node_user,
+                        "confidence": "high" if peer_using_exit else "medium"
                     }
                     exit_node_clients.append(client_info)
             
