@@ -63,7 +63,7 @@ function enhancedDashboard() {
     async init() {
       // Prevent double initialization
       if (this._initialized) {
-        console.log('🔄 Alternative dashboard already initialized, skipping...');
+        console.log('🔄 Dashboard already initialized, skipping...');
         return;
       }
       this._initialized = true;
@@ -616,4 +616,4 @@ function enhancedDashboard() {
 }
 
 // Make it globally available
-window.altDashboard = altDashboard;
+window.enhancedDashboard = enhancedDashboard;
