@@ -60,11 +60,19 @@ async def logs_websocket(websocket: WebSocket):
     log_path = os.path.join(os.path.dirname(__file__), '..', 'logs', 'tailsentry.log')
     try:
         with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+            # Send last 100 lines on connection
+            lines = f.readlines()
+            if lines:
+                last_lines = lines[-100:] if len(lines) > 100 else lines
+                for line in last_lines:
+                    await websocket.send_text(line.rstrip('\n\r'))
+            
+            # Then stream new lines
             f.seek(0, 2)  # Move to end of file
             while True:
                 line = f.readline()
                 if line:
-                    await websocket.send_text(line)
+                    await websocket.send_text(line.rstrip('\n\r'))
                 else:
                     await asyncio.sleep(1)
     except WebSocketDisconnect:

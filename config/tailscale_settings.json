@@ -7,10 +7,7 @@
   ],
   "exit_node_firewall": false,
   "hostname": "godzilla",
-  "advertise_exit_node": true,
-  "advertised_routes": [
-    "0.0.0.0/0",
-    "::/0"
-  ],
+  "advertise_exit_node": false,
+  "advertised_routes": [],
   "firewall": false
 }

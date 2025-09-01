@@ -211,6 +211,12 @@ async def apply_tailscale_settings(request: Request):
     settings_data = {k: v for k, v in data.items() if k not in ['tailscale_pat', 'tailscale_api_token', 'tailscale_auth_key', 'hostname']}
     current_settings.update(settings_data)
     
+    # Filter out exit routes if not advertising exit node
+    if not current_settings.get('advertise_exit_node', False):
+        advertised_routes = current_settings.get('advertised_routes', [])
+        filtered_routes = [r for r in advertised_routes if r not in ('0.0.0.0/0', '::/0')]
+        current_settings['advertised_routes'] = filtered_routes
+    
     # Save updated settings to file
     try:
         save_settings(current_settings)
@@ -306,6 +312,12 @@ def apply_all_settings_to_tailscale(settings):
     if subnet_routes:
         if isinstance(subnet_routes, str):
             subnet_routes = [r.strip() for r in subnet_routes.split(',') if r.strip()]
+        
+        # Filter out exit routes if not advertising exit node
+        advertise_exit = settings.get('advertise_exit_node', False)
+        if not advertise_exit:
+            subnet_routes = [r for r in subnet_routes if r not in ('0.0.0.0/0', '::/0')]
+        
         advertised_routes.extend(subnet_routes)
     
     # Handle exit node setting with dedicated flag
