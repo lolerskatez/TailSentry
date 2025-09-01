@@ -603,6 +603,38 @@ function enhancedDashboard() {
       }
     },
 
+    // === Service Control ===
+    async serviceAction(action) {
+      try {
+        this.showToast(`Attempting to ${action} Tailscale service...`, 'info');
+        
+        const response = await fetch('/api/tailscale-service', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ action: action })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to ${action} service`);
+        }
+        
+        const result = await response.json();
+        this.showToast(`Tailscale service ${action}ed successfully`, 'success');
+        
+        // Refresh data after service action
+        setTimeout(() => {
+          this.loadAllData();
+        }, 2000);
+        
+      } catch (error) {
+        console.error(`Service ${action} error:`, error);
+        this.showToast(`Failed to ${action} Tailscale service: ${error.message}`, 'error');
+      }
+    },
+
     // === Cleanup ===
     destroy() {
       if (this.refreshTimer) {
