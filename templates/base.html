@@ -41,8 +41,7 @@
       <span class="font-bold text-xl tracking-tight">TailSentry</span>
     </div>
     <div class="flex items-center gap-4">
-      <a href="/" class="hover:bg-indigo-800 dark:hover:bg-gray-700 px-3 py-1 rounded transition {% if active_nav == 'dashboard' %}bg-indigo-900 dark:bg-gray-600 font-semibold{% endif %}" aria-label="Dashboard" title="Dashboard">Dashboard</a>
-      <a href="/alt-dashboard" class="hover:bg-indigo-800 dark:hover:bg-gray-700 px-3 py-1 rounded transition {% if active_nav == 'alt-dashboard' %}bg-indigo-900 dark:bg-gray-600 font-semibold{% endif %}" aria-label="Alternative Dashboard" title="Alternative Dashboard">Alt Dashboard</a>
+      <a href="/dashboard" class="hover:bg-indigo-800 dark:hover:bg-gray-700 px-3 py-1 rounded transition {% if active_nav == 'dashboard' %}bg-indigo-900 dark:bg-gray-600 font-semibold{% endif %}" aria-label="Dashboard" title="Dashboard">Dashboard</a>
   {% if user and user.role == 'admin' %}
   <a href="/settings/tailsentry" class="hover:bg-indigo-800 dark:hover:bg-gray-700 px-3 py-1 rounded transition {% if active_nav == 'settings' %}bg-indigo-900 dark:bg-gray-600 font-semibold{% endif %}" aria-label="Settings" title="Settings">Settings</a>
   {% endif %}

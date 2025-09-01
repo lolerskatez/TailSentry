@@ -1,888 +1,496 @@
-// --- Enhanced Alpine.js Dashboard with Robust Error Handling ---
-// Keep single instance to prevent double Alpine component creation when multiple x-data use same factory
-let __dashboardInstance = null;
+// Enhanced TailSentry Dashboard - Clean & Modern Implementation
+// Focused on simplicity, performance, and user experience
 
-// Provide backwards-compatible alias expected by template: enhancedDashboard()
-// Set this up immediately when the script loads
-window.enhancedDashboard = function enhancedDashboard() {
-  return window.dashboard();
-};
-
-window.dashboard = function dashboard() {
-  if (__dashboardInstance) return __dashboardInstance;
-  __dashboardInstance = {
-    async exportSettings() {
-      this.showLoading('export', true);
-      try {
-        const response = await fetch('/api/settings/export', {
-          credentials: 'same-origin',
-          headers: { 'Accept': 'application/json' }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Export failed: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const filename = `tailsentry-settings-${new Date().toISOString().slice(0,10)}.json`;
-        this.downloadFile(filename, JSON.stringify(data, null, 2));
-        this.showToast('Settings exported successfully', 'success');
-      } catch (error) {
-        console.error('Export error:', error);
-        this.showToast('Failed to export settings: ' + error.message, 'error');
-      } finally {
-        this.showLoading('export', false);
-      }
-    },
-    async importSettings(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      this.showLoading('import', true);
-      const reader = new FileReader();
-
-      reader.onload = async (evt) => {
-        try {
-          const settings = JSON.parse(evt.target.result);
-
-          const response = await fetch('/api/settings/import', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify(settings)
-          });
-
-          if (!response.ok) {
-            throw new Error(`Import failed: ${response.status} ${response.statusText}`);
-          }
-
-          await response.json();
-          this.showToast('Settings imported successfully', 'success');
-
-          // Refresh dashboard data after import
-          setTimeout(() => this.loadAll(), 1000);
-        } catch (error) {
-          console.error('Import error:', error);
-          this.showToast('Failed to import settings: ' + error.message, 'error');
-        } finally {
-          this.showLoading('import', false);
-          e.target.value = ''; // Clear file input
-        }
-      };
-
-      reader.onerror = () => {
-        this.showToast('Failed to read file', 'error');
-        this.showLoading('import', false);
-      };
-
-      reader.readAsText(file);
-    },
-    downloadFile(filename, content) {
-      try {
-        const blob = new Blob([content], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-
-        // Cleanup
-        setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 100);
-      } catch (error) {
-        console.error('Download error:', error);
-        this.showToast('Failed to download file', 'error');
-      }
-    },
-
-    showToast(message, type = 'info') {
-      this.toastMessage = message;
-      this.toastType = type;
-      setTimeout(() => {
-        this.toastMessage = '';
-        this.toastType = null;
-      }, 4000);
-      // Screen reader accessibility
-      const aria = document.getElementById('aria-feedback');
-      if (aria) aria.textContent = message;
-      console.log(`Toast [${type.toUpperCase()}]: ${message}`);
-    },
-
-    showLoading(operation, isLoading) {
-      if (!this.loadingStates) this.loadingStates = {};
-      this.loadingStates[operation] = isLoading;
-    },
-
-    isLoading(operation) {
-      return this.loadingStates && this.loadingStates[operation] === true;
-    },
-    // --- Helper methods for feedback and loading ---
-    setFeedback(type, msg) {
-      if (type === 'exitNode') {
-        this.exitNodeFeedback = msg;
-        this.exitNodeLastError = msg;
-        localStorage.setItem('exitNodeLastError', msg);
-      } else if (type === 'subnet') {
-        this.subnetFeedback = msg;
-      } else if (type === 'tailscaleCtl') {
-        this.tailscaleCtlFeedback = msg;
-      }
-    },
-    setLoading(type, val) {
-      if (type === 'exitNode') this.exitNodeLoading = val;
-      if (type === 'subnet') this.subnetApplyLoading = val;
-    },
-
-    // --- Enhanced state variables with better organization ---
-    darkMode: false,
-    theme: localStorage.getItem('theme') || 'system',
-    emailAlerts: false,
-    showToasts: true,
-    openSettings: false,
-    peerModal: false,
-    selectedPeer: {},
-    showPeerModal: false,
-    // Dashboard settings
-    refreshInterval: 30,
-    refreshIntervalId: null,
-    lastUpdated: '',
-    connectionStatus: 'connecting',
-    secureMode: false,
-    loadingStates: {},
+function enhancedDashboard() {
+  return {
+    // === Core State ===
+    _initialized: false,
+    isLoading: false,
+    isOnline: false,
+    lastUpdate: '',
     autoRefresh: true,
-    showCharts: true,
-    showQuickSettings: false,
-    viewMode: 'table',
-    isRefreshing: false,
+    refreshInterval: 30,
+    refreshTimer: null,
+    
+    // === UI State ===
     showSettings: false,
-    tailnetName: '',
-    stats: { totalPeers: 0, onlinePeers: 0, exitNodeClients: 0, offlinePeers: 0 },
-    subnetStats: { total: 0, advertised: 0, accepted: 0 },
-
-    // Alert system
-    alertType: null,
-    alertMessage: '',
-    showAlert: false,
-
-    // Search and filtering
-    searchFilter: '',
-    sortBy: 'hostname',
-    searchQuery: '',
-
-    // Toast system
-    toastType: null,
-    toastMessage: '',
-
-    // Enhanced data structures for new dashboard
-    deviceStatus: {
-      online: false,
-      hostname: 'Loading...',
-      ip: '0.0.0.0',
-      uptime: '0m',
-      isExitNode: false
-    },
-
-    peersStats: {
+    showDeviceModal: false,
+    showSubnetModal: false,
+    theme: localStorage.getItem('dashboard-theme') || 'system',
+    
+    // === Data ===
+    stats: {
       total: 0,
       online: 0,
-      offline: 0,
-      onlineChange: 0
+      offline: 0
     },
-
-    networkStats: {
-      throughput: '0 Mbps',
-      upload: '0 KB/s',
-      download: '0 KB/s',
-      history: []
-    },
-
-    // Device information
+    
+    // === Subnet Routes State ===
+    currentSubnetRoutes: [],
+    newSubnetRoute: '',
+    localSubnets: [],
+    detectingSubnets: false,
+    applyingRoutes: false,
+    
     device: {
-      hostname: 'Loading...',
-      ip: '0.0.0.0',
-      role: 'Loading...',
-      uptime: '0m',
-      isExit: false,
-      online: false,
-      user: '',
-      magicDnsSuffix: '',
-      version: '',
-      subnetRoutes: 0,
-      accept_routes: true
+      hostname: '',
+      ip: '',
+      isExitNode: false,
+      isSubnetRouter: false
     },
-
-    // Network statistics
-    net: {
-      tx: '0.0 MB/s',
-      rx: '0.0 MB/s',
-      activity: 0,
-      history: []
-    },
-    peers: [],
-    peerFilter: '',
-    deviceFilter: 'online',
-    exitNodeClients: [],
+    
+    devices: [],
+    filteredDevices: [],
+    selectedDevice: null,
     subnets: [],
-    logs: [],
-    toast: '',
-    manualSubnet: '',
-    manualSubnetError: '',
-    authKey: '',
-    isExitNode: false,
-    isSubnetRouting: false,
-    advertisedRoutes: [],
-    exitNodeFirewall: false,
-    exitNodePeerCount: 0,
-    exitNodeLastChanged: '',
-    exitNodeLastError: '',
-    exitNodeFeedback: '',
-    exitNodeLoading: false,
-    subnetModalOpen: false,
-    allSubnets: [],
-    subnetsLoading: false,
-    subnetsChanged: false,
-    subnetApplyLoading: false,
-    subnetFeedback: '',
-    // Settings UI state
-    tailscaleStatus: 'unknown',
-    tailscaleIp: '',
-    authFeedback: '',
-    authSuccess: false,
-    tailscaleCtlFeedback: '',
-
-    // UI State
-    showTailscaleControls: false,
-    isLoading: false,
-
-    // Peer filtering and refresh methods for dashboard
-    filteredPeers() {
-      let filtered = this.peers;
-
-      // Apply search filter
-      if (this.searchFilter) {
-        const search = this.searchFilter.toLowerCase();
-        filtered = filtered.filter(peer =>
-          (peer.hostname || '').toLowerCase().includes(search) ||
-          (peer.ip || '').toLowerCase().includes(search) ||
-          (peer.os || '').toLowerCase().includes(search) ||
-          (peer.user || '').toLowerCase().includes(search)
-        );
-      }
-
-      // Apply device type filter
-      if (this.deviceFilter === 'using-exit') {
-        filtered = filtered.filter(peer => peer.isUsingAsExitNode);
-      } else if (this.deviceFilter === 'online') {
-        filtered = filtered.filter(peer => peer.online);
-      }
-
-      // Apply sorting
-      filtered.sort((a, b) => {
-        switch (this.sortBy) {
-          case 'hostname':
-            return (a.hostname || '').localeCompare(b.hostname || '');
-          case 'status':
-            if (a.online !== b.online) return b.online - a.online;
-            return (a.hostname || '').localeCompare(b.hostname || '');
-          case 'lastSeen':
-            return new Date(b.lastSeen || 0) - new Date(a.lastSeen || 0);
-          case 'ip':
-            return (a.ip || '').localeCompare(b.ip || '');
-          default:
-            return 0;
-        }
-      });
-
-      return filtered;
+    exitNodeClients: [],
+    tailscaleStatus: 'Unknown',
+    
+  // === Filters ===
+    searchQuery: '',
+    deviceFilter: 'online',
+  // Persisted exit node setting
+  advertiseExitNode: false,
+    
+    // === Toast System ===
+    toast: {
+      message: '',
+      type: 'info', // success, error, info
+      timeout: null
     },
 
-    onlinePeers() {
-      return this.peers ? this.peers.filter(peer => peer && peer.online) : [];
-    },
-
-    refresh() {
-      this.loadAll();
-    },
-    applyExitNodeAdvanced: async function() {
-      // Build advertised routes array
-      // Only advertise exit node if enabled
-      let routes = [];
-      if (this.isExitNode) {
-        routes = ['0.0.0.0/0', '::/0'];
-      }
-      const payload = {
-        advertised_routes: routes,
-        hostname: this.device.hostname,
-        firewall: this.exitNodeFirewall // UI only, backend can ignore or use
-      };
-      this.exitNodeFeedback = '';
-      this.exitNodeLoading = true;
-      try {
-        const res = await fetch('/api/exit-node', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (data.success) {
-          this.exitNodeFeedback = 'Exit node setting applied!';
-          const now = new Date().toLocaleString();
-          this.exitNodeLastChanged = now;
-          localStorage.setItem('exitNodeLastChanged', now);
-        } else {
-          // Show backend error if present
-          this.exitNodeFeedback = (data.error || data.message || 'Failed to apply Exit Node setting.');
-          this.exitNodeLastError = this.exitNodeFeedback;
-          localStorage.setItem('exitNodeLastError', this.exitNodeFeedback);
-        }
-        // If backend returned status, update UI immediately
-        if (data.status && data.status.Self) {
-          const self = data.status.Self;
-          const advRoutes = Array.isArray(self.AdvertisedRoutes) ? self.AdvertisedRoutes : [];
-          this.advertisedRoutes = advRoutes;
-          const isExitNode = advRoutes.includes('0.0.0.0/0') || advRoutes.includes('::/0');
-          this.device.isExit = isExitNode;
-          this.isExitNode = isExitNode;
-        }
-      } catch (e) {
-        this.exitNodeFeedback = (e && e.message) ? e.message : 'Network or server error.';
-        this.exitNodeLastError = this.exitNodeFeedback;
-        localStorage.setItem('exitNodeLastError', this.exitNodeFeedback);
-      } finally {
-        this.exitNodeLoading = false;
-      }
-  // Always refresh the real state from backend after apply
-  await this.loadStatus();
-  await this.loadSubnets();
-    },
-
-    // Tailscale Up/Down methods for settings page
-    tailscaleUp() {
-      const payload = {
-        auth_key: this.authKey,
-        hostname: this.device.hostname,
-        accept_routes: this.device.accept_routes ?? true,
-        advertise_exit_node: this.isExitNode,
-        advertise_routes: this.advertisedRoutes
-      };
-  this.setFeedback('tailscaleCtl', '');
-      fetch('/api/authenticate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          this.setFeedback('tailscaleCtl', 'Tailscale started!');
-          this.loadStatus();
-        } else {
-          this.setFeedback('tailscaleCtl', data.message || 'Failed to start Tailscale.');
-        }
-      })
-      .catch(() => {
-        this.setFeedback('tailscaleCtl', 'Network or server error.');
-      });
-    },
-    tailscaleDown() {
-  this.setFeedback('tailscaleCtl', '');
-      fetch('/api/down', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          this.setFeedback('tailscaleCtl', 'Tailscale stopped!');
-          this.loadStatus();
-        } else {
-          this.setFeedback('tailscaleCtl', data.message || 'Failed to stop Tailscale.');
-        }
-      })
-      .catch(() => {
-        this.setFeedback('tailscaleCtl', 'Network or server error.');
-      });
-    },
-
-    // Save Authentication Key only (no auth attempt)
-    saveAuthKey() {
-      if (!this.authKey) {
-        this.authFeedback = 'Please enter an authentication key.';
-        this.authSuccess = false;
+    // === Initialization ===
+    async init() {
+      // Prevent double initialization
+      if (this._initialized) {
+        console.log('🔄 Alternative dashboard already initialized, skipping...');
         return;
       }
-      const payload = { auth_key: this.authKey };
-      this.authFeedback = '';
-      fetch('/api/save-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          this.authFeedback = 'Authentication key saved!';
-          this.authSuccess = true;
-        } else {
-          this.authFeedback = data.error || 'Failed to save authentication key.';
-          this.authSuccess = false;
-        }
-      })
-      .catch(() => {
-        this.authFeedback = 'Network or server error.';
-        this.authSuccess = false;
-      });
+      this._initialized = true;
+      this.applyTheme();
+      if (this.autoRefresh) this.setupAutoRefresh();
+      // Load settings first to get exit node state
+      await this.loadSettings();
+      // Load all data (status, peers, subnets)
+      await this.loadAllData();
+      this.setupEventListeners();
+      this.showToast('Dashboard initialized', 'success');
     },
 
-    init() {
-      console.log('🚀 Initializing TailSentry Dashboard');
+    // Fetch persisted Tailscale settings (exit node state)
+    async loadSettings() {
+      try {
+        const response = await fetch('/api/tailscale-settings');
+        if (!response.ok) throw new Error('Settings API failed');
+        const data = await response.json();
+        // Load persisted exit node setting into UI state
+        this.advertiseExitNode = data.advertise_exit_node || false;
+        // Also reflect in device state before actual status fetch
+        this.device.isExitNode = data.advertise_exit_node || false;
+      } catch (error) {
+        console.error('Failed to load Tailscale settings:', error);
+      }
+    },
 
-      // Initialize watchers
-      this.initWatchers();
-
-      // Load user preferences first
-      this.loadPreferences();
-
-      // Initialize theme system - unified with appearance settings
-      this.theme = localStorage.getItem('theme') || 'system';
-      this.applyTheme();
-
-      // Watch for system theme changes
+    setupEventListeners() {
+      // Online/offline detection
+      window.addEventListener('online', () => {
+        this.isOnline = true;
+        this.showToast('Connection restored', 'success');
+        this.loadAllData();
+      });
+      
+      window.addEventListener('offline', () => {
+        this.isOnline = false;
+        this.showToast('Connection lost', 'error');
+      });
+      
+      // Theme change detection
       if (this.theme === 'system') {
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        mediaQuery.addEventListener('change', () => {
           if (this.theme === 'system') {
             this.applyTheme();
           }
         });
       }
-
-      // Listen for theme changes from appearance settings
-      window.addEventListener('theme-changed', (event) => {
-        this.theme = event.detail.theme;
-        this.applyTheme();
-      });
-
-      // Listen for dashboard errors from controller
-      window.addEventListener('dashboard-error', (event) => {
-        this.showToast(event.detail.error, 'error');
-      });
-
-      // Initialize connection monitoring
-      window.addEventListener('online', () => {
-        this.connectionStatus = 'connecting';
-        this.showToast('Connection restored', 'success');
-        this.loadAll();
-      });
-
-      window.addEventListener('offline', () => {
-        this.connectionStatus = 'offline';
-        this.showToast('Connection lost', 'warning');
-      });
-
-      // Load stored auth key
-      const key = localStorage.getItem('tailscale_auth_key');
-      if (key) this.authKey = key;
-
-      // Initial data load
-      this.loadAll();
-
-      // Setup refresh interval with error handling
-      if (this.autoRefresh) {
-        this.setupRefreshInterval();
-      }
-
-      console.log('✅ Dashboard initialization complete');
     },
 
-    setupRefreshInterval() {
-      if (this.refreshIntervalId) {
-        clearInterval(this.refreshIntervalId);
-      }
-
-      this.refreshIntervalId = setInterval(() => {
-        // Only refresh if page is visible and online
-        if (!document.hidden && navigator.onLine && this.connectionStatus !== 'error') {
-          this.loadAll();
-        }
-      }, this.refreshInterval * 1000);
-
-      console.log(`⏰ Refresh interval set to ${this.refreshInterval}s`);
-    },
-
-    applyTheme() {
-      const isDark = this.theme === 'dark' ||
-                    (this.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-      this.darkMode = isDark;
-
-      if (isDark) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-
-      // Update dashboard controller theme if available
-      if (window.dashboardMethods && window.dashboardMethods.updateTheme) {
-        window.dashboardMethods.updateTheme(isDark);
-      }
-    },
-
-    authenticateTailscale() {
-      if (!this.authKey) {
-        this.authFeedback = 'Please enter an Auth Key.';
-        this.authSuccess = false;
-        return;
-      }
-      // Always send all settings to backend, but only send a valid hostname
-      let hostname = this.device.hostname;
-      if (!hostname || hostname === 'Loading...') hostname = undefined;
-      const payload = {
-        auth_key: this.authKey,
-        accept_routes: this.device.accept_routes ?? true,
-        advertise_exit_node: this.isExitNode,
-        advertise_routes: this.advertisedRoutes
-      };
-      if (hostname) payload.hostname = hostname;
-      console.log('Sending to /api/authenticate:', payload);
-      fetch('/api/authenticate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          this.authFeedback = 'Tailscale authentication successful!';
-          this.authSuccess = true;
-          localStorage.setItem('tailscale_auth_key', this.authKey);
-          this.tailscaleStatus = 'authenticated';
-          // Always update device info after authentication
-          this.loadStatus();
-        } else {
-          this.authFeedback = data.message || 'Authentication failed.';
-          this.authSuccess = false;
-          this.tailscaleStatus = 'not_authenticated';
-        }
-      })
-      .catch(() => {
-        this.authFeedback = 'Network or server error.';
-        this.authSuccess = false;
-        this.tailscaleStatus = 'not_authenticated';
-      });
-    },
-
-    // --- Enhanced data loading with error handling ---
-    async loadAll() {
-      this.connectionStatus = 'loading';
-      const startTime = performance.now();
-
+    // === Data Loading ===
+    async loadAllData() {
+      this.isLoading = true;
+      
       try {
-        // Load all data concurrently with individual error handling
-        const results = await Promise.allSettled([
+        await Promise.allSettled([
           this.loadStatus(),
           this.loadPeers(),
-          this.loadSubnets(),
-          this.loadExitNodeClients()
+          this.loadSubnets()
         ]);
-
-        // After loading both peers and exit node clients, update the peer status
-        if (this.peers && this.exitNodeClients) {
-          this.updatePeerExitNodeStatus();
-        }
-
-        // Check for any failures
-        const failures = results.filter(result => result.status === 'rejected');
-        if (failures.length > 0) {
-          console.warn(`${failures.length} API calls failed:`, failures);
-        }
-
-        // Update connection status
-        const successCount = results.filter(result => result.status === 'fulfilled').length;
-        if (successCount === 0) {
-          this.connectionStatus = 'error';
-          this.showToast('Failed to load dashboard data', 'error');
-        } else if (successCount < results.length) {
-          this.connectionStatus = 'partial';
-        } else {
-          this.connectionStatus = 'connected';
-        }
-
-        this.lastUpdated = new Date().toLocaleTimeString();
-
-        const loadTime = Math.round(performance.now() - startTime);
-        console.log(`Dashboard refresh completed in ${loadTime}ms (${successCount}/${results.length} successful)`);
-
+        
+        // Load exit node clients after peers are loaded
+        await this.loadExitNodeClients();
+        
+        this.updateStats();
+        this.filterDevices();
+        this.lastUpdate = new Date().toLocaleTimeString();
+        this.isOnline = true;
+        
       } catch (error) {
-        console.error('Critical error during dashboard refresh:', error);
-        this.connectionStatus = 'error';
-        this.showToast('Critical dashboard error: ' + error.message, 'error');
+        console.error('Failed to load data:', error);
+        this.showToast('Failed to load data', 'error');
+        this.isOnline = false;
+      } finally {
+        this.isLoading = false;
       }
     },
 
     async loadStatus() {
       try {
-        const response = await fetch('/api/status', {
-          credentials: 'same-origin',
-          headers: { 'Accept': 'application/json' }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Status API error: ${response.status} ${response.statusText}`);
-        }
-
+        const response = await fetch('/api/status');
+        if (!response.ok) throw new Error('Status API failed');
+        
         const data = await response.json();
-        console.log('Status API response:', data);
-
-        // Check for secure mode (CLI-only)
-        this.secureMode = data._tailsentry_secure_mode === 'true';
-        if (this.secureMode) {
-          console.log('Running in secure mode (CLI-only) - API features disabled');
+        this.tailscaleStatus = data.BackendState || 'Unknown';
+        
+        // Update device info
+        if (data.Self) {
+          this.device.hostname = data.Self.HostName || '';
+          this.device.ip = data.Self.TailscaleIPs?.[0] || '';
+          // Check if device is advertising exit node routes
+          const advRoutes = data.Self.AdvertisedRoutes || [];
+          this.device.isExitNode = advRoutes.includes('0.0.0.0/0') || advRoutes.includes('::/0');
         }
-
-        // Map fields from data.Self with proper validation
-        const self = data.Self || {};
-        this.device.hostname = self.HostName || 'Unknown';
-        this.device.ip = (self.TailscaleIPs && self.TailscaleIPs[0]) || '0.0.0.0';
-        this.device.role = self.OS || 'Unknown';
-        this.device.uptime = this.formatUptime(self.Created || null);
-
-        // Check if AdvertisedRoutes contains 0.0.0.0/0 or ::/0 (exit node)
-        const advRoutes = Array.isArray(self.AdvertisedRoutes) ? self.AdvertisedRoutes : [];
-        this.advertisedRoutes = advRoutes;
-        const isExitNode = advRoutes.includes('0.0.0.0/0') || advRoutes.includes('::/0');
-        this.device.isExit = isExitNode;
-        this.device.online = data.BackendState === 'Running';
-        this.isExitNode = isExitNode;
-        this.device.subnetRoutes = (self.AllowedIPs && self.AllowedIPs.length) || 0;
-
-        // Count peers using this as exit node
-        const myId = self.ID;
-        let peerCount = 0;
-        if (data.Peer && myId) {
-          for (const peerId in data.Peer) {
-            const peer = data.Peer[peerId];
-            if (peer.ExitNode === myId) peerCount++;
-          }
-        }
-        this.exitNodePeerCount = peerCount;
-
-        // Load persistent UI state
-        this.exitNodeLastChanged = localStorage.getItem('exitNodeLastChanged') || '';
-        this.exitNodeLastError = localStorage.getItem('exitNodeLastError') || '';
-
-        // Additional device info
-        this.device.user = (data.User && (data.User.DisplayName || data.User.LoginName)) || '';
-        this.device.magicDnsSuffix = data.MagicDNSSuffix || '';
-        this.device.version = data.Version || '';
-        this.tailnetName = data.TailnetName || (this.device.magicDnsSuffix ? this.device.magicDnsSuffix.replace(/^\./,'') : '');
-
-        // Set tailscaleStatus based on backend state and IP
-        if (data.BackendState === 'Running' && this.device.ip && this.device.ip !== '0.0.0.0') {
-          this.tailscaleStatus = 'authenticated';
-          this.tailscaleIp = this.device.ip;
-        } else if (data.BackendState === 'NeedsLogin' || data.offline_reason === 'tailscale_not_configured') {
-          // Tailscale not configured or needs authentication
-          this.tailscaleStatus = 'not_authenticated';
-          this.tailscaleIp = '';
-          // Set offline state for better user experience
-          this.device.online = false;
-          this.connectionStatus = 'offline';
-        } else {
-          this.tailscaleStatus = 'not_authenticated';
-          this.tailscaleIp = '';
-        }
-
-        // Update enhanced data structures
-        this.updateEnhancedDataStructures();
-
-        return data;
       } catch (error) {
         console.error('Failed to load status:', error);
-        this.device.online = false;
-        this.connectionStatus = 'error';
-        throw error; // Re-throw for Promise.allSettled handling
+        this.tailscaleStatus = 'Error';
       }
-    },
-
-    // Update enhanced data structures for the new dashboard UI
-    updateEnhancedDataStructures() {
-      // Update deviceStatus
-      this.deviceStatus = {
-        online: this.device.online,
-        hostname: this.device.hostname,
-        ip: this.device.ip,
-        uptime: this.device.uptime,
-        isExitNode: this.device.isExit
-      };
-
-      // Update peersStats
-      const onlinePeers = this.peers.filter(p => p.online).length;
-      const offlinePeers = this.peers.length - onlinePeers;
-      this.peersStats = {
-        total: this.peers.length,
-        online: onlinePeers,
-        offline: offlinePeers,
-        onlineChange: 0 // This would need historical data
-      };
-
-      // Update networkStats (placeholder values - would need actual network monitoring)
-      this.networkStats = {
-        throughput: this.net.activity ? `${this.net.activity} Mbps` : '0 Mbps',
-        upload: this.net.tx || '0 KB/s',
-        download: this.net.rx || '0 KB/s',
-        history: this.net.history || []
-      };
-
-      // Update subnetStats
-      this.subnetStats = {
-        total: this.subnets.length,
-        advertised: this.advertisedRoutes.length,
-        accepted: this.device.subnetRoutes || 0
-      };
-
-      // After peersStats/subnetStats update (ensure stats aggregate consistent)
-      this.stats = {
-        totalPeers: this.peers.length,
-        onlinePeers: onlinePeers,
-        offlinePeers: offlinePeers,
-        exitNodeClients: this.exitNodePeerCount || 0
-      };
     },
 
     async loadPeers() {
       try {
-        const response = await fetch('/api/peers', {
-          credentials: 'same-origin',
-          headers: { 'Accept': 'application/json' }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Peers API error: ${response.status} ${response.statusText}`);
-        }
-
+        const response = await fetch('/api/peers');
+        if (!response.ok) throw new Error('Peers API failed');
+        
         const data = await response.json();
-        const peersObj = data.peers || {};
-
-        this.peers = Object.values(peersObj).map(peer => ({
-          id: peer.ID || peer.HostName || 'unknown',
-          hostname: peer.HostName || 'unknown',
-          ip: (peer.TailscaleIPs && peer.TailscaleIPs[0]) || '0.0.0.0',
-          os: peer.OS || 'Unknown',
-          lastSeen: this.formatLastSeen(peer.LastSeen),
-          tags: Array.isArray(peer.Tags) ? peer.Tags : [],
-          online: Boolean(peer.Online),
-          exitNode: peer.ExitNode || null,
-          isUsingAsExitNode: false  // Will be updated by exit node clients data
-        }));
-
-        // Update peer status chart if controller is available
-        if (window.dashboardMethods && window.dashboardMethods.updatePeerChart) {
-          window.dashboardMethods.updatePeerChart(this.peers);
+        
+        // Handle both array format (new) and object format (legacy)
+        if (data.peers) {
+          if (Array.isArray(data.peers)) {
+            // New format: peers is already an array
+            this.devices = data.peers.map(peer => ({
+              id: peer.id || peer.ID || peer.nodeId,
+              ...peer
+            }));
+          } else if (typeof data.peers === 'object') {
+            // Legacy format: peers is an object, convert to array
+            this.devices = Object.entries(data.peers).map(([id, peer]) => ({
+              id,
+              ...peer
+            }));
+          } else {
+            this.devices = [];
+          }
+        } else {
+          this.devices = [];
         }
-
-        console.log(`Loaded ${this.peers.length} peers`);
-
-        // Update enhanced data structures
-        this.updateEnhancedDataStructures();
-
-        return this.peers;
+        
+        console.log(`Loaded ${this.devices.length} devices`);
+        
       } catch (error) {
         console.error('Failed to load peers:', error);
-        this.peers = [];
-        throw error;
+        this.devices = []; // Ensure it's always an array
       }
     },
 
     async loadSubnets() {
-      this.subnetsLoading = true;
-      // Load currently advertised routes
       try {
-        const res = await fetch('/api/subnet-routes');
-        if (res.ok) {
-          const data = await res.json();
-          this.subnets = data.routes || [];
-          this.isSubnetRouting = Array.isArray(this.subnets) && this.subnets.length > 0;
-          this.advertisedRoutes = this.subnets;
-        }
-      } catch (e) { this.isSubnetRouting = false; this.advertisedRoutes = []; }
-      // Load all detected local subnets for modal
+        const response = await fetch('/api/subnet-routes');
+        if (!response.ok) throw new Error('Subnets API failed');
+        
+        const data = await response.json();
+        this.subnets = data.routes || [];
+        this.currentSubnetRoutes = [...this.subnets]; // Copy for modal management
+        
+      } catch (error) {
+        console.error('Failed to load subnets:', error);
+        this.subnets = [];
+        this.currentSubnetRoutes = [];
+      }
+    },
+
+    // === Subnet Routes Management ===
+    async detectLocalSubnets() {
+      this.detectingSubnets = true;
       try {
-        const res = await fetch('/api/local-subnets');
-        if (res.ok) {
-          const data = await res.json();
-          // data.subnets is a list of {cidr, interface, family}
-          this.allSubnets = Array.isArray(data.subnets) ? data.subnets : [];
+        const response = await fetch('/api/local-subnets');
+        if (!response.ok) throw new Error('Local subnets API failed');
+        
+        const data = await response.json();
+        this.localSubnets = data.subnets || [];
+        
+      } catch (error) {
+        console.error('Failed to detect local subnets:', error);
+        this.localSubnets = [];
+        this.showToast('Failed to detect local subnets', 'error');
+      } finally {
+        this.detectingSubnets = false;
+      }
+    },
+
+    openSubnetModal() {
+      // Reset modal state
+      this.currentSubnetRoutes = [...this.subnets];
+      this.newSubnetRoute = '';
+      this.localSubnets = [];
+      this.detectingSubnets = false;
+      this.applyingRoutes = false;
+      
+      // Auto-detect local subnets when opening modal
+      this.detectLocalSubnets();
+      
+      this.showSubnetModal = true;
+    },
+
+    closeSubnetModal() {
+      this.showSubnetModal = false;
+      // Reset state after a brief delay to allow modal animation
+      setTimeout(() => {
+        this.currentSubnetRoutes = [];
+        this.newSubnetRoute = '';
+        this.localSubnets = [];
+        this.detectingSubnets = false;
+        this.applyingRoutes = false;
+      }, 300);
+    },
+
+    addSubnetRoute() {
+      const route = this.newSubnetRoute.trim();
+      if (!route) return;
+      
+      // Basic CIDR validation
+      const cidrPattern = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/;
+      if (!cidrPattern.test(route)) {
+        this.showToast('Invalid CIDR format. Use format like 192.168.1.0/24', 'error');
+        return;
+      }
+      
+      // Check for duplicates
+      if (this.currentSubnetRoutes.includes(route)) {
+        this.showToast('Route already exists', 'error');
+        return;
+      }
+      
+      this.currentSubnetRoutes.push(route);
+      this.newSubnetRoute = '';
+      this.showToast('Route added successfully', 'success');
+    },
+
+    removeSubnetRoute(index) {
+      const removedRoute = this.currentSubnetRoutes[index];
+      this.currentSubnetRoutes.splice(index, 1);
+      this.showToast(`Route ${removedRoute} removed. Click Apply to save changes.`, 'success');
+    },
+
+    addSuggestedRoute(cidr) {
+      if (this.currentSubnetRoutes.includes(cidr)) {
+        this.showToast('Route already exists', 'error');
+        return;
+      }
+      
+      this.currentSubnetRoutes.push(cidr);
+      this.showToast('Suggested route added', 'success');
+    },
+
+    hasSubnetRouteChanges() {
+      // Check if current routes differ from original
+      if (this.currentSubnetRoutes.length !== this.subnets.length) {
+        return true;
+      }
+      
+      // Check if all routes match
+      for (const route of this.currentSubnetRoutes) {
+        if (!this.subnets.includes(route)) {
+          return true;
         }
-      } catch (e) { this.allSubnets = []; }
-      this.subnetsLoading = false;
-      this.subnetsChanged = false;
+      }
+      
+      return false;
+    },
+
+    async applySubnetRoutes() {
+      this.applyingRoutes = true;
+      try {
+        const response = await fetch('/api/subnet-routes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            routes: this.currentSubnetRoutes
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to apply subnet routes');
+        }
+        
+        const result = await response.json();
+        if (result.success) {
+          // Update the main subnets array
+          this.subnets = [...this.currentSubnetRoutes];
+          
+          // Reload all data to reflect changes
+          await this.loadAllData();
+          
+          this.showToast('Subnet routes updated successfully', 'success');
+          this.showSubnetModal = false;
+        } else {
+          throw new Error(result.error || 'Failed to apply routes');
+        }
+        
+      } catch (error) {
+        console.error('Failed to apply subnet routes:', error);
+        this.showToast(error.message || 'Failed to apply subnet routes', 'error');
+      } finally {
+        this.applyingRoutes = false;
+      }
     },
 
     async loadExitNodeClients() {
       try {
-        const res = await fetch('/api/exit-node-clients');
-        if (res.ok) {
-          const data = await res.json();
-          this.exitNodeClients = Array.isArray(data.clients) ? data.clients : [];
-
-          // Update peer exit node usage information
-          this.updatePeerExitNodeStatus();
-        } else {
-          console.warn('Failed to load exit node clients');
-          this.exitNodeClients = [];
-        }
-      } catch (e) {
-        console.error('Error loading exit node clients:', e);
+        const response = await fetch('/api/exit-node-clients');
+        if (!response.ok) throw new Error('Exit node clients API failed');
+        
+        const data = await response.json();
+        this.exitNodeClients = data.clients || [];
+        
+        // Mark devices that are exit node clients
+        this.devices.forEach(device => {
+          const client = this.exitNodeClients.find(c => c.id === device.id);
+          if (client) {
+            device.isExitNodeUser = true;
+            device.exitNodeConfidence = client.confidence || 'unknown';
+          } else {
+            device.isExitNodeUser = false;
+            delete device.exitNodeConfidence;
+          }
+        });
+        
+        // Update filtered devices to reflect the changes
+        this.filterDevices();
+        
+      } catch (error) {
+        console.error('Failed to load exit node clients:', error);
         this.exitNodeClients = [];
       }
     },
 
-    updatePeerExitNodeStatus() {
-      // Mark peers that are using this device as exit node
-      if (this.peers && this.exitNodeClients.length > 0) {
-        this.peers.forEach(peer => {
-          peer.isUsingAsExitNode = this.exitNodeClients.some(
-            client => client.id === peer.id || client.hostname === peer.hostname
-          );
+    // === Data Processing ===
+    updateStats() {
+      // Ensure devices is an array before processing
+      if (!Array.isArray(this.devices)) {
+        console.warn('Devices is not an array:', this.devices);
+        this.devices = [];
+      }
+      
+      const total = this.devices.length;
+      const online = this.devices.filter(d => d.online).length;
+      const offline = total - online;
+      
+      this.stats = { total, online, offline };
+    },
+
+    filterDevices() {
+      // Ensure devices is an array before filtering
+      if (!Array.isArray(this.devices)) {
+        console.warn('Devices is not an array for filtering:', this.devices);
+        this.filteredDevices = [];
+        return;
+      }
+      
+      let filtered = this.devices;
+      
+      // Apply search filter
+      if (this.searchQuery.trim()) {
+        const query = this.searchQuery.toLowerCase();
+        filtered = filtered.filter(device => 
+          (device.hostname || '').toLowerCase().includes(query) ||
+          (device.ip || '').toLowerCase().includes(query) ||
+          (device.os || '').toLowerCase().includes(query)
+        );
+      }
+      
+      // Apply status filter
+      if (this.deviceFilter === 'online') {
+        filtered = filtered.filter(device => device.online);
+      } else if (this.deviceFilter === 'offline') {
+        filtered = filtered.filter(device => !device.online);
+      }
+      
+      this.filteredDevices = filtered;
+    },
+
+    // === Actions ===
+    async refreshData() {
+      if (this.isLoading) return;
+      await this.loadAllData();
+      this.showToast('Data refreshed', 'success');
+    },
+
+    async toggleExitNode() {
+      if (this.isLoading) return;
+      this.isLoading = true;
+      // Toggle based on persisted setting
+      const newValue = !this.advertiseExitNode;
+      try {
+        const response = await fetch('/api/tailscale-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ advertise_exit_node: newValue })
         });
+        if (!response.ok) throw new Error('Settings update failed');
+        const result = await response.json();
+        if (result.success) {
+          // Update UI state
+          this.advertiseExitNode = newValue;
+          this.device.isExitNode = newValue;
+           this.showToast(newValue ? 'Exit node enabled' : 'Exit node disabled', 'success');
+           // reload settings and status
+           await this.loadSettings();
+           await this.loadAllData();
+        } else {
+          this.showToast('Failed to toggle exit node: ' + (result.error || 'Unknown error'), 'error');
+        }
+      } catch (error) {
+        console.error('Toggle exit node error:', error);
+        this.showToast('Failed to toggle exit node', 'error');
+      } finally {
+        this.isLoading = false;
       }
     },
 
-    toggleSubnet(subnet) {
-      if (!this.advertisedRoutes) this.advertisedRoutes = [];
-      if (this.advertisedRoutes.includes(subnet)) {
-        this.advertisedRoutes = this.advertisedRoutes.filter(s => s !== subnet);
-      } else {
-        this.advertisedRoutes = [...this.advertisedRoutes, subnet];
-      }
-      this.subnetsChanged = true;
-    },
-    toggleSelectAllSubnets(e) {
-      if (e.target.checked) {
-        this.advertisedRoutes = this.allSubnets.map(s => s.cidr);
-      } else {
-        this.advertisedRoutes = [];
-      }
-      this.subnetsChanged = true;
+    // === Device Details ===
+    showDeviceDetails(device) {
+      this.selectedDevice = device;
+      this.showDeviceModal = true;
     },
 
-    formatUptime(created) {
-      if (!created) return '0m';
-      const then = new Date(created);
-      const now = new Date();
-      const diff = Math.floor((now - then) / 1000);
-      if (diff < 60) return `${diff}s`;
-      if (diff < 3600) return `${Math.floor(diff/60)}m`;
-      if (diff < 86400) return `${Math.floor(diff/3600)}h`;
-      return `${Math.floor(diff/86400)}d`;
+    async pingDevice(device) {
+      if (!device) return;
+      
+      this.showToast(`Pinging ${device.hostname || device.ip}...`, 'info');
+      
+      // Note: This would need a backend endpoint for actual ping
+      // For now, just show a placeholder response
+      setTimeout(() => {
+        this.showToast(`Ping to ${device.hostname || device.ip} completed`, 'success');
+      }, 2000);
     },
 
+    // === Utility Functions ===
     formatLastSeen(lastSeen) {
-      if (!lastSeen || lastSeen === 'Never' || lastSeen === 'unknown' || lastSeen.startsWith('0001')) return 'Never';
+      if (!lastSeen || lastSeen === 'Never' || lastSeen === 'unknown') return 'Never';
       if (lastSeen === 'recent') return 'Just now';
       
       try {
@@ -917,233 +525,95 @@ window.dashboard = function dashboard() {
       }
     },
 
-    showPeerDetails(peer) {
-      // Log for debugging
-      console.log('showPeerDetails called with:', peer);
-
-      // Only show modal if a valid peer is provided
-      if (!peer || (!peer.id && !peer.hostname)) {
-        console.warn('showPeerDetails called without valid peer data:', peer);
-        return;
+    // === Settings & Preferences ===
+    setupAutoRefresh() {
+      if (this.refreshTimer) {
+        clearInterval(this.refreshTimer);
       }
-
-      try {
-        // Create a clean copy of the peer data
-        const peerCopy = JSON.parse(JSON.stringify(peer));
-        console.log('Setting selectedPeer with clean copy:', peerCopy);
-
-        // Set the selected peer
-        this.selectedPeer = peerCopy;
-
-        // Populate the modal fields
-        this.populateModalFields(peerCopy);
-
-        // Show the modal using Alpine.js
-        this.showPeerModal = true;
-        console.log('Modal shown via Alpine.js');
-      } catch (error) {
-        console.error('Error showing peer modal:', error);
+      
+      if (this.autoRefresh && this.refreshInterval > 0) {
+        this.refreshTimer = setInterval(() => {
+          if (!this.showDeviceModal && !this.showSettings) {
+            this.loadAllData();
+          }
+        }, this.refreshInterval * 1000);
       }
     },
 
-    populateModalFields(peer) {
-      // Populate modal fields manually - basic info
-      const hostnameEl = document.querySelector('#peerModal [data-field="hostname"]');
-      if (hostnameEl) hostnameEl.textContent = peer.hostname || 'Unknown';
-
-      const statusEl = document.querySelector('#peerModal [data-field="status"]');
-      if (statusEl) {
-        statusEl.textContent = peer.online ? 'Online' : 'Offline';
-        statusEl.className = peer.online ? 'text-green-600 dark:text-green-400 font-medium' : 'text-red-600 dark:text-red-400 font-medium';
-      }
-
-      const ipEl = document.querySelector('#peerModal [data-field="ip"]');
-      if (ipEl) ipEl.textContent = peer.ip || 'N/A';
-
-      const userEl = document.querySelector('#peerModal [data-field="user"]');
-      if (userEl) userEl.textContent = peer.user || 'No user';
-
-      const osEl = document.querySelector('#peerModal [data-field="os"]');
-      if (osEl) osEl.textContent = peer.os || 'Unknown';
-
-      const lastSeenEl = document.querySelector('#peerModal [data-field="lastSeen"]');
-      if (lastSeenEl) lastSeenEl.textContent = this.formatLastSeen(peer.lastSeen);
-
-      // Network info
-      const connectionTypeEl = document.querySelector('#peerModal [data-field="connectionType"]');
-      if (connectionTypeEl) connectionTypeEl.textContent = peer.relay ? 'Relay' : 'Direct';
-
-      const versionEl = document.querySelector('#peerModal [data-field="version"]');
-      if (versionEl) versionEl.textContent = peer.version || 'Unknown';
-
-      const exitNodeEl = document.querySelector('#peerModal [data-field="exitNode"]');
-      if (exitNodeEl) exitNodeEl.textContent = peer.isExitNode ? 'Yes' : 'No';
-
-      const tagsEl = document.querySelector('#peerModal [data-field="tags"]');
-      if (tagsEl) tagsEl.textContent = peer.tags && peer.tags.length ? peer.tags.join(', ') : 'None';
-    },
-
-    closePeerModal() {
-      console.log('Closing peer modal');
-      this.showPeerModal = false;
-
-      // Clean up after animation completes
-      setTimeout(() => {
-        this.selectedPeer = {};
-        console.log('Modal closed and peer data cleared');
-      }, 300);
-    },
-
-    sortPeers() {
-      // This function is called when the sort dropdown changes
-      // Alpine.js will automatically re-compute filteredPeers() when sortBy changes
-      // No additional action needed since filtering/sorting is handled in filteredPeers()
-    },
-
-    filterPeers() {
-      // This function is called when filter dropdown changes
-      // Alpine.js will automatically re-compute filteredPeers() when filter changes
-      // No additional action needed since filtering is handled in filteredPeers()
-    },
-
-    // Template now binds x-model="searchQuery" and calls filterDevices()
-    filterDevices() {
-      // Keep internal searchFilter in sync
-      this.searchFilter = this.searchQuery;
-      // No extra work needed; filteredPeers() uses searchFilter
-    },
-
-    // --- Dashboard Control Functions ---
-    refreshAll() {
-      this.isRefreshing = true;
-      this.loadAll().finally(() => {
-        this.isRefreshing = false;
-      });
-    },
-
-    toggleAutoRefresh() {
-      this.autoRefresh = !this.autoRefresh;
-      if (this.autoRefresh) {
-        this.setupRefreshInterval();
-        this.showToast('Auto-refresh enabled', 'success');
-      } else {
-        if (this.refreshIntervalId) {
-          clearInterval(this.refreshIntervalId);
-          this.refreshIntervalId = null;
+    applyTheme() {
+      const html = document.documentElement;
+      
+      if (this.theme === 'dark') {
+        html.classList.add('dark');
+      } else if (this.theme === 'light') {
+        html.classList.remove('dark');
+      } else { // system
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          html.classList.add('dark');
+        } else {
+          html.classList.remove('dark');
         }
-        this.showToast('Auto-refresh disabled', 'info');
       }
-      this.savePreferences();
+      
+      localStorage.setItem('dashboard-theme', this.theme);
     },
 
-    toggleCharts() {
-      this.showCharts = !this.showCharts;
-      this.savePreferences();
-    },
-
-    exportData() {
-      try {
-        const data = {
-          timestamp: new Date().toISOString(),
-          device: this.device,
-          peers: this.peers,
-          stats: this.stats,
-          networkStats: this.networkStats
-        };
-        const filename = `tailsentry-dashboard-${new Date().toISOString().slice(0,10)}.json`;
-        this.downloadFile(filename, JSON.stringify(data, null, 2));
-        this.showToast('Dashboard data exported', 'success');
-      } catch (error) {
-        console.error('Export error:', error);
-        this.showToast('Failed to export data', 'error');
+    // === Toast System ===
+    showToast(message, type = 'info') {
+      if (this.toast.timeout) {
+        clearTimeout(this.toast.timeout);
       }
-    },
-
-    dismissAlert() {
-      this.showAlert = false;
-      this.alertMessage = '';
-      this.alertType = null;
+      
+      this.toast.message = message;
+      this.toast.type = type;
+      
+      this.toast.timeout = setTimeout(() => {
+        this.hideToast();
+      }, 4000);
     },
 
     hideToast() {
-      this.toastMessage = '';
-      this.toastType = null;
-    },
-
-    pingPeer(peer) {
-      if (!peer || !peer.ip) {
-        this.showToast('No valid peer selected', 'warning');
-        return;
-      }
-
-      this.showToast(`Pinging ${peer.hostname || peer.ip}...`, 'info');
-
-      // This would typically make an API call to ping the peer
-      // For now, we'll just show a success message
-      setTimeout(() => {
-        this.showToast(`Ping sent to ${peer.hostname || peer.ip}`, 'success');
-      }, 1000);
-    },
-
-    loadPreferences() {
-      try {
-        const prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
-        this.autoRefresh = prefs.autoRefresh !== undefined ? prefs.autoRefresh : true;
-        this.showCharts = prefs.showCharts !== undefined ? prefs.showCharts : true;
-        this.viewMode = prefs.viewMode || 'table';
-        this.refreshInterval = prefs.refreshInterval || 30;
-        this.theme = prefs.theme || localStorage.getItem('theme') || 'system';
-      } catch (error) {
-        console.error('Error loading preferences:', error);
+      this.toast.message = '';
+      if (this.toast.timeout) {
+        clearTimeout(this.toast.timeout);
+        this.toast.timeout = null;
       }
     },
 
-    savePreferences() {
-      try {
-        const prefs = {
-          autoRefresh: this.autoRefresh,
-          showCharts: this.showCharts,
-          viewMode: this.viewMode,
-          refreshInterval: this.refreshInterval,
-          theme: this.theme
-        };
-        localStorage.setItem('dashboardPreferences', JSON.stringify(prefs));
-      } catch (error) {
-        console.error('Error saving preferences:', error);
+    // === Watchers ===
+    $watch: {
+      autoRefresh(value) {
+        this.setupAutoRefresh();
+        localStorage.setItem('dashboard-autoRefresh', value);
+      },
+      
+      refreshInterval(value) {
+        if (this.autoRefresh) {
+          this.setupAutoRefresh();
+        }
+        localStorage.setItem('dashboard-refreshInterval', value);
+      },
+      
+      searchQuery() {
+        this.filterDevices();
+      },
+      
+      deviceFilter() {
+        this.filterDevices();
       }
     },
 
-    updateRefreshInterval() {
-      if (this.refreshInterval < 5) this.refreshInterval = 5;
-      if (this.autoRefresh) {
-        this.setupRefreshInterval();
+    // === Cleanup ===
+    destroy() {
+      if (this.refreshTimer) {
+        clearInterval(this.refreshTimer);
       }
-      this.savePreferences();
-    },
-
-    logout() {
-      window.location.href = '/logout';
-    },
-
-    // Watchers for reactive updates
-    initWatchers() {
-      // Theme watcher
-      const themeWatcher = () => {
-        localStorage.setItem('theme', this.theme);
-        this.applyTheme();
-      };
-
-      // Refresh interval watcher
-      const refreshWatcher = () => {
-        if (this.refreshInterval < 5) this.refreshInterval = 5;
-        if (this.autoRefresh) this.updateRefreshInterval();
-      };
-
-      // Set up watchers (Alpine.js will handle reactivity)
-      this._themeWatcher = themeWatcher;
-      this._refreshWatcher = refreshWatcher;
+      if (this.toast.timeout) {
+        clearTimeout(this.toast.timeout);
+      }
     }
   };
-  return __dashboardInstance;
 }
 
+// Make it globally available
+window.altDashboard = altDashboard;

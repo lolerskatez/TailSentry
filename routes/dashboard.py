@@ -16,11 +16,3 @@ async def dashboard(request: Request):
         "user": user,
     })
 
-@router.get("/alt-dashboard")
-async def alt_dashboard(request: Request):
-    user = get_current_user(request)
-    return templates.TemplateResponse("alt_dashboard.html", {
-        "request": request,
-        "user": user,
-    })
-
