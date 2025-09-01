@@ -749,15 +749,24 @@ class TailscaleClient:
         self_obj = safe_get_dict(status, "Self")
         allowed_ips = self_obj.get("AllowedIPs", [])
         
-        # Filter out the node's own IPs and exit node routes (0.0.0.0/0, ::/0)
+        # Get the node's own Tailscale IP (should be /32 or /128)
+        tailscale_ip = None
+        for ip in allowed_ips:
+            if ip.endswith("/32") or ip.endswith("/128"):
+                tailscale_ip = ip
+                break
+        
+        # Filter out the node's own Tailscale IP and exit node routes (0.0.0.0/0, ::/0)
         # The remaining IPs should be the advertised subnet routes
         subnet_routes = []
         for ip in allowed_ips:
-            if ip not in ("0.0.0.0/0", "::/0") and not ip.endswith("/32") and not ip.endswith("/128"):
+            if (ip not in ("0.0.0.0/0", "::/0") and 
+                ip != tailscale_ip and 
+                not (ip.endswith("/32") or ip.endswith("/128"))):
                 # This should be a subnet route
                 subnet_routes.append(ip)
         
-        logger.info(f"Subnet routes from AllowedIPs: {subnet_routes}")
+        logger.info(f"Advertised subnet routes from AllowedIPs: {subnet_routes}")
         return subnet_routes
             
     @staticmethod
@@ -864,7 +873,16 @@ class TailscaleClient:
         if result is True:
             import time
             time.sleep(2)  # Wait 2 seconds for changes to take effect
-            logger.info("Subnet routes applied successfully")
+            logger.info(f"Subnet routes applied successfully: {adv_routes}")
+            
+            # Verify the routes were applied
+            updated_routes = TailscaleClient.subnet_routes()
+            if set(updated_routes) == set(adv_routes):
+                logger.info("Subnet routes verification successful")
+            else:
+                logger.warning(f"Subnet routes verification failed. Expected: {adv_routes}, Got: {updated_routes}")
+        else:
+            logger.error(f"Failed to apply subnet routes: {result}")
         
         return result
 

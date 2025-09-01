@@ -286,8 +286,9 @@ function altDashboard() {
     },
 
     removeSubnetRoute(index) {
+      const removedRoute = this.currentSubnetRoutes[index];
       this.currentSubnetRoutes.splice(index, 1);
-      this.showToast('Route removed', 'success');
+      this.showToast(`Route ${removedRoute} removed. Click Apply to save changes.`, 'success');
     },
 
     addSuggestedRoute(cidr) {
