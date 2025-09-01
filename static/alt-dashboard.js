@@ -18,12 +18,12 @@ function altDashboard() {
     showSubnetModal: false,
     theme: localStorage.getItem('alt-dashboard-theme') || 'system',
     
-    // === Data ===
-    stats: {
-      total: 0,
-      online: 0,
-      offline: 0
-    },
+    // === Subnet Routes State ===
+    currentSubnetRoutes: [],
+    newSubnetRoute: '',
+    localSubnets: [],
+    detectingSubnets: false,
+    applyingRoutes: false,
     
     device: {
       hostname: '',
@@ -202,10 +202,150 @@ function altDashboard() {
         
         const data = await response.json();
         this.subnets = data.routes || [];
+        this.currentSubnetRoutes = [...this.subnets]; // Copy for modal management
         
       } catch (error) {
         console.error('Failed to load subnets:', error);
         this.subnets = [];
+        this.currentSubnetRoutes = [];
+      }
+    },
+
+    // === Subnet Routes Management ===
+    async detectLocalSubnets() {
+      this.detectingSubnets = true;
+      try {
+        const response = await fetch('/api/local-subnets');
+        if (!response.ok) throw new Error('Local subnets API failed');
+        
+        const data = await response.json();
+        this.localSubnets = data.subnets || [];
+        
+      } catch (error) {
+        console.error('Failed to detect local subnets:', error);
+        this.localSubnets = [];
+        this.showToast('Failed to detect local subnets', 'error');
+      } finally {
+        this.detectingSubnets = false;
+      }
+    },
+
+    openSubnetModal() {
+      // Reset modal state
+      this.currentSubnetRoutes = [...this.subnets];
+      this.newSubnetRoute = '';
+      this.localSubnets = [];
+      this.detectingSubnets = false;
+      this.applyingRoutes = false;
+      
+      // Auto-detect local subnets when opening modal
+      this.detectLocalSubnets();
+      
+      this.showSubnetModal = true;
+    },
+
+    closeSubnetModal() {
+      this.showSubnetModal = false;
+      // Reset state after a brief delay to allow modal animation
+      setTimeout(() => {
+        this.currentSubnetRoutes = [];
+        this.newSubnetRoute = '';
+        this.localSubnets = [];
+        this.detectingSubnets = false;
+        this.applyingRoutes = false;
+      }, 300);
+    },
+
+    addSubnetRoute() {
+      const route = this.newSubnetRoute.trim();
+      if (!route) return;
+      
+      // Basic CIDR validation
+      const cidrPattern = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/;
+      if (!cidrPattern.test(route)) {
+        this.showToast('Invalid CIDR format. Use format like 192.168.1.0/24', 'error');
+        return;
+      }
+      
+      // Check for duplicates
+      if (this.currentSubnetRoutes.includes(route)) {
+        this.showToast('Route already exists', 'error');
+        return;
+      }
+      
+      this.currentSubnetRoutes.push(route);
+      this.newSubnetRoute = '';
+      this.showToast('Route added successfully', 'success');
+    },
+
+    removeSubnetRoute(index) {
+      this.currentSubnetRoutes.splice(index, 1);
+      this.showToast('Route removed', 'success');
+    },
+
+    addSuggestedRoute(cidr) {
+      if (this.currentSubnetRoutes.includes(cidr)) {
+        this.showToast('Route already exists', 'error');
+        return;
+      }
+      
+      this.currentSubnetRoutes.push(cidr);
+      this.showToast('Suggested route added', 'success');
+    },
+
+    hasSubnetRouteChanges() {
+      // Check if current routes differ from original
+      if (this.currentSubnetRoutes.length !== this.subnets.length) {
+        return true;
+      }
+      
+      // Check if all routes match
+      for (const route of this.currentSubnetRoutes) {
+        if (!this.subnets.includes(route)) {
+          return true;
+        }
+      }
+      
+      return false;
+    },
+
+    async applySubnetRoutes() {
+      this.applyingRoutes = true;
+      try {
+        const response = await fetch('/api/subnet-routes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            routes: this.currentSubnetRoutes
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to apply subnet routes');
+        }
+        
+        const result = await response.json();
+        if (result.success) {
+          // Update the main subnets array
+          this.subnets = [...this.currentSubnetRoutes];
+          
+          // Reload all data to reflect changes
+          await this.loadAllData();
+          
+          this.showToast('Subnet routes updated successfully', 'success');
+          this.showSubnetModal = false;
+        } else {
+          throw new Error(result.error || 'Failed to apply routes');
+        }
+        
+      } catch (error) {
+        console.error('Failed to apply subnet routes:', error);
+        this.showToast(error.message || 'Failed to apply subnet routes', 'error');
+      } finally {
+        this.applyingRoutes = false;
       }
     },
 
