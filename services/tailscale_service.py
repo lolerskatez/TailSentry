@@ -613,7 +613,7 @@ class TailscaleClient:
             # Linux/macOS specific method - will fail on Windows
             if platform.system() != "Windows":
                 interfaces_output = subprocess.check_output(
-                    ["ip", "-json", "addr"], 
+                    ["ip", "-json", "addr"],
                     stderr=subprocess.PIPE,
                     universal_newlines=True
                 )
@@ -636,8 +636,24 @@ class TailscaleClient:
                                 "family": "IPv4"
                             })
             else:
-                # Basic Windows support - will miss some subnets but provides basic functionality
-                logger.info("Local subnet detection not fully supported on Windows")
+                # Enhanced Windows subnet detection
+                try:
+                    from services.windows_network import WindowsNetworkDetector
+                    windows_subnets = WindowsNetworkDetector.detect_local_subnets()
+                    # Convert to the expected format
+                    for subnet in windows_subnets:
+                        detected_subnets.append({
+                            "interface": subnet.get("interface", "Unknown"),
+                            "cidr": subnet.get("cidr", ""),
+                            "family": subnet.get("family", "IPv4")
+                        })
+                    logger.info(f"Windows subnet detection completed: found {len(detected_subnets)} subnets")
+                except ImportError:
+                    logger.warning("Windows network detection module not available, falling back to basic detection")
+                    logger.info("Local subnet detection not fully supported on Windows")
+                except Exception as e:
+                    logger.error(f"Windows subnet detection failed: {e}")
+                    logger.info("Local subnet detection not fully supported on Windows")
         except (subprocess.SubprocessError, json.JSONDecodeError, KeyError) as e:
             logger.warning(f"Error detecting local subnets: {str(e)}")
         return detected_subnets

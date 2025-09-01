@@ -1,10 +1,16 @@
 // --- Enhanced Alpine.js Dashboard with Robust Error Handling ---
 // Keep single instance to prevent double Alpine component creation when multiple x-data use same factory
 let __dashboardInstance = null;
+
+// Provide backwards-compatible alias expected by template: enhancedDashboard()
+// Set this up immediately when the script loads
+window.enhancedDashboard = function enhancedDashboard() {
+  return window.dashboard();
+};
+
 window.dashboard = function dashboard() {
   if (__dashboardInstance) return __dashboardInstance;
   __dashboardInstance = {
-    // --- Enhanced Settings Export/Import Methods ---
     async exportSettings() {
       this.showLoading('export', true);
       try {
@@ -94,9 +100,11 @@ window.dashboard = function dashboard() {
     },
 
     showToast(message, type = 'info') {
-      this.toast = { message, type, timestamp: Date.now() };
+      this.toastMessage = message;
+      this.toastType = type;
       setTimeout(() => {
-        this.toast = '';
+        this.toastMessage = '';
+        this.toastType = null;
       }, 4000);
       // Screen reader accessibility
       const aria = document.getElementById('aria-feedback');
@@ -293,7 +301,7 @@ window.dashboard = function dashboard() {
     },
 
     onlinePeers() {
-      return this.peers.filter(peer => peer.online);
+      return this.peers ? this.peers.filter(peer => peer && peer.online) : [];
     },
 
     refresh() {
@@ -432,6 +440,9 @@ window.dashboard = function dashboard() {
 
     init() {
       console.log('🚀 Initializing TailSentry Dashboard');
+
+      // Initialize watchers
+      this.initWatchers();
 
       // Load user preferences first
       this.loadPreferences();
@@ -1030,7 +1041,8 @@ window.dashboard = function dashboard() {
     },
 
     hideToast() {
-      this.toast = '';
+      this.toastMessage = '';
+      this.toastType = null;
     },
 
     pingPeer(peer) {
@@ -1088,22 +1100,25 @@ window.dashboard = function dashboard() {
       window.location.href = '/logout';
     },
 
-    $watch: {
-      theme(val) {
-        localStorage.setItem('theme', val);
+    // Watchers for reactive updates
+    initWatchers() {
+      // Theme watcher
+      const themeWatcher = () => {
+        localStorage.setItem('theme', this.theme);
         this.applyTheme();
-      },
-      refreshInterval(val) {
-        if (val < 5) this.refreshInterval = 5;
+      };
+
+      // Refresh interval watcher
+      const refreshWatcher = () => {
+        if (this.refreshInterval < 5) this.refreshInterval = 5;
         if (this.autoRefresh) this.updateRefreshInterval();
-      }
+      };
+
+      // Set up watchers (Alpine.js will handle reactivity)
+      this._themeWatcher = themeWatcher;
+      this._refreshWatcher = refreshWatcher;
     }
   };
   return __dashboardInstance;
 }
-// Provide backwards-compatible alias expected by template: enhancedDashboard()
-if (!window.enhancedDashboard) {
-  window.enhancedDashboard = function enhancedDashboard() {
-    return window.dashboard();
-  }
-}
+

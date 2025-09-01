@@ -1,0 +1,21 @@
+# Windows-specific requirements for TailSentry
+# These packages provide Windows-specific functionality and compatibility fixes
+
+# Windows API access
+pywin32>=306; sys_platform == "win32"
+
+# Windows Management Instrumentation
+WMI>=1.5.1; sys_platform == "win32"
+
+# Windows service management
+pypiwin32>=223; sys_platform == "win32"
+
+# Enhanced Windows networking support
+ifaddr>=0.2.0; sys_platform == "win32"
+
+# Windows-specific cryptography (if needed)
+# cryptography>=41.0.0; sys_platform == "win32"
+
+# Windows event log support
+# pywin32 includes this, but explicit for clarity
+# pywin32[evtlog]>=306; sys_platform == "win32"

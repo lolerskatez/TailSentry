@@ -3,7 +3,7 @@
 {% block content %}
 
 <!-- Enhanced Dashboard Container -->
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900" x-data="enhancedDashboard()" x-init="init()">
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900" x-data="enhancedDashboard()" x-init="init()" x-cloak>
   
   <!-- Header Section with Enhanced Status -->
   <header class="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700">
@@ -351,16 +351,16 @@
         </div>
         <div class="bg-gray-50 dark:bg-gray-700 px-5 py-3">
           <div class="text-sm">
-            <span class="text-gray-900 dark:text-white font-medium" x-text="(subnetStats?.advertised || 0) + ' advertised'"></span>
+            <span class="text-gray-900 dark:text-white font-medium" x-text="(subnetStats && subnetStats.advertised ? subnetStats.advertised : 0) + ' advertised'"></span>
             <span class="text-gray-500 dark:text-gray-400 mx-1">•</span>
-            <span class="text-gray-900 dark:text-white font-medium" x-text="(subnetStats?.accepted || 0) + ' accepted'"></span>
+            <span class="text-gray-900 dark:text-white font-medium" x-text="(subnetStats && subnetStats.accepted ? subnetStats.accepted : 0) + ' accepted'"></span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Charts Section -->
-    <div x-show="showCharts" 
+    <div x-show="showCharts !== false" 
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0 transform -translate-y-4"
          x-transition:enter-end="opacity-100 transform translate-y-0"
@@ -442,7 +442,7 @@
               <button @click="deviceFilter = 'online'" 
                       :class="(deviceFilter || 'all') === 'online' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
                       class="px-3 py-1 text-sm font-medium rounded-md transition-colors ml-1">
-                Online (<span x-text="onlinePeers ? onlinePeers().length : 0"></span>)
+                Online (<span x-text="typeof onlinePeers === 'function' ? onlinePeers().length : (stats ? stats.onlinePeers : 0)"></span>)
               </button>
             </div>
             
@@ -531,7 +531,7 @@
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <template x-for="peer in (filteredPeers ? filteredPeers() : [])" :key="peer.id">
+              <template x-for="peer in (typeof filteredPeers === 'function' ? filteredPeers() : (peers || []))" :key="peer.id">
               <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
                   :class="peer.isUsingAsExitNode ? 'bg-blue-50 dark:bg-blue-900/20' : ''">
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -630,7 +630,7 @@
       <div x-show="(viewMode || 'table') === 'cards'" class="p-6">
         <!-- Show cards when authenticated -->
         <div x-show="(tailscaleStatus || 'unknown') === 'authenticated'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <template x-for="peer in (filteredPeers ? filteredPeers() : [])" :key="peer.id">
+          <template x-for="peer in (typeof filteredPeers === 'function' ? filteredPeers() : (peers || []))" :key="peer.id">
             <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow duration-150">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center">
@@ -691,7 +691,7 @@
       </div>
 
       <!-- Empty State -->
-      <div x-show="(tailscaleStatus || 'unknown') === 'authenticated' && (filteredPeers ? filteredPeers().length === 0 : true)" class="text-center py-12">
+      <div x-show="(tailscaleStatus || 'unknown') === 'authenticated' && (typeof filteredPeers === 'function' ? filteredPeers().length === 0 : (peers || []).length === 0)" class="text-center py-12">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.29-1.004-5.714-2.598M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
         </svg>
