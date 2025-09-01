@@ -1057,6 +1057,7 @@ function tailscaleSettings() {
                         this.showMessage(`Route ${this.newRoute} added successfully`);
                         this.newRoute = '';
                         await this.loadStatus();
+                        await this.loadSettings();
                     } else {
                         this.showMessage('Error adding route: ' + (result.error || 'Unknown error'), 'error');
                     }
@@ -1086,6 +1087,7 @@ function tailscaleSettings() {
                 if (result.success) {
                     this.showMessage(`Route ${route} removed successfully`);
                     await this.loadStatus();
+                    await this.loadSettings();
                 } else {
                     this.showMessage('Error removing route: ' + (result.error || 'Unknown error'), 'error');
                 }
@@ -1108,6 +1110,7 @@ function tailscaleSettings() {
                 if (result.success) {
                     this.showMessage('All routes cleared successfully');
                     await this.loadStatus();
+                    await this.loadSettings();
                 } else {
                     this.showMessage('Error clearing routes: ' + (result.error || 'Unknown error'), 'error');
                 }
@@ -1220,8 +1223,9 @@ function tailscaleSettings() {
                 const result = await response.json();
                 if (result.success) {
                     this.showMessage('Exit node advertisement updated');
-                    // Only reload status, not settings, to avoid overriding the user's choice
+                    // Reload both status and settings to reflect the actual applied configuration
                     await this.loadStatus();
+                    await this.loadSettings();
                     // Update exit node status based on the new state
                     this.updateExitNodeInfo();
                 } else {
@@ -1257,6 +1261,8 @@ function tailscaleSettings() {
                 const result = await response.json();
                 if (result.success) {
                     this.showMessage(`${setting.replace('_', ' ')} updated successfully`);
+                    // Reload settings to reflect the actual applied configuration
+                    await this.loadSettings();
                 } else {
                     this.showMessage(`Error updating ${setting}: ` + (result.error || 'Unknown error'), 'error');
                 }
