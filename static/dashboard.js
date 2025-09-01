@@ -8,15 +8,15 @@ function enhancedDashboard() {
     isLoading: false,
     isOnline: false,
     lastUpdate: '',
-    autoRefresh: true,
-    refreshInterval: 30,
+    autoRefresh: localStorage.getItem('autoRefresh') !== 'false', // Default to true
+    refreshInterval: parseInt(localStorage.getItem('refreshInterval') || '30'),
     refreshTimer: null,
     
     // === UI State ===
     showSettings: false,
     showDeviceModal: false,
     showSubnetModal: false,
-    theme: localStorage.getItem('dashboard-theme') || 'system',
+    theme: localStorage.getItem('theme') || 'system',
     
     // === Data ===
     stats: {
@@ -114,6 +114,12 @@ function enhancedDashboard() {
           }
         });
       }
+      
+      // Listen for theme changes from appearance settings
+      window.addEventListener('theme-changed', (event) => {
+        this.theme = event.detail.theme;
+        this.applyTheme();
+      });
     },
 
     // === Data Loading ===
@@ -555,7 +561,7 @@ function enhancedDashboard() {
         }
       }
       
-      localStorage.setItem('dashboard-theme', this.theme);
+      localStorage.setItem('theme', this.theme);
     },
 
     // === Toast System ===
@@ -584,14 +590,14 @@ function enhancedDashboard() {
     $watch: {
       autoRefresh(value) {
         this.setupAutoRefresh();
-        localStorage.setItem('dashboard-autoRefresh', value);
+        localStorage.setItem('autoRefresh', value);
       },
       
       refreshInterval(value) {
         if (this.autoRefresh) {
           this.setupAutoRefresh();
         }
-        localStorage.setItem('dashboard-refreshInterval', value);
+        localStorage.setItem('refreshInterval', value);
       },
       
       searchQuery() {
