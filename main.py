@@ -15,6 +15,14 @@ from middleware.security import SecurityHeadersMiddleware
 from helpers import start_scheduler, shutdown_scheduler
 from version import VERSION
 
+# Set process title for proper identification by Tailscale
+try:
+    from setproctitle import setproctitle
+    setproctitle("TailSentry")
+except ImportError:
+    # Fallback if setproctitle is not available
+    pass
+
 # Setup base directory
 BASE_DIR = Path(__file__).resolve().parent
 LOG_DIR = BASE_DIR / "logs"
