@@ -504,6 +504,111 @@ class TailscaleClient:
         return True
 
     @staticmethod
+    def get_all_devices():
+        """Get all devices in the tailnet from tailscale status command"""
+        try:
+            tailscale_path = TailscaleClient.get_tailscale_path()
+            cmd = [tailscale_path, "status"]
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode == 0:
+                devices = TailscaleClient._parse_status_output(result.stdout)
+                logger.info(f"Found {len(devices)} devices in tailnet")
+                return devices
+            else:
+                logger.error(f"Tailscale status command failed: {result.stderr}")
+                return []
+                
+        except Exception as e:
+            logger.error(f"Error getting all devices: {str(e)}")
+            return []
+
+    @staticmethod
+    def _parse_status_output(output):
+        """Parse the text output of tailscale status to extract device information"""
+        devices = []
+        
+        # Split output into lines and process each device line
+        lines = output.strip().split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            
+            # Skip empty lines, comments, and health check lines
+            if not line or line.startswith('#') or 'Health check:' in line:
+                continue
+                
+            # Parse device line format: IP HOSTNAME USER OS STATUS
+            # Example: 100.74.214.67   godzilla             d.d.rodriquez@ windows idle; offers exit node
+            parts = line.split()
+            
+            if len(parts) >= 4:
+                try:
+                    ip = parts[0]
+                    hostname = parts[1]
+                    
+                    # Find the OS (usually the 4th or 5th part)
+                    os_part = ""
+                    status_start = -1
+                    
+                    # Look for OS keywords
+                    for i, part in enumerate(parts[2:], 2):
+                        if part in ['windows', 'linux', 'macOS', 'iOS', 'android', 'unknown']:
+                            os_part = part
+                            status_start = i + 1
+                            break
+                    
+                    # If no OS found, assume it's at position 3
+                    if not os_part and len(parts) >= 4:
+                        os_part = parts[3] if len(parts) > 3 else "unknown"
+                        status_start = 4
+                    
+                    # Get status (everything after OS)
+                    status_parts = parts[status_start:] if status_start > 0 else []
+                    status = ' '.join(status_parts) if status_parts else ""
+                    
+                    # Determine online status
+                    is_online = 'active' in status or 'idle' in status
+                    
+                    # Check for exit node status
+                    is_exit_node = 'offers exit node' in status
+                    is_exit_node_user = 'exit node' in status and 'offers' not in status
+                    
+                    # Check for subnet router
+                    is_subnet_router = 'subnet router' in status
+                    
+                    # Check for tagged devices
+                    is_tagged = 'tagged' in status or '@' in hostname
+                    
+                    device = {
+                        "id": f"device_{len(devices)}",  # Generate simple ID
+                        "hostname": hostname,
+                        "ip": ip,
+                        "os": os_part,
+                        "online": is_online,
+                        "status": status,
+                        "isExitNode": is_exit_node,
+                        "isExitNodeUser": is_exit_node_user,
+                        "isSubnetRouter": is_subnet_router,
+                        "isTagged": is_tagged,
+                        "lastSeen": "recent" if is_online else "unknown"
+                    }
+                    
+                    devices.append(device)
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to parse device line '{line}': {str(e)}")
+                    continue
+        
+        return devices
+
+    @staticmethod
     def up(authkey=None, extra_args=None):
         tailscale_path = TailscaleClient.get_tailscale_path()
         cmd = [tailscale_path, "up"]

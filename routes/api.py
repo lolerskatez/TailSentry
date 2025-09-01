@@ -152,22 +152,38 @@ async def get_device(request: Request):
 @router.get("/peers")
 async def get_peers(request: Request):
     try:
-        # Get peer information from local daemon (works without API token)
-        status = TailscaleClient.status_json()
-        if isinstance(status, dict) and "Peer" in status:
-            peers_data = {"peers": status["Peer"]}
-            
-            # Add mode indicator
-            has_api_key = bool(os.getenv("TAILSCALE_API_KEY"))
-            peers_data["_tailsentry_mode"] = "api" if has_api_key else "cli_only"
-            
-            if not has_api_key:
-                logger.info("Peers API running in CLI-only mode - using local daemon data")
-            
-            return peers_data
+        # Try to get all devices from tailscale status command first
+        all_devices = TailscaleClient.get_all_devices()
+        
+        if all_devices:
+            peers_data = {"peers": all_devices}
+            logger.info(f"Using parsed status output with {len(all_devices)} devices")
         else:
-            logger.warning("No peer data available from local daemon")
-            return {"peers": {}, "_tailsentry_mode": "cli_only"}
+            # Fallback to JSON status for direct peers only
+            logger.warning("Failed to get all devices, falling back to JSON status")
+            status = TailscaleClient.status_json()
+            if isinstance(status, dict) and "Peer" in status and isinstance(status["Peer"], dict):
+                # Convert peer dict to array format for consistency
+                peers_array = []
+                for peer_id, peer in status["Peer"].items():
+                    if isinstance(peer, dict):
+                        peer_data = peer.copy()
+                        peer_data["id"] = peer.get("ID", peer_id)
+                        peers_array.append(peer_data)
+                
+                peers_data = {"peers": peers_array}
+            else:
+                logger.warning("No peer data available from local daemon")
+                peers_data = {"peers": []}
+        
+        # Add mode indicator
+        has_api_key = bool(os.getenv("TAILSCALE_API_KEY"))
+        peers_data["_tailsentry_mode"] = "api" if has_api_key else "cli_only"
+        
+        if not has_api_key:
+            logger.info("Peers API running in CLI-only mode - using local daemon data")
+        
+        return peers_data
     except Exception as e:
         logger.error(f"Peers API error: {str(e)}")
         return {"error": str(e)}

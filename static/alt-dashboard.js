@@ -165,15 +165,29 @@ function altDashboard() {
         if (!response.ok) throw new Error('Peers API failed');
         
         const data = await response.json();
-        // Convert peers object to array and add ID field
-        if (data.peers && typeof data.peers === 'object') {
-          this.devices = Object.entries(data.peers).map(([id, peer]) => ({
-            id,
-            ...peer
-          }));
+        
+        // Handle both array format (new) and object format (legacy)
+        if (data.peers) {
+          if (Array.isArray(data.peers)) {
+            // New format: peers is already an array
+            this.devices = data.peers.map(peer => ({
+              id: peer.id || peer.ID || peer.nodeId,
+              ...peer
+            }));
+          } else if (typeof data.peers === 'object') {
+            // Legacy format: peers is an object, convert to array
+            this.devices = Object.entries(data.peers).map(([id, peer]) => ({
+              id,
+              ...peer
+            }));
+          } else {
+            this.devices = [];
+          }
         } else {
           this.devices = [];
         }
+        
+        console.log(`Loaded ${this.devices.length} devices`);
         
       } catch (error) {
         console.error('Failed to load peers:', error);
