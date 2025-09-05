@@ -36,6 +36,14 @@ file_handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=5
 file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+# Ensure UTF-8 encoding for console output on Windows
+try:
+    import os
+    if os.name == 'nt':  # Windows
+        import io
+        stream_handler.stream = io.TextIOWrapper(stream_handler.stream.buffer, encoding='utf-8', errors='replace')
+except Exception:
+    pass  # Fallback if encoding change fails
 logging.basicConfig(
     level=logging.INFO,
     handlers=[file_handler, stream_handler]

@@ -655,6 +655,13 @@ async def get_notification_settings(request: Request):
                 "embed_color": config.discord.embed_color,
                 "avatar_url": config.discord.avatar_url,
                 "has_webhook_url": bool(config.discord.webhook_url)
+            },
+            "discord_bot": {
+                "enabled": config.discord_bot.enabled,
+                "command_prefix": config.discord_bot.command_prefix,
+                "log_channel_id": config.discord_bot.log_channel_id,
+                "status_channel_id": config.discord_bot.status_channel_id,
+                "allowed_users": config.discord_bot.allowed_users
             }
         }
     except Exception as e:
