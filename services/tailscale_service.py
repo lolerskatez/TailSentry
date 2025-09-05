@@ -1106,28 +1106,137 @@ class TailscaleClient:
         logger.info(f"Performing service {action} on tailscaled")
         
         try:
-            if platform.system() == "Windows":
-                # Windows uses different commands for service control
-                if action == "status":
-                    cmd = ["sc", "query", "tailscaled"]
-                else:
-                    cmd = ["sc", action, "tailscaled"]
+            system = platform.system()
+            
+            if system == "Windows":
+                # Try multiple approaches for Windows
+                return TailscaleClient._windows_service_control(action)
             else:
-                # Linux/macOS use systemctl
-                cmd = ["systemctl", action, "tailscaled"]
+                # Linux/macOS - try systemctl first, then service command
+                return TailscaleClient._linux_service_control(action)
                 
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, timeout=10)
-            return output.decode('utf-8', errors='replace')
-        except subprocess.CalledProcessError as e:
-            error_msg = e.output.decode('utf-8', errors='replace') if e.output else str(e)
-            logger.error(f"Service control failed: {error_msg}")
-            return f"Command failed with code {e.returncode}: {error_msg}"
-        except subprocess.TimeoutExpired:
-            logger.error("Service control command timed out")
-            return "Command timed out after 10 seconds"
         except Exception as e:
             logger.exception(f"Error controlling service: {str(e)}")
             return str(e)
+
+    @staticmethod
+    def _windows_service_control(action):
+        """Handle Windows service control with multiple fallback methods"""
+        try:
+            # Method 1: Try Windows Service Control Manager (SCM)
+            service_names = ["Tailscale", "tailscaled", "Tailscale Service"]
+            
+            for service_name in service_names:
+                try:
+                    if action == "status":
+                        cmd = ["sc", "query", service_name]
+                    else:
+                        cmd = ["sc", action, service_name]
+                    
+                    output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, timeout=10)
+                    logger.info(f"Windows service control successful using service: {service_name}")
+                    return output.decode('utf-8', errors='replace')
+                except subprocess.CalledProcessError:
+                    continue  # Try next service name
+            
+            # Method 2: If service control fails, try direct tailscale commands
+            logger.info("Service control failed, trying direct tailscale commands")
+            if action == "status":
+                # For status, try to get tailscale status
+                tailscale_path = TailscaleClient.get_tailscale_path()
+                cmd = [tailscale_path, "status", "--json"]
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    return "Tailscale service appears to be running (status check successful)"
+                else:
+                    return "Tailscale service status unknown"
+            elif action in ["start", "stop"]:
+                # For start/stop, inform user that manual intervention may be needed
+                return f"Service {action} requires manual intervention. Tailscale may not be installed as a Windows service."
+            else:
+                return f"Unsupported action for Windows: {action}"
+                
+        except subprocess.TimeoutExpired:
+            logger.error("Windows service control command timed out")
+            return "Command timed out after 10 seconds"
+        except Exception as e:
+            logger.exception(f"Error in Windows service control: {str(e)}")
+            return f"Windows service control error: {str(e)}"
+
+    @staticmethod
+    def _linux_service_control(action):
+        """Handle Linux service control with multiple fallback methods"""
+        try:
+            # Method 1: Try systemctl (modern systems)
+            try:
+                if action == "status":
+                    cmd = ["systemctl", "status", "tailscaled", "--no-pager", "--lines=10"]
+                else:
+                    cmd = ["systemctl", action, "tailscaled"]
+                
+                output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, timeout=15)
+                logger.info("Linux service control successful using systemctl")
+                return output.decode('utf-8', errors='replace')
+            except subprocess.CalledProcessError as e:
+                logger.warning(f"systemctl failed: {e}")
+                
+                # Method 2: Try service command (older systems)
+                try:
+                    cmd = ["service", "tailscaled", action]
+                    output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, timeout=15)
+                    logger.info("Linux service control successful using service command")
+                    return output.decode('utf-8', errors='replace')
+                except subprocess.CalledProcessError as e2:
+                    logger.warning(f"service command also failed: {e2}")
+                    
+                    # Method 3: Try direct process management
+                    return TailscaleClient._linux_process_control(action)
+                    
+        except subprocess.TimeoutExpired:
+            logger.error("Linux service control command timed out")
+            return "Command timed out after 15 seconds"
+        except Exception as e:
+            logger.exception(f"Error in Linux service control: {str(e)}")
+            return f"Linux service control error: {str(e)}"
+
+    @staticmethod
+    def _linux_process_control(action):
+        """Handle Linux process control when service managers fail"""
+        try:
+            if action == "status":
+                # Check if tailscaled process is running
+                result = subprocess.run(["pgrep", "-f", "tailscaled"], capture_output=True, text=True)
+                if result.returncode == 0:
+                    return "Tailscale daemon is running (process found)"
+                else:
+                    return "Tailscale daemon is not running (no process found)"
+                    
+            elif action == "stop":
+                # Try to kill tailscaled processes gracefully
+                result = subprocess.run(["pkill", "-TERM", "tailscaled"], capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    return "Tailscale daemon stopped (process terminated)"
+                else:
+                    return "Failed to stop Tailscale daemon (no process found or permission denied)"
+                    
+            elif action == "start":
+                # Try to start tailscaled directly
+                tailscale_path = TailscaleClient.get_tailscale_path()
+                cmd = [tailscale_path.replace("tailscale", "tailscaled")]
+                # Note: This might require root privileges
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    return "Tailscale daemon started successfully"
+                else:
+                    return f"Failed to start Tailscale daemon directly: {result.stderr}"
+            else:
+                return f"Unsupported process control action: {action}"
+                
+        except subprocess.TimeoutExpired:
+            return "Process control command timed out"
+        except Exception as e:
+            logger.exception(f"Error in Linux process control: {str(e)}")
+            return f"Process control error: {str(e)}"
 
     @staticmethod
     def logs(lines=100):
