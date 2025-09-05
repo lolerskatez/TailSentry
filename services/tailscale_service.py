@@ -598,6 +598,20 @@ class TailscaleClient:
                                     json_online = peer_info.get('Online', None)
                                     break
                     
+                    # Also check Self data for current device
+                    json_status = TailscaleClient.status_json()
+                    if isinstance(json_status, dict) and not json_online:
+                        self_info = json_status.get("Self", {})
+                        if isinstance(self_info, dict):
+                            self_hostname = self_info.get('HostName', '')
+                            self_ip = self_info.get('TailscaleIPs', [None])[0]
+                            if self_hostname == hostname or (self_ip and self_ip == ip):
+                                # This is the current device
+                                last_seen_raw = self_info.get('LastSeen')
+                                if last_seen_raw and last_seen_raw != '0001-01-01T00:00:00Z':
+                                    last_seen = last_seen_raw
+                                json_online = True  # Current device is always online
+                    
                     # Use JSON online status if available, otherwise fall back to text parsing
                     if json_online is not None:
                         is_online = json_online
