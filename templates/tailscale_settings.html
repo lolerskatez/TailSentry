@@ -1026,11 +1026,13 @@ function tailscaleSettings() {
             }
             
             // Load actual subnet routes from the same endpoint as dashboard
+            // This will override the settings from above with the most current data
             try {
                 const subnetResponse = await fetch('/api/subnet-routes');
                 if (subnetResponse.ok) {
                     const subnetData = await subnetResponse.json();
                     this.advertisedRoutes = subnetData.routes || [];
+                    console.log('Loaded subnet routes:', this.advertisedRoutes);
                 }
             } catch (error) {
                 console.error('Error loading subnet routes:', error);
