@@ -1144,15 +1144,18 @@ class TailscaleClient:
             if action == "status":
                 # For status, try to get tailscale status
                 tailscale_path = TailscaleClient.get_tailscale_path()
-                cmd = [tailscale_path, "status", "--json"]
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-                if result.returncode == 0:
-                    return "Tailscale service appears to be running (status check successful)"
+                if tailscale_path:
+                    cmd = [tailscale_path, "status", "--json"]
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0:
+                        return "Tailscale service appears to be running (status check successful)"
+                    else:
+                        return "Tailscale service status unknown or not running"
                 else:
-                    return "Tailscale service status unknown"
+                    return "Could not find tailscale binary"
             elif action in ["start", "stop"]:
                 # For start/stop, inform user that manual intervention may be needed
-                return f"Service {action} requires manual intervention. Tailscale may not be installed as a Windows service."
+                return f"Service {action} requires manual intervention. Tailscale may not be installed as a Windows service. Try running Tailscale from the system tray."
             else:
                 return f"Unsupported action for Windows: {action}"
                 
@@ -1180,7 +1183,20 @@ class TailscaleClient:
             except subprocess.CalledProcessError as e:
                 logger.warning(f"systemctl failed: {e}")
                 
-                # Method 2: Try service command (older systems)
+                # Method 2: Try systemctl with sudo
+                try:
+                    if action == "status":
+                        cmd = ["sudo", "systemctl", "status", "tailscaled", "--no-pager", "--lines=10"]
+                    else:
+                        cmd = ["sudo", "systemctl", action, "tailscaled"]
+                    
+                    output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, timeout=15)
+                    logger.info("Linux service control successful using sudo systemctl")
+                    return output.decode('utf-8', errors='replace')
+                except subprocess.CalledProcessError:
+                    logger.warning("sudo systemctl also failed")
+                
+                # Method 3: Try service command (older systems)
                 try:
                     cmd = ["service", "tailscaled", action]
                     output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, timeout=15)
@@ -1189,7 +1205,16 @@ class TailscaleClient:
                 except subprocess.CalledProcessError as e2:
                     logger.warning(f"service command also failed: {e2}")
                     
-                    # Method 3: Try direct process management
+                    # Method 4: Try service command with sudo
+                    try:
+                        cmd = ["sudo", "service", "tailscaled", action]
+                        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, timeout=15)
+                        logger.info("Linux service control successful using sudo service")
+                        return output.decode('utf-8', errors='replace')
+                    except subprocess.CalledProcessError:
+                        logger.warning("sudo service also failed")
+                    
+                    # Method 5: Try direct process management
                     return TailscaleClient._linux_process_control(action)
                     
         except subprocess.TimeoutExpired:
@@ -1222,13 +1247,16 @@ class TailscaleClient:
             elif action == "start":
                 # Try to start tailscaled directly
                 tailscale_path = TailscaleClient.get_tailscale_path()
-                cmd = [tailscale_path.replace("tailscale", "tailscaled")]
-                # Note: This might require root privileges
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-                if result.returncode == 0:
-                    return "Tailscale daemon started successfully"
+                if tailscale_path:
+                    cmd = [tailscale_path.replace("tailscale", "tailscaled")]
+                    # Note: This might require root privileges
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0:
+                        return "Tailscale daemon started successfully"
+                    else:
+                        return f"Failed to start Tailscale daemon directly: {result.stderr}"
                 else:
-                    return f"Failed to start Tailscale daemon directly: {result.stderr}"
+                    return "Could not find tailscale binary path"
             else:
                 return f"Unsupported process control action: {action}"
                 

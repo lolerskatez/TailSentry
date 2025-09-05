@@ -970,6 +970,15 @@ function tailscaleSettings() {
         detectingSubnets: false,
         applyingRoutes: false,
 
+        showMessage(text, type = 'success') {
+            this.message = text;
+            this.messageType = type;
+            // Auto-hide message after 5 seconds
+            setTimeout(() => {
+                this.message = '';
+            }, 5000);
+        },
+
         async init() {
             await this.loadStatus();
             await this.loadSettings();
