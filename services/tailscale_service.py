@@ -577,8 +577,30 @@ class TailscaleClient:
                     status_parts = parts[status_start:] if status_start > 0 else []
                     status = ' '.join(status_parts) if status_parts else ""
                     
-                    # Determine online status
+                    # Determine online status from text parsing as fallback
                     is_online = 'active' in status or 'idle' in status
+                    
+                    # Get proper lastSeen timestamp and online status from JSON data
+                    last_seen = None
+                    json_online = None
+                    if isinstance(peer_data, dict):
+                        for peer_key, peer_info in peer_data.items():
+                            if isinstance(peer_info, dict):
+                                peer_hostname = peer_info.get('HostName', '')
+                                peer_ip = peer_info.get('TailscaleIPs', [None])[0]
+                                if peer_hostname == hostname or (peer_ip and peer_ip == ip):
+                                    # Found matching peer, get the data
+                                    last_seen_raw = peer_info.get('LastSeen')
+                                    if last_seen_raw and last_seen_raw != '0001-01-01T00:00:00Z':
+                                        last_seen = last_seen_raw
+                                    
+                                    # Use JSON Online field as primary source of truth
+                                    json_online = peer_info.get('Online', None)
+                                    break
+                    
+                    # Use JSON online status if available, otherwise fall back to text parsing
+                    if json_online is not None:
+                        is_online = json_online
                     
                     # Check for exit node status
                     is_exit_node = 'offers exit node' in status
@@ -589,20 +611,6 @@ class TailscaleClient:
                     
                     # Check for tagged devices
                     is_tagged = 'tagged' in status or '@' in hostname
-                    
-                    # Get proper lastSeen timestamp from JSON data
-                    last_seen = None
-                    if isinstance(peer_data, dict):
-                        for peer_key, peer_info in peer_data.items():
-                            if isinstance(peer_info, dict):
-                                peer_hostname = peer_info.get('HostName', '')
-                                peer_ip = peer_info.get('TailscaleIPs', [None])[0]
-                                if peer_hostname == hostname or (peer_ip and peer_ip == ip):
-                                    # Found matching peer, get the timestamp
-                                    last_seen_raw = peer_info.get('LastSeen')
-                                    if last_seen_raw and last_seen_raw != '0001-01-01T00:00:00Z':
-                                        last_seen = last_seen_raw
-                                    break
                     
                     # Fallback to text-based determination if no timestamp found
                     if not last_seen:
