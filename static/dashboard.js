@@ -628,7 +628,7 @@ function enhancedDashboard() {
         }
         
         const result = await response.json();
-        this.showToast(`Tailscale service ${action}ed successfully`, 'success');
+        this.showToast(`Tailscale service ${action === 'stop' ? 'stopped' : action === 'start' ? 'started' : action === 'restart' ? 'restarted' : action} successfully`, 'success');
         
         // Refresh data after service action
         setTimeout(() => {
