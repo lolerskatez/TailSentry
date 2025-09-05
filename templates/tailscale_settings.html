@@ -1021,6 +1021,17 @@ function tailscaleSettings() {
             } catch (error) {
                 console.error('Error loading settings:', error);
             }
+            
+            // Load actual subnet routes from the same endpoint as dashboard
+            try {
+                const subnetResponse = await fetch('/api/subnet-routes');
+                if (subnetResponse.ok) {
+                    const subnetData = await subnetResponse.json();
+                    this.advertisedRoutes = subnetData.routes || [];
+                }
+            } catch (error) {
+                console.error('Error loading subnet routes:', error);
+            }
         },
 
         updateExitNodeInfo() {
@@ -1049,9 +1060,11 @@ function tailscaleSettings() {
         },
 
         updateRouteInfo() {
+            // This function is no longer needed since we load subnet routes from /api/subnet-routes
+            // Keeping for backwards compatibility but not overriding advertisedRoutes
             if (!this.status || !this.status.Self) return;
             
-            this.advertisedRoutes = this.status.Self.PrimaryRoutes || [];
+            // Only update routesToAdvertise for display purposes, don't override advertisedRoutes
             this.routesToAdvertise = this.advertisedRoutes.join(',');
         },
 
@@ -1238,8 +1251,23 @@ function tailscaleSettings() {
         },
 
         async refreshRoutes() {
-            await this.loadStatus();
-            this.showMessage('Routes refreshed');
+            try {
+                // Reload subnet routes from the correct endpoint
+                const subnetResponse = await fetch('/api/subnet-routes');
+                if (subnetResponse.ok) {
+                    const subnetData = await subnetResponse.json();
+                    this.advertisedRoutes = subnetData.routes || [];
+                }
+                
+                // Also refresh status and settings
+                await this.loadStatus();
+                await this.loadSettings();
+                
+                this.showMessage('Routes refreshed successfully');
+            } catch (error) {
+                console.error('Error refreshing routes:', error);
+                this.showMessage('Failed to refresh routes', 'error');
+            }
         },
 
         validateCIDR(cidr) {
