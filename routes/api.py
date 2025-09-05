@@ -190,8 +190,31 @@ async def get_peers(request: Request):
         all_devices = TailscaleClient.get_all_devices()
         
         if all_devices:
+            # Get JSON status to merge with text-parsed data
+            json_status = TailscaleClient.status_json()
+            json_peers = {}
+            if isinstance(json_status, dict) and "Peer" in json_status:
+                peers_dict = json_status["Peer"]
+                if isinstance(peers_dict, dict):
+                    for peer_id, peer in peers_dict.items():
+                        if isinstance(peer, dict):
+                            hostname = peer.get("HostName", "")
+                            if hostname:
+                                json_peers[hostname.lower()] = peer
+            
             # Check which devices are running TailSentry
             devices_with_tailsentry = TailscaleClient.check_tailsentry_instances(all_devices)
+            
+            # Merge JSON data with text-parsed data
+            for device in devices_with_tailsentry:
+                hostname = device.get("hostname", "").lower()
+                if hostname in json_peers:
+                    peer_data = json_peers[hostname]
+                    advertised_routes = peer_data.get("AdvertisedRoutes", [])
+                    device["isAdvertisingSubnets"] = bool(advertised_routes and 
+                        any(route not in ('0.0.0.0/0', '::/0') for route in advertised_routes))
+                else:
+                    device["isAdvertisingSubnets"] = False
             
             # Special handling for current device - we know it's running TailSentry
             import socket

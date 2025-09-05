@@ -626,6 +626,9 @@ class TailscaleClient:
                     # Check for tagged devices
                     is_tagged = 'tagged' in status or '@' in hostname
                     
+                    # Check for devices advertising subnet routes
+                    is_advertising_subnets = False  # Will be determined from JSON if available
+                    
                     # Fallback to text-based determination if no timestamp found
                     if not last_seen:
                         last_seen = "recent" if is_online else "unknown"
@@ -641,6 +644,7 @@ class TailscaleClient:
                         "isExitNodeUser": is_exit_node_user,
                         "isSubnetRouter": is_subnet_router,
                         "isTagged": is_tagged,
+                        "isAdvertisingSubnets": is_advertising_subnets,
                         "lastSeen": last_seen
                     }
                     
@@ -2081,6 +2085,11 @@ class NetworkViz:
                     "advertised_routes": peer.get("AdvertisedRoutes", []),
                     "online": peer.get("Online", False)
                 }
+                
+                # Check if device is advertising approved subnet routes
+                advertised_routes = peer_info["advertised_routes"]
+                peer_info["is_advertising_subnets"] = bool(advertised_routes and 
+                    any(route not in ('0.0.0.0/0', '::/0') for route in advertised_routes))
                 
                 # Add to appropriate category
                 if peer_info["is_exit_node"]:

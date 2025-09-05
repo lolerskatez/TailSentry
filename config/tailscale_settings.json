@@ -3,7 +3,7 @@
   "advertise_routes": [],
   "exit_node_firewall": false,
   "hostname": "godzilla",
-  "advertise_exit_node": true,
+  "advertise_exit_node": false,
   "advertised_routes": [],
   "firewall": false
 }
