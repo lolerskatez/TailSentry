@@ -120,6 +120,25 @@ async def get_tailscale_settings():
                     # For subnet routing, we only care about specific subnets, not exit node routes
                     subnet_routes = [r for r in advertised_routes if r not in ('0.0.0.0/0', '::/0')]
                     settings['advertised_routes'] = subnet_routes
+                    
+                    # Check for pending approval routes
+                    configured_routes = settings.get('advertised_routes', [])
+                    active_routes = TailscaleClient.subnet_routes()
+                    
+                    # Routes that are configured but not yet active (pending approval)
+                    pending_routes = [route for route in configured_routes if route not in active_routes]
+                    
+                    if pending_routes:
+                        settings['pending_approval_routes'] = pending_routes
+                        settings['has_pending_routes'] = True
+                        logger.info(f"Found pending approval routes: {pending_routes}")
+                    else:
+                        settings['pending_approval_routes'] = []
+                        settings['has_pending_routes'] = False
+                else:
+                    settings['advertised_routes'] = []
+                    settings['pending_approval_routes'] = []
+                    settings['has_pending_routes'] = False
             else:
                 logger.warning(f"Self info is not a dict: {self_info}")
         else:

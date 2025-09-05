@@ -14,15 +14,52 @@
 
 <div class="max-w-7xl mx-auto py-4 px-4" x-data="tailscaleSettings()">
     
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-indigo-800 dark:text-indigo-200">Tailscale Management</h1>
-        <div class="flex gap-2">
-            <button @click="refreshStatus()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh Status
-            </button>
+    <!-- Pending Approval Banner -->
+    <div x-show="hasPendingRoutes && showPendingBanner" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform scale-95"
+         x-transition:enter-end="opacity-100 transform scale-100"
+         class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <i class="fas fa-clock text-yellow-600 dark:text-yellow-400 text-xl"></i>
+            </div>
+            <div class="ml-3 flex-1">
+                <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                    Subnet Routes Pending Approval
+                </h3>
+                <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                    <p>The following routes have been configured but require approval in the Tailscale admin console:</p>
+                    <ul class="mt-2 space-y-1">
+                        <template x-for="route in pendingApprovalRoutes" :key="route">
+                            <li class="flex items-center">
+                                <i class="fas fa-route mr-2 text-yellow-600 dark:text-yellow-400"></i>
+                                <code class="font-mono bg-yellow-100 dark:bg-yellow-800 px-2 py-1 rounded text-xs" x-text="route"></code>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+                <div class="mt-4">
+                    <div class="-mx-2 -my-1.5 flex">
+                        <a :href="adminConsoleUrl" 
+                           target="_blank" 
+                           class="bg-yellow-50 dark:bg-yellow-900/50 px-3 py-2 rounded-md text-sm font-medium text-yellow-800 dark:text-yellow-200 hover:bg-yellow-100 dark:hover:bg-yellow-800/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-yellow-50 focus:ring-yellow-600">
+                            <i class="fas fa-external-link-alt mr-1"></i>
+                            Open Admin Console
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="ml-auto pl-3">
+                <div class="-mx-1.5 -my-1.5">
+                    <button @click="dismissPendingBanner()" 
+                            type="button" 
+                            class="inline-flex bg-yellow-50 dark:bg-yellow-900/50 rounded-md p-1.5 text-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-800/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-yellow-50 focus:ring-yellow-600">
+                        <span class="sr-only">Dismiss</span>
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -367,12 +404,18 @@
                                     <div>
                                         <div class="flex items-center space-x-2">
                                             <code class="font-mono text-sm font-semibold text-gray-900 dark:text-white" x-text="route"></code>
-                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                                <i class="fas fa-broadcast-tower mr-1"></i>Active
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                                                  :class="isRoutePending(route) ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'">
+                                                <i :class="isRoutePending(route) ? 'fas fa-clock mr-1' : 'fas fa-broadcast-tower mr-1'"></i>
+                                                <span x-text="isRoutePending(route) ? 'Pending Approval' : 'Active'"></span>
                                             </span>
                                         </div>
                                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                             <span x-text="getRouteDescription(route)"></span>
+                                            <span x-show="isRoutePending(route)" class="text-yellow-600 dark:text-yellow-400 ml-2">
+                                                <i class="fas fa-info-circle mr-1"></i>
+                                                Requires admin approval
+                                            </span>
                                         </p>
                                     </div>
                                 </div>
@@ -837,6 +880,9 @@ function tailscaleSettings() {
         hasApiToken: false,
         routesToAdvertise: '',
         advertisedRoutes: [],
+        pendingApprovalRoutes: [],
+        hasPendingRoutes: false,
+        showPendingBanner: true,
         newRoute: '',
         routeLoading: false,
         showRouteHelper: false,
@@ -895,6 +941,11 @@ function tailscaleSettings() {
                     this.advertiseExitNode = settings.advertise_exit_node || false;
                     this.exitNodeStatus = settings.exit_node_status || 'disabled';
                     this.adminConsoleUrl = settings.admin_console_url || 'https://login.tailscale.com/admin/machines';
+                    
+                    // Load subnet routes and pending approval data
+                    this.advertisedRoutes = settings.advertised_routes || [];
+                    this.pendingApprovalRoutes = settings.pending_approval_routes || [];
+                    this.hasPendingRoutes = settings.has_pending_routes || false;
                     
                     // Load status indicators
                     this.hasAuthKey = settings.has_auth_key || false;
@@ -1150,6 +1201,14 @@ function tailscaleSettings() {
             if (prefixNum > 24) return `Small subnet (${hostCount} hosts)`;
             if (prefixNum < 16) return `Large network (${hostCount} hosts)`;
             return `Subnet (${hostCount} hosts)`;
+        },
+
+        isRoutePending(route) {
+            return this.pendingApprovalRoutes.includes(route);
+        },
+
+        dismissPendingBanner() {
+            this.showPendingBanner = false;
         },
 
         async detectLocalNetworks() {
