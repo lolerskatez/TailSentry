@@ -192,6 +192,35 @@ async def get_peers(request: Request):
         if all_devices:
             # Check which devices are running TailSentry
             devices_with_tailsentry = TailscaleClient.check_tailsentry_instances(all_devices)
+            
+            # Special handling for current device - we know it's running TailSentry
+            import socket
+            current_hostname = socket.gethostname().lower()
+            status = TailscaleClient.status_json()
+            current_ip = None
+            if isinstance(status, dict) and "Self" in status:
+                self_info = status["Self"]
+                if isinstance(self_info, dict):
+                    current_ip = self_info.get("TailscaleIPs", [None])[0]
+            
+            # Mark current device as TailSentry
+            for device in devices_with_tailsentry:
+                device_hostname = device.get("hostname", "").lower()
+                device_ip = device.get("ip", "")
+                if device_hostname == current_hostname or device_ip == current_ip:
+                    device["isTailsentry"] = True
+                    device["tailsentry_status"] = "healthy"
+                    device["tailsentry_info"] = {
+                        "status": "healthy",
+                        "hostname": current_hostname,
+                        "system": "Windows",  # Could be made dynamic
+                        "version": "1.0.0",
+                        "tailscale_ip": current_ip,
+                        "tailscale_hostname": current_hostname,
+                        "timestamp": int(time.time())
+                    }
+                    break
+            
             peers_data = {"peers": devices_with_tailsentry}
             logger.info(f"Using parsed status output with {len(all_devices)} devices")
         else:

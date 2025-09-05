@@ -536,6 +536,28 @@ function enhancedDashboard() {
       }
     },
 
+    // === TailSentry Node Management ===
+    manageTailsentryNode(device) {
+      if (!device || !device.isTailsentry) {
+        this.showToast('Device is not a TailSentry instance', 'error');
+        return;
+      }
+
+      const deviceIp = device.ip;
+      if (!deviceIp) {
+        this.showToast('No IP address available for this device', 'error');
+        return;
+      }
+
+      const nodeUrl = `http://${deviceIp}:8080`;
+      const deviceName = device.hostname || deviceIp;
+      
+      this.showToast(`Opening TailSentry management for ${deviceName}...`, 'info');
+      
+      // Open in new tab/window
+      window.open(nodeUrl, '_blank');
+    },
+
     // === Utility Functions ===
     formatLastSeen(lastSeen) {
       if (!lastSeen || lastSeen === 'Never' || lastSeen === 'unknown') return 'Never';

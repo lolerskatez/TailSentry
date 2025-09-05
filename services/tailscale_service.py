@@ -1706,10 +1706,35 @@ class TailscaleClient:
         return TailscaleClient._api_request('get', f'/tailnet/TAILNET/devices/{device_id}')
 
     @staticmethod
-    def check_tailsentry_instances(devices):
+    def check_tailsentry_instances(devices, force_refresh=False):
         """Check which devices are running TailSentry by pinging their health endpoints"""
         import asyncio
         import aiohttp
+        
+        # Check cache first (unless force refresh is requested)
+        cache_time = 300  # 5 minutes cache
+        if not force_refresh and hasattr(TailscaleClient, '_tailsentry_cache'):
+            cache_data, cache_timestamp = TailscaleClient._tailsentry_cache
+            if time.time() - cache_timestamp < cache_time:
+                # Return cached data but update with current device list
+                cached_devices = {d.get('id', d.get('ip', '')): d for d in cache_data}
+                updated_devices = []
+                for device in devices:
+                    device_id = device.get('id', device.get('ip', ''))
+                    if device_id in cached_devices:
+                        # Use cached TailSentry info but update device data
+                        cached_device = cached_devices[device_id]
+                        updated_device = {**device}
+                        updated_device['isTailsentry'] = cached_device.get('isTailsentry', False)
+                        updated_device['tailsentry_status'] = cached_device.get('tailsentry_status', 'unknown')
+                        if 'tailsentry_info' in cached_device:
+                            updated_device['tailsentry_info'] = cached_device['tailsentry_info']
+                        updated_devices.append(updated_device)
+                    else:
+                        # New device, mark as not checked yet
+                        updated_device = {**device, 'isTailsentry': False, 'tailsentry_status': 'not_checked'}
+                        updated_devices.append(updated_device)
+                return updated_devices
         
         async def check_device(device):
             """Check if a single device is running TailSentry"""
@@ -1718,9 +1743,26 @@ class TailscaleClient:
                 if not ip:
                     return {**device, "isTailsentry": False, "tailsentry_status": "no_ip"}
                 
-                # Try to connect to the TailSentry health endpoint
-                url = f"http://{ip}:8080/health"
-                timeout = aiohttp.ClientTimeout(total=5)  # 5 second timeout
+                # Special handling for current device - use localhost
+                hostname = device.get("hostname", "").lower()
+                current_hostname = socket.gethostname().lower()
+                
+                # Get current device IP for comparison
+                status = TailscaleClient.status_json()
+                current_ip = None
+                if isinstance(status, dict) and "Self" in status:
+                    self_info = status["Self"]
+                    if isinstance(self_info, dict):
+                        current_ip = self_info.get("TailscaleIPs", [None])[0]
+                
+                if hostname == current_hostname or ip == current_ip:
+                    # This is the current device, use localhost
+                    url = "http://localhost:8080/api/health"
+                else:
+                    # Remote device, use Tailscale IP
+                    url = f"http://{ip}:8080/api/health"
+                
+                timeout = aiohttp.ClientTimeout(total=3)  # Reduced timeout to 3 seconds
                 
                 async with aiohttp.ClientSession(timeout=timeout) as session:
                     async with session.get(url) as response:
@@ -1745,35 +1787,81 @@ class TailscaleClient:
         
         async def check_all_devices():
             """Check all devices concurrently"""
-            tasks = [check_device(device) for device in devices]
+            # Only check online devices to improve performance
+            online_devices = [d for d in devices if d.get('online', False)]
+            
+            if not online_devices:
+                # No online devices, return all as offline
+                return [{**device, "isTailsentry": False, "tailsentry_status": "offline"} for device in devices]
+            
+            tasks = [check_device(device) for device in online_devices]
             results = await asyncio.gather(*tasks, return_exceptions=True)
             
             # Handle any exceptions that occurred
             processed_results = []
             for i, result in enumerate(results):
                 if isinstance(result, Exception):
-                    logger.error(f"Exception checking device {devices[i].get('hostname', 'unknown')}: {str(result)}")
+                    logger.error(f"Exception checking device {online_devices[i].get('hostname', 'unknown')}: {str(result)}")
                     processed_results.append({
-                        **devices[i],
+                        **online_devices[i],
                         "isTailsentry": False,
                         "tailsentry_status": "check_failed"
                     })
                 else:
                     processed_results.append(result)
             
+            # Add offline devices
+            offline_devices = [d for d in devices if not d.get('online', False)]
+            for device in offline_devices:
+                processed_results.append({**device, "isTailsentry": False, "tailsentry_status": "offline"})
+            
             return processed_results
         
-        # Run the async check
+        # Run the async check - handle existing event loop properly
         try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            result = loop.run_until_complete(check_all_devices())
-            loop.close()
-            return result
+            # Check if we're in an existing event loop
+            try:
+                loop = asyncio.get_running_loop()
+                # We're in a running loop, create a task for this
+                import concurrent.futures
+                
+                def run_in_thread():
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    try:
+                        return new_loop.run_until_complete(check_all_devices())
+                    finally:
+                        new_loop.close()
+                
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(run_in_thread)
+                    result = future.result(timeout=15)  # 15 second timeout
+                    
+                    # Cache the result
+                    TailscaleClient._tailsentry_cache = (result, time.time())
+                    
+                    return result
+                    
+            except RuntimeError:
+                # No running loop, safe to use asyncio.run
+                result = asyncio.run(check_all_devices())
+                
+                # Cache the result
+                TailscaleClient._tailsentry_cache = (result, time.time())
+                
+                return result
+                
         except Exception as e:
             logger.error(f"Error in TailSentry instance checking: {str(e)}")
             # Return devices with default status if checking fails
             return [{**device, "isTailsentry": False, "tailsentry_status": "check_error"} for device in devices]
+
+    @staticmethod
+    def clear_tailsentry_cache():
+        """Clear the TailSentry instance cache"""
+        if hasattr(TailscaleClient, '_tailsentry_cache'):
+            delattr(TailscaleClient, '_tailsentry_cache')
+            logger.info("TailSentry instance cache cleared")
 
 
 class NetworkViz:
