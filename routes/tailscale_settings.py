@@ -122,7 +122,7 @@ async def get_tailscale_settings():
                     settings['advertised_routes'] = subnet_routes
                     
                     # Check for pending approval routes
-                    configured_routes = settings.get('advertised_routes', [])
+                    configured_routes = settings.get('advertise_routes', [])
                     active_routes = TailscaleClient.subnet_routes()
                     
                     # Routes that are configured but not yet active (pending approval)
@@ -137,8 +137,20 @@ async def get_tailscale_settings():
                         settings['has_pending_routes'] = False
                 else:
                     settings['advertised_routes'] = []
-                    settings['pending_approval_routes'] = []
-                    settings['has_pending_routes'] = False
+                    # Check for pending approval routes even when no routes are currently advertised
+                    configured_routes = settings.get('advertise_routes', [])
+                    active_routes = TailscaleClient.subnet_routes()
+                    
+                    # Routes that are configured but not yet active (pending approval)
+                    pending_routes = [route for route in configured_routes if route not in active_routes]
+                    
+                    if pending_routes:
+                        settings['pending_approval_routes'] = pending_routes
+                        settings['has_pending_routes'] = True
+                        logger.info(f"Found pending approval routes: {pending_routes}")
+                    else:
+                        settings['pending_approval_routes'] = []
+                        settings['has_pending_routes'] = False
             else:
                 logger.warning(f"Self info is not a dict: {self_info}")
         else:
