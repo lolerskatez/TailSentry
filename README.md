@@ -73,6 +73,56 @@ After installation:
 
 For detailed configuration options, see [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md).
 
+## 🤖 Discord Bot Setup (Optional)
+
+TailSentry includes an optional Discord bot for interactive log retrieval and status monitoring.
+
+### 1. Create a Discord Bot
+
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+2. Click "New Application" and give it a name
+3. Go to "Bot" section and click "Add Bot"
+4. Copy the bot token
+
+### 2. Configure Bot Permissions
+
+In the "Bot" section:
+- Enable "Message Content Intent" under "Privileged Gateway Intents"
+- Set bot permissions (optional but recommended):
+  - Send Messages
+  - Read Message History
+  - Use Slash Commands
+
+### 3. Invite Bot to Server
+
+1. Go to "OAuth2" → "URL Generator"
+2. Select scopes: `bot`, `applications.commands`
+3. Select permissions: `Send Messages`, `Read Messages`
+4. Use the generated URL to invite the bot
+
+### 4. Configure TailSentry
+
+Add to your `.env` file:
+```bash
+DISCORD_BOT_TOKEN=your_bot_token_here
+DISCORD_ALLOWED_USERS=user_id1,user_id2  # Optional: restrict to specific users
+```
+
+### 5. Bot Commands
+
+Once configured, use these commands in Discord:
+
+- `!logs [lines] [level]` - Get recent logs (default: 50 lines)
+  - Example: `!logs 100 ERROR`
+- `!status` - Get TailSentry status
+- `!help` - Show available commands
+
+### Security Notes
+
+- **Restrict Access**: Use `DISCORD_ALLOWED_USERS` to limit who can use commands
+- **Log Access**: Only administrators should have access to logs
+- **Bot Token**: Keep your bot token secure and never commit to version control
+
 ## 🔧 Management Commands
 
 ### Bare Metal Installation

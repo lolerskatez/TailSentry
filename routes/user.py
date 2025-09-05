@@ -8,6 +8,7 @@ from typing import Optional
 import aiosmtplib
 from email_validator import validate_email, EmailNotValidError
 import os
+import notifications_manager
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -47,7 +48,7 @@ def login_form(request: Request):
     return templates.TemplateResponse("login.html", {"request": request, "error": None})
 
 @router.post("/login")
-def login(request: Request, response: Response, username: str = Form(...), password: str = Form(...), remember_me: str = Form(None)):
+async def login(request: Request, response: Response, username: str = Form(...), password: str = Form(...), remember_me: str = Form(None)):
     import logging
     logger = logging.getLogger("tailsentry")
     
@@ -58,6 +59,15 @@ def login(request: Request, response: Response, username: str = Form(...), passw
     user = verify_user(username, password)
     if user:
         logger.info(f"[LOGIN] Successful login for active user: {username}")
+        
+        # Send login notification
+        try:
+            await notifications_manager.notify_user_login(
+                username=username,
+                ip_address=request.client.host if request.client else "unknown"
+            )
+        except Exception as e:
+            logger.error(f"[LOGIN] Failed to send login notification: {e}")
         
         # Set session
         request.session["user"] = user["username"]
@@ -77,12 +87,33 @@ def login(request: Request, response: Response, username: str = Form(...), passw
             # User exists, check if account is disabled
             if existing_user_dict.get('active', 1) == 0:
                 logger.warning(f"[LOGIN] Login attempt for disabled account: {username}")
+                try:
+                    await notifications_manager.notify_user_login_failed(
+                        username=username,
+                        ip_address=request.client.host if request.client else "unknown"
+                    )
+                except Exception as e:
+                    logger.error(f"[LOGIN] Failed to send failed login notification: {e}")
                 return templates.TemplateResponse("login.html", {"request": request, "error": "Account is disabled. Please contact an administrator."})
             else:
                 logger.warning(f"[LOGIN] Invalid password for user: {username}")
+                try:
+                    await notifications_manager.notify_user_login_failed(
+                        username=username,
+                        ip_address=request.client.host if request.client else "unknown"
+                    )
+                except Exception as e:
+                    logger.error(f"[LOGIN] Failed to send failed login notification: {e}")
                 return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
         else:
             logger.warning(f"[LOGIN] Login attempt for non-existent user: {username}")
+            try:
+                await notifications_manager.notify_user_login_failed(
+                    username=username,
+                    ip_address=request.client.host if request.client else "unknown"
+                )
+            except Exception as e:
+                logger.error(f"[LOGIN] Failed to send failed login notification: {e}")
             return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
 
 @router.get("/logout")
@@ -111,7 +142,7 @@ def users(request: Request, user=Depends(get_current_user)):
     })
 
 @router.post("/users/delete")
-def delete_user_route(request: Request, username: str = Form(...), user=Depends(get_current_user)):
+async def delete_user_route(request: Request, username: str = Form(...), user=Depends(get_current_user)):
     import logging
     logger = logging.getLogger("tailsentry")
     
@@ -131,9 +162,25 @@ def delete_user_route(request: Request, username: str = Form(...), user=Depends(
             "error": "You cannot delete your own account. Use another admin account to delete this one if needed."
         })
     
+    # Get user info before deletion for notification
+    from auth_user import get_user
+    user_to_delete = get_user(username)
+    display_name = user_to_delete["display_name"] if user_to_delete and user_to_delete["display_name"] else username
+    
     logger.info(f"[DELETE USER] Admin {user['username']} deleting user: {username}")
     delete_user(username)
     logger.info(f"[DELETE USER] Successfully deleted user: {username}")
+    
+    # Send user deletion notification
+    try:
+        await notifications_manager.notify_user_deleted(
+            username=username,
+            display_name=display_name,
+            deleted_by=user["username"]
+        )
+    except Exception as e:
+        logger.error(f"[DELETE USER] Failed to send notification: {e}")
+    
     return RedirectResponse(url="/settings/users", status_code=status.HTTP_302_FOUND)
 
 # Change password endpoints
@@ -144,9 +191,11 @@ def change_password_form(request: Request, user=Depends(get_current_user)):
     return templates.TemplateResponse("change_password.html", {"request": request, "error": None, "success": None})
 
 @router.post("/change-password")
-def change_password(request: Request, old_password: str = Form(...), new_password: str = Form(...), user=Depends(get_current_user)):
+async def change_password(request: Request, old_password: str = Form(...), new_password: str = Form(...), user=Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    import logging
+    logger = logging.getLogger("tailsentry")
     from auth_user import verify_user, get_db, pwd_context
     # Verify old password
     if not verify_user(user["username"], old_password):
@@ -157,6 +206,13 @@ def change_password(request: Request, old_password: str = Form(...), new_passwor
     c.execute('UPDATE users SET password_hash = ? WHERE username = ?', (pwd_context.hash(new_password), user["username"]))
     conn.commit()
     conn.close()
+    
+    # Send password change notification
+    try:
+        await notifications_manager.notify_user_password_changed(username=user["username"])
+    except Exception as e:
+        logger.error(f"[PASSWORD CHANGE] Failed to send notification: {e}")
+    
     return templates.TemplateResponse("change_password.html", {"request": request, "error": None, "success": "Password changed successfully."})
 
 @router.get("/reset-password-request")
@@ -334,7 +390,7 @@ def set_active(request: Request, username: str = Form(...), active: int = Form(N
 
 # Add user
 @router.post("/users/add")
-def add_user(request: Request, name: str = Form(""), username: str = Form(...), role: str = Form("user"), password: str = Form(...), user=Depends(get_current_user)):
+async def add_user(request: Request, name: str = Form(""), username: str = Form(...), role: str = Form("user"), password: str = Form(...), user=Depends(get_current_user)):
     import logging
     logger = logging.getLogger("tailsentry")
     logger.info(f"[ADD USER] Request from {request.client.host if request.client else 'unknown'} | name: {name} | username: {username} | role: {role} | password_len: {len(password) if password else 0}")
@@ -355,6 +411,20 @@ def add_user(request: Request, name: str = Form(""), username: str = Form(...), 
             conn.commit()
             conn.close()
             logger.info(f"[ADD USER] Display name set for {username}: {name}")
+        
+        # Send notification for user creation
+        if created:
+            try:
+                await notifications_manager.notify_user_created(
+                    username=username,
+                    display_name=name or username,
+                    role=role,
+                    created_by=user["username"]
+                )
+                logger.info(f"[ADD USER] Notification sent for user creation: {username}")
+            except Exception as e:
+                logger.error(f"[ADD USER] Failed to send notification: {e}")
+        
         logger.info(f"[ADD USER] Success - redirecting to /settings/users")
         return RedirectResponse(url="/settings/users", status_code=status.HTTP_302_FOUND)
     except HTTPException as e:
@@ -369,7 +439,7 @@ def add_user(request: Request, name: str = Form(""), username: str = Form(...), 
 
 # Edit user
 @router.post("/users/edit")
-def edit_user(request: Request,
+async def edit_user(request: Request,
               original_username: str = Form(...),
               name: str = Form(""),
               username: str = Form(...),
@@ -378,8 +448,15 @@ def edit_user(request: Request,
               user=Depends(get_current_user)):
     if not user or user["role"] != "admin":
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    from auth_user import get_db, pwd_context
+    from auth_user import get_db, pwd_context, get_user
     import sqlite3
+    import logging
+    logger = logging.getLogger("tailsentry")
+    
+    # Get old user info for role change notification
+    old_user = get_user(original_username)
+    old_role = old_user["role"] if old_user else "unknown"
+    
     conn = get_db()
     try:
         c = conn.cursor()
@@ -391,6 +468,19 @@ def edit_user(request: Request,
         # Update display name
         c.execute('UPDATE users SET display_name = ? WHERE username = ?', (name, username))
         conn.commit()
+        
+        # Send role change notification if role was changed
+        if old_role != role:
+            try:
+                await notifications_manager.notify_user_role_changed(
+                    username=username,
+                    old_role=old_role,
+                    new_role=role,
+                    changed_by=user["username"]
+                )
+            except Exception as e:
+                logger.error(f"[USER EDIT] Failed to send role change notification: {e}")
+                
     except sqlite3.IntegrityError:
         # Username conflict; ignore and continue
         conn.rollback()

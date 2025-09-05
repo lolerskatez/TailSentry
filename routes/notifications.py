@@ -13,9 +13,8 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, EmailStr, validator
+from pydantic import BaseModel, Field, validator
 from dotenv import load_dotenv, set_key, find_dotenv
-from routes.user import get_current_user
 import httpx
 
 try:
@@ -30,8 +29,16 @@ logger = logging.getLogger("tailsentry.notifications")
 
 router = APIRouter()
 
-# Load environment variables
-load_dotenv()
+def get_current_user(request: Request):
+    """Get current user from session - local implementation to avoid circular imports"""
+    username = request.session.get("user")
+    if username:
+        from auth_user import get_user
+        user_row = get_user(username)
+        if user_row:
+            # Convert Row to dict for template compatibility
+            return dict(user_row)
+    return None
 
 class SMTPSettings(BaseModel):
     enabled: bool = False
@@ -41,8 +48,14 @@ class SMTPSettings(BaseModel):
     use_ssl: bool = False
     username: str = Field(default="", max_length=255)
     password: Optional[str] = None
-    from_email: EmailStr = Field(default="noreply@tailsentry.local")
+    from_email: str = Field(default="noreply@localhost")
     from_name: str = Field(default="TailSentry", max_length=100)
+    
+    @validator('from_email')
+    def validate_from_email(cls, v):
+        if v and '@' not in v:
+            raise ValueError('Invalid email format')
+        return v
     
     @validator('smtp_port')
     def validate_port(cls, v):
@@ -77,11 +90,26 @@ class DiscordSettings(BaseModel):
     username: str = Field(default="TailSentry", max_length=80)
     avatar_url: Optional[str] = None
     embed_color: int = Field(default=0x3498db, ge=0, le=0xFFFFFF)
+    has_webhook_url: bool = False
     
     @validator('webhook_url')
     def validate_webhook_url(cls, v):
         if v and not v.startswith('https://discord.com/api/webhooks/'):
             raise ValueError('Invalid Discord webhook URL')
+        return v
+
+class DiscordBotSettings(BaseModel):
+    enabled: bool = False
+    bot_token: Optional[str] = Field(default=None, min_length=50)
+    allowed_users: List[str] = Field(default_factory=list)
+    command_prefix: str = Field(default="!", max_length=5)
+    log_channel_id: Optional[str] = None
+    status_channel_id: Optional[str] = None
+    
+    @validator('bot_token')
+    def validate_bot_token(cls, v):
+        if v and not (v.startswith('Bot ') or len(v) >= 50):
+            raise ValueError('Invalid Discord bot token format')
         return v
 
 class NotificationTemplate(BaseModel):
@@ -94,6 +122,7 @@ class NotificationSettings(BaseModel):
     smtp: SMTPSettings = SMTPSettings()
     telegram: TelegramSettings = TelegramSettings()
     discord: DiscordSettings = DiscordSettings()
+    discord_bot: DiscordBotSettings = DiscordBotSettings()
     global_enabled: bool = True
     retry_attempts: int = Field(default=3, ge=1, le=10)
     retry_delay: int = Field(default=60, ge=10, le=3600)
@@ -106,6 +135,9 @@ CONFIG_DIR = BASE_DIR / "config"
 ENV_FILE = Path(find_dotenv() or BASE_DIR / ".env")
 NOTIFICATIONS_CONFIG_FILE = CONFIG_DIR / "notifications_config.json"
 TEMPLATES_FILE = CONFIG_DIR / "notification_templates.json"
+
+# Load environment variables after BASE_DIR is defined
+load_dotenv(BASE_DIR / ".env")
 
 # Default notification templates
 DEFAULT_TEMPLATES = {
@@ -164,9 +196,39 @@ DEFAULT_TEMPLATES = {
         "message": "Security event detected: {details}",
         "enabled": True
     },
-    "backup_completed": {
-        "title": "💾 Backup Completed",
-        "message": "Configuration backup completed successfully",
+    "user_created": {
+        "title": "� New User Created",
+        "message": "User '{username}' ({display_name}) was created with role '{role}'",
+        "enabled": True
+    },
+    "user_login": {
+        "title": "🔐 User Login",
+        "message": "User '{username}' logged in from {ip_address}",
+        "enabled": True
+    },
+    "user_login_failed": {
+        "title": "🚫 Failed Login Attempt",
+        "message": "Failed login attempt for user '{username}' from {ip_address}",
+        "enabled": True
+    },
+    "user_password_changed": {
+        "title": "🔑 Password Changed",
+        "message": "User '{username}' changed their password",
+        "enabled": True
+    },
+    "user_deleted": {
+        "title": "👤 User Deleted",
+        "message": "User '{username}' ({display_name}) was deleted by {deleted_by}",
+        "enabled": True
+    },
+    "user_role_changed": {
+        "title": "👑 User Role Changed",
+        "message": "User '{username}' role changed from '{old_role}' to '{new_role}' by {changed_by}",
+        "enabled": True
+    },
+    "security_settings_changed": {
+        "title": "🛡️ Security Settings Updated",
+        "message": "Security settings were updated by {user}",
         "enabled": True
     },
     "backup_failed": {
@@ -195,7 +257,7 @@ def get_current_notification_settings() -> NotificationSettings:
     config.smtp.use_ssl = os.getenv("SMTP_USE_SSL", "false").lower() == "true"
     config.smtp.username = os.getenv("SMTP_USERNAME", "")
     config.smtp.password = os.getenv("SMTP_PASSWORD")
-    config.smtp.from_email = os.getenv("SMTP_FROM_EMAIL", "noreply@tailsentry.local")
+    config.smtp.from_email = os.getenv("SMTP_FROM_EMAIL", "noreply@localhost")
     config.smtp.from_name = os.getenv("SMTP_FROM_NAME", "TailSentry")
     
     # Telegram settings
@@ -206,11 +268,26 @@ def get_current_notification_settings() -> NotificationSettings:
     config.telegram.disable_web_page_preview = os.getenv("TELEGRAM_DISABLE_PREVIEW", "true").lower() == "true"
     
     # Discord settings
-    config.discord.enabled = os.getenv("DISCORD_ENABLED", "false").lower() == "true"
-    config.discord.webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
+    discord_enabled = os.getenv("DISCORD_ENABLED", "false")
+    discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
+    logger.info(f"Loading Discord settings - DISCORD_ENABLED: '{discord_enabled}', DISCORD_WEBHOOK_URL: '{discord_webhook[:50] if discord_webhook else None}'")
+    
+    config.discord.enabled = discord_enabled.lower() == "true"
+    config.discord.webhook_url = discord_webhook
     config.discord.username = os.getenv("DISCORD_USERNAME", "TailSentry")
     config.discord.avatar_url = os.getenv("DISCORD_AVATAR_URL")
     config.discord.embed_color = int(os.getenv("DISCORD_EMBED_COLOR", "0x3498db"), 16)
+    
+    # Discord Bot settings
+    config.discord_bot.enabled = os.getenv("DISCORD_BOT_ENABLED", "false").lower() == "true"
+    config.discord_bot.bot_token = os.getenv("DISCORD_BOT_TOKEN")
+    config.discord_bot.allowed_users = os.getenv("DISCORD_ALLOWED_USERS", "").split(",") if os.getenv("DISCORD_ALLOWED_USERS") else []
+    config.discord_bot.command_prefix = os.getenv("DISCORD_COMMAND_PREFIX", "!")
+    config.discord_bot.log_channel_id = os.getenv("DISCORD_LOG_CHANNEL_ID")
+    config.discord_bot.status_channel_id = os.getenv("DISCORD_STATUS_CHANNEL_ID")
+    
+    # Add computed fields for frontend
+    config.discord.has_webhook_url = bool(config.discord.webhook_url)
     
     # Load additional config from JSON file if it exists
     if NOTIFICATIONS_CONFIG_FILE.exists():
@@ -263,6 +340,10 @@ def save_notification_settings(config: NotificationSettings) -> bool:
             "DISCORD_ENABLED": str(config.discord.enabled).lower(),
             "DISCORD_USERNAME": config.discord.username,
             "DISCORD_EMBED_COLOR": hex(config.discord.embed_color),
+            
+            # Discord Bot
+            "DISCORD_BOT_ENABLED": str(config.discord_bot.enabled).lower(),
+            "DISCORD_COMMAND_PREFIX": config.discord_bot.command_prefix,
         }
         
         # Add sensitive values if they exist
@@ -276,6 +357,14 @@ def save_notification_settings(config: NotificationSettings) -> bool:
             env_vars["DISCORD_WEBHOOK_URL"] = config.discord.webhook_url
         if config.discord.avatar_url:
             env_vars["DISCORD_AVATAR_URL"] = config.discord.avatar_url
+        if config.discord_bot.bot_token:
+            env_vars["DISCORD_BOT_TOKEN"] = config.discord_bot.bot_token
+        if config.discord_bot.allowed_users:
+            env_vars["DISCORD_ALLOWED_USERS"] = ",".join(config.discord_bot.allowed_users)
+        if config.discord_bot.log_channel_id:
+            env_vars["DISCORD_LOG_CHANNEL_ID"] = config.discord_bot.log_channel_id
+        if config.discord_bot.status_channel_id:
+            env_vars["DISCORD_STATUS_CHANNEL_ID"] = config.discord_bot.status_channel_id
         
         # Write to .env file
         for key, value in env_vars.items():
@@ -313,7 +402,7 @@ class NotificationService:
     def __init__(self):
         self.rate_limit_cache = {}
         
-    async def send_notification(self, event_type: str, **kwargs) -> Dict[str, Any]:
+    async def send_notification(self, event_type: str, channel: str = "all", **kwargs) -> Dict[str, Any]:
         """Send notification for a specific event"""
         config = get_current_notification_settings()
         
@@ -338,17 +427,24 @@ class NotificationService:
         title = template["title"].format(**kwargs)
         message = template["message"].format(**kwargs)
         
+        logger.info(f"Sending notification to channel: {channel}")
+        logger.info(f"Discord enabled: {config.discord.enabled}")
+        logger.info(f"Discord webhook URL configured: {bool(config.discord.webhook_url)}")
+        
         results = {}
         
-        # Send via enabled channels
-        if config.smtp.enabled:
+        # Send via enabled channels (filter by channel if specified)
+        if channel in ["all", "smtp"] and config.smtp.enabled:
             results["smtp"] = await self._send_smtp(config.smtp, title, message)
         
-        if config.telegram.enabled:
+        if channel in ["all", "telegram"] and config.telegram.enabled:
             results["telegram"] = await self._send_telegram(config.telegram, title, message)
         
-        if config.discord.enabled:
+        if channel in ["all", "discord"] and config.discord.enabled:
+            logger.info("Attempting to send Discord notification")
             results["discord"] = await self._send_discord(config.discord, title, message)
+        else:
+            logger.info(f"Discord not sent - channel: {channel}, enabled: {config.discord.enabled}")
         
         # Update rate limit
         if config.rate_limit_enabled:
@@ -456,7 +552,10 @@ class NotificationService:
         """Send Discord notification"""
         try:
             if not discord_config.webhook_url:
+                logger.error("Discord webhook URL not configured")
                 return {"success": False, "error": "Discord webhook URL not configured"}
+            
+            logger.info(f"Sending Discord notification to webhook: {discord_config.webhook_url[:50]}...")
                 
             embed = {
                 "title": title,
@@ -476,16 +575,23 @@ class NotificationService:
             if discord_config.avatar_url:
                 payload["avatar_url"] = discord_config.avatar_url
             
+            logger.info(f"Discord payload: {payload}")
+            
             async with httpx.AsyncClient() as client:
                 response = await client.post(discord_config.webhook_url, json=payload, timeout=30)
                 
+                logger.info(f"Discord response status: {response.status_code}")
+                logger.info(f"Discord response text: {response.text}")
+                
                 if response.status_code in [200, 204]:
+                    logger.info("Discord notification sent successfully")
                     return {"success": True, "message": "Discord message sent successfully"}
                 else:
+                    logger.error(f"Discord webhook error: {response.status_code} - {response.text}")
                     return {"success": False, "error": f"Discord webhook error: {response.status_code}"}
                     
         except Exception as e:
-            logger.error(f"Discord notification failed: {e}")
+            logger.error(f"Discord notification failed: {e}", exc_info=True)
             return {"success": False, "error": str(e)}
     
     def _is_rate_limited(self) -> bool:
@@ -623,14 +729,17 @@ async def test_notification(request: Request, test_data: dict):
     
     try:
         channel = test_data.get("channel", "all")
+        logger.info(f"Testing notifications for channel: {channel}")
         
         # Send test notification
         result = await notification_service.send_notification(
             "system_startup",
+            channel=channel,
             timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             device_name="test-device"
         )
         
+        logger.info(f"Test notification result: {result}")
         return {
             "success": result["success"],
             "message": "Test notification sent",

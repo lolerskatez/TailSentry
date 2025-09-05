@@ -73,6 +73,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Failed to send startup notification: {e}")
     
+    # Start Discord bot if configured
+    try:
+        from services.discord_bot import start_discord_bot
+        await start_discord_bot()
+    except Exception as e:
+        logger.warning(f"Failed to start Discord bot: {e}")
+    
     yield
     
     # Shutdown

@@ -242,6 +242,11 @@ async def get_peers(request: Request):
                         "tailscale_hostname": current_hostname,
                         "timestamp": int(time.time())
                     }
+                    # Check if current device is advertising subnets
+                    if isinstance(self_info, dict):
+                        advertised_routes = self_info.get("AdvertisedRoutes", [])
+                        device["isAdvertisingSubnets"] = bool(advertised_routes and 
+                            any(route not in ('0.0.0.0/0', '::/0') for route in advertised_routes))
                     break
             
             peers_data = {"peers": devices_with_tailsentry}
@@ -257,6 +262,10 @@ async def get_peers(request: Request):
                     if isinstance(peer, dict):
                         peer_data = peer.copy()
                         peer_data["id"] = peer.get("ID", peer_id)
+                        # Add subnet advertising detection
+                        advertised_routes = peer.get("AdvertisedRoutes", [])
+                        peer_data["isAdvertisingSubnets"] = bool(advertised_routes and 
+                            any(route not in ('0.0.0.0/0', '::/0') for route in advertised_routes))
                         peers_array.append(peer_data)
                 
                 # Check TailSentry instances for fallback devices too

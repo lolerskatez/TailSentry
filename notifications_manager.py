@@ -159,16 +159,98 @@ class NotificationManager:
             logger.error(f"Failed to send backup completed notification: {e}")
     
     @staticmethod
-    async def notify_backup_failed(error: str):
-        """Send backup failed notification"""
+    async def notify_user_created(username: str, display_name: str, role: str, created_by: str):
+        """Send user creation notification"""
         try:
             await notification_service.send_notification(
-                "backup_failed",
-                error=error,
+                "user_created",
+                username=username,
+                display_name=display_name,
+                role=role,
+                created_by=created_by,
                 timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             )
         except Exception as e:
-            logger.error(f"Failed to send backup failed notification: {e}")
+            logger.error(f"Failed to send user creation notification: {e}")
+    
+    @staticmethod
+    async def notify_user_login(username: str, ip_address: str):
+        """Send user login notification"""
+        try:
+            await notification_service.send_notification(
+                "user_login",
+                username=username,
+                ip_address=ip_address,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send user login notification: {e}")
+    
+    @staticmethod
+    async def notify_user_login_failed(username: str, ip_address: str):
+        """Send failed login notification"""
+        try:
+            await notification_service.send_notification(
+                "user_login_failed",
+                username=username,
+                ip_address=ip_address,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send failed login notification: {e}")
+    
+    @staticmethod
+    async def notify_user_password_changed(username: str):
+        """Send password change notification"""
+        try:
+            await notification_service.send_notification(
+                "user_password_changed",
+                username=username,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send password change notification: {e}")
+    
+    @staticmethod
+    async def notify_user_deleted(username: str, display_name: str, deleted_by: str):
+        """Send user deletion notification"""
+        try:
+            await notification_service.send_notification(
+                "user_deleted",
+                username=username,
+                display_name=display_name,
+                deleted_by=deleted_by,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send user deletion notification: {e}")
+    
+    @staticmethod
+    async def notify_user_role_changed(username: str, old_role: str, new_role: str, changed_by: str):
+        """Send user role change notification"""
+        try:
+            await notification_service.send_notification(
+                "user_role_changed",
+                username=username,
+                old_role=old_role,
+                new_role=new_role,
+                changed_by=changed_by,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send user role change notification: {e}")
+    
+    @staticmethod
+    async def notify_security_settings_changed(user: str):
+        """Send security settings change notification"""
+        try:
+            await notification_service.send_notification(
+                "security_settings_changed",
+                user=user,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send security settings change notification: {e}")
     
     @staticmethod
     async def notify_custom(event_type: str, **kwargs):
@@ -214,3 +296,31 @@ async def notify_backup_completed():
 async def notify_backup_failed(error: str):
     """Helper function for backup failed notification"""
     await notifications.notify_backup_failed(error)
+
+async def notify_user_created(username: str, display_name: str, role: str, created_by: str):
+    """Helper function for user creation notification"""
+    await notifications.notify_user_created(username, display_name, role, created_by)
+
+async def notify_user_login(username: str, ip_address: str):
+    """Helper function for user login notification"""
+    await notifications.notify_user_login(username, ip_address)
+
+async def notify_user_login_failed(username: str, ip_address: str):
+    """Helper function for failed login notification"""
+    await notifications.notify_user_login_failed(username, ip_address)
+
+async def notify_user_password_changed(username: str):
+    """Helper function for password change notification"""
+    await notifications.notify_user_password_changed(username)
+
+async def notify_user_deleted(username: str, display_name: str, deleted_by: str):
+    """Helper function for user deletion notification"""
+    await notifications.notify_user_deleted(username, display_name, deleted_by)
+
+async def notify_user_role_changed(username: str, old_role: str, new_role: str, changed_by: str):
+    """Helper function for user role change notification"""
+    await notifications.notify_user_role_changed(username, old_role, new_role, changed_by)
+
+async def notify_security_settings_changed(user: str):
+    """Helper function for security settings change notification"""
+    await notifications.notify_security_settings_changed(user)
