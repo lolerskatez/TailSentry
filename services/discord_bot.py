@@ -41,10 +41,25 @@ class TailSentryDiscordBot:
         self.log_channel_id = log_channel_id
         self.status_channel_id = status_channel_id
 
-        # Create bot with command prefix
-        intents = discord.Intents.default()
-        intents.message_content = True
-        self.bot = commands.Bot(command_prefix=command_prefix, intents=intents)
+        # Create bot with minimal intents to avoid privileged intent requirements
+        intents = discord.Intents.none()
+        intents.messages = True
+        intents.guilds = True
+        # Note: message_content intent is now privileged and requires special approval
+        
+        # Set default permissions for the bot
+        default_permissions = discord.Permissions(
+            view_channel=True,
+            send_messages=True,
+            read_message_history=True
+        )
+        
+        self.bot = commands.Bot(
+            command_prefix=command_prefix, 
+            intents=intents, 
+            help_command=None,
+            default_permissions=default_permissions
+        )
 
         # Register commands
         self._register_commands()

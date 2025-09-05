@@ -575,7 +575,7 @@ class NotificationService:
             if discord_config.avatar_url:
                 payload["avatar_url"] = discord_config.avatar_url
             
-            logger.info(f"Discord payload: {payload}")
+            logger.info("Discord payload sent successfully")
             
             async with httpx.AsyncClient() as client:
                 response = await client.post(discord_config.webhook_url, json=payload, timeout=30)
