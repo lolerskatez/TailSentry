@@ -329,17 +329,26 @@ def apply_all_settings_to_tailscale(settings):
     else:
         logger.info("Exit node disabled, not adding exit node flag")
     
-    # Apply advertised routes only if we have any (for subnet routing)
+    # Apply advertised routes using the correct method
     if advertised_routes:
-        args.extend(["--advertise-routes", ",".join(advertised_routes)])
-        logger.info(f"Final advertised routes: {advertised_routes}")
+        # Use tailscale set for advertised routes (correct approach for running nodes)
+        result = TailscaleClient._set_advertised_routes(advertised_routes)
+        if result is not True:
+            logger.error(f"Failed to set advertised routes: {result}")
+            return result
+        logger.info(f"Advertised routes set successfully: {advertised_routes}")
     else:
-        logger.info("No subnet routes to advertise")
+        # Clear advertised routes if none specified
+        result = TailscaleClient._set_advertised_routes([])
+        if result is not True:
+            logger.error(f"Failed to clear advertised routes: {result}")
+            return result
+        logger.info("Advertised routes cleared successfully")
     
-    # Log the complete command for debugging
-    logger.info(f"Applying Tailscale configuration with args: {args}")
+    # For other settings that require tailscale up, we could add them here
+    # But for now, advertised routes are the main setting that needs updating
     
-    return TailscaleClient.up(extra_args=args)
+    return True
 
 @router.post("/api/subnet-routes")
 async def set_subnet_routes(request: Request):
