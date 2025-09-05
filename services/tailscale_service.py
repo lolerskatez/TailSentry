@@ -772,32 +772,49 @@ class TailscaleClient:
     @staticmethod
     def subnet_routes() -> List[str]:
         """Get all advertised subnet routes for this device"""
-        status = TailscaleClient.status_json()
-        if isinstance(status, dict) and "error" in status:
-            logger.warning(f"Error getting subnet routes: {status['error']}")
+        try:
+            # Use tailscale status command to get advertised routes
+            tailscale_path = TailscaleClient.get_tailscale_path()
+            cmd = [tailscale_path, "status", "--json"]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=10)
+            
+            if result.returncode == 0:
+                status = json.loads(result.stdout)
+                self_obj = safe_get_dict(status, "Self")
+                
+                # Check if there's an AdvertisedRoutes field
+                advertised_routes = self_obj.get("AdvertisedRoutes", [])
+                if advertised_routes:
+                    # Filter out exit node routes
+                    subnet_routes = [route for route in advertised_routes if route not in ("0.0.0.0/0", "::/0")]
+                    logger.info(f"Advertised subnet routes from status: {subnet_routes}")
+                    return subnet_routes
+                
+                # Fallback: try to get from AllowedIPs but be more careful
+                allowed_ips = self_obj.get("AllowedIPs", [])
+                tailscale_ip = None
+                for ip in allowed_ips:
+                    if ip.endswith("/32") or ip.endswith("/128"):
+                        tailscale_ip = ip
+                        break
+                
+                subnet_routes = []
+                for ip in allowed_ips:
+                    if (ip not in ("0.0.0.0/0", "::/0") and 
+                        ip != tailscale_ip and 
+                        not (ip.endswith("/32") or ip.endswith("/128"))):
+                        subnet_routes.append(ip)
+                
+                logger.info(f"Advertised subnet routes from AllowedIPs: {subnet_routes}")
+                return subnet_routes
+            else:
+                logger.warning(f"Tailscale status command failed: {result.stderr}")
+                return []
+                
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, json.JSONDecodeError) as e:
+            logger.error(f"Error getting subnet routes: {e}")
             return []
-        self_obj = safe_get_dict(status, "Self")
-        allowed_ips = self_obj.get("AllowedIPs", [])
-        
-        # Get the node's own Tailscale IP (should be /32 or /128)
-        tailscale_ip = None
-        for ip in allowed_ips:
-            if ip.endswith("/32") or ip.endswith("/128"):
-                tailscale_ip = ip
-                break
-        
-        # Filter out the node's own Tailscale IP and exit node routes (0.0.0.0/0, ::/0)
-        # The remaining IPs should be the advertised subnet routes
-        subnet_routes = []
-        for ip in allowed_ips:
-            if (ip not in ("0.0.0.0/0", "::/0") and 
-                ip != tailscale_ip and 
-                not (ip.endswith("/32") or ip.endswith("/128"))):
-                # This should be a subnet route
-                subnet_routes.append(ip)
-        
-        logger.info(f"Advertised subnet routes from AllowedIPs: {subnet_routes}")
-        return subnet_routes
             
     @staticmethod
     def detect_local_subnets() -> List[Dict[str, str]]:
