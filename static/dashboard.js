@@ -494,6 +494,48 @@ function enhancedDashboard() {
       }, 2000);
     },
 
+    // === TailSentry Device Management ===
+    async manageTailsentryDevice(device, action) {
+      if (!device || !device.isTailsentry) {
+        this.showToast('Device is not a TailSentry instance', 'error');
+        return;
+      }
+
+      const deviceName = device.hostname || device.ip;
+      this.showToast(`Attempting to ${action} TailSentry on ${deviceName}...`, 'info');
+
+      try {
+        const response = await fetch(`/api/tailsentry/${device.id}/${action}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to ${action} TailSentry service`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+          this.showToast(`TailSentry ${action} completed successfully on ${deviceName}`, 'success');
+          
+          // Refresh device data after action
+          setTimeout(() => {
+            this.loadPeers();
+          }, 1000);
+        } else {
+          throw new Error(result.error || `Failed to ${action} TailSentry service`);
+        }
+
+      } catch (error) {
+        console.error(`TailSentry ${action} error:`, error);
+        this.showToast(`Failed to ${action} TailSentry on ${deviceName}: ${error.message}`, 'error');
+      }
+    },
+
     // === Utility Functions ===
     formatLastSeen(lastSeen) {
       if (!lastSeen || lastSeen === 'Never' || lastSeen === 'unknown') return 'Never';

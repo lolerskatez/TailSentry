@@ -221,6 +221,16 @@
                       class="text-xs px-2 py-1 bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400 rounded">
                   Tagged
                 </span>
+                <span x-show="device.isTailsentry" 
+                      class="text-xs px-2 py-1 bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 rounded">
+                  TailSentry
+                  <span x-show="device.tailsentry_status === 'healthy'" 
+                        class="ml-1 opacity-75">✓</span>
+                  <span x-show="device.tailsentry_status === 'timeout'" 
+                        class="ml-1 opacity-75">⏱</span>
+                  <span x-show="device.tailsentry_status === 'connection_error'" 
+                        class="ml-1 opacity-75">⚠</span>
+                </span>
               </div>
             </div>
           </template>
@@ -439,6 +449,65 @@
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400">
                 Tagged
               </span>
+              <span x-show="selectedDevice?.isTailsentry" 
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400">
+                TailSentry
+                <span x-show="selectedDevice?.tailsentry_status === 'healthy'" 
+                      class="ml-1">✓ Healthy</span>
+                <span x-show="selectedDevice?.tailsentry_status === 'timeout'" 
+                      class="ml-1">⏱ Timeout</span>
+                <span x-show="selectedDevice?.tailsentry_status === 'connection_error'" 
+                      class="ml-1">⚠ Connection Error</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- TailSentry Management -->
+          <div x-show="selectedDevice?.isTailsentry" class="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">TailSentry Management</h4>
+            <div class="space-y-4">
+              <!-- TailSentry Info -->
+              <div x-show="selectedDevice?.tailsentry_info" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <h5 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Instance Details</h5>
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <dt class="font-medium text-gray-500 dark:text-gray-400">Version</dt>
+                    <dd class="mt-1 text-gray-900 dark:text-white" x-text="selectedDevice?.tailsentry_info?.version || 'Unknown'"></dd>
+                  </div>
+                  <div>
+                    <dt class="font-medium text-gray-500 dark:text-gray-400">System</dt>
+                    <dd class="mt-1 text-gray-900 dark:text-white" x-text="selectedDevice?.tailsentry_info?.system || 'Unknown'"></dd>
+                  </div>
+                  <div>
+                    <dt class="font-medium text-gray-500 dark:text-gray-400">Hostname</dt>
+                    <dd class="mt-1 text-gray-900 dark:text-white" x-text="selectedDevice?.tailsentry_info?.hostname || 'Unknown'"></dd>
+                  </div>
+                  <div>
+                    <dt class="font-medium text-gray-500 dark:text-gray-400">Last Check</dt>
+                    <dd class="mt-1 text-gray-900 dark:text-white" x-text="formatLastSeen(selectedDevice?.tailsentry_info?.timestamp)"></dd>
+                  </div>
+                </dl>
+              </div>
+
+              <!-- Management Actions -->
+              <div class="flex flex-wrap gap-2">
+                <button @click="manageTailsentryDevice(selectedDevice, 'restart')"
+                        class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
+                  Restart Service
+                </button>
+                <button @click="manageTailsentryDevice(selectedDevice, 'stop')"
+                        class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors">
+                  Stop Service
+                </button>
+                <button @click="manageTailsentryDevice(selectedDevice, 'logs')"
+                        class="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition-colors">
+                  View Logs
+                </button>
+                <button @click="manageTailsentryDevice(selectedDevice, 'config')"
+                        class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors">
+                  Edit Config
+                </button>
+              </div>
             </div>
           </div>
         </div>

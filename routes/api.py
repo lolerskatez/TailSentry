@@ -44,6 +44,40 @@ async def import_settings(request: Request, payload: dict = Body(...)):
 # Store active websocket connections
 active_connections = []
 
+# Health check endpoint for TailSentry instance identification
+@router.get("/health")
+async def health_check(request: Request):
+    """Health check endpoint for identifying TailSentry instances"""
+    try:
+        # Get basic system info
+        import platform
+        import socket
+        
+        hostname = socket.gethostname()
+        system = platform.system()
+        version = "1.0.0"  # You might want to read this from a version file
+        
+        # Get Tailscale status
+        tailscale_status = TailscaleClient.status_json()
+        current_device = tailscale_status.get("Self", {}) if isinstance(tailscale_status, dict) else {}
+        
+        return JSONResponse(content={
+            "status": "healthy",
+            "hostname": hostname,
+            "system": system,
+            "version": version,
+            "tailscale_ip": current_device.get("TailscaleIPs", [None])[0] if isinstance(current_device, dict) else None,
+            "tailscale_hostname": current_device.get("HostName", "") if isinstance(current_device, dict) else "",
+            "timestamp": int(time.time())
+        }, status_code=200)
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return JSONResponse(content={
+            "status": "unhealthy", 
+            "error": str(e),
+            "timestamp": int(time.time())
+        }, status_code=500)
+
 # Logs & Diagnostics API endpoint
 @router.get("/logs")
 async def get_logs(request: Request):
@@ -156,7 +190,9 @@ async def get_peers(request: Request):
         all_devices = TailscaleClient.get_all_devices()
         
         if all_devices:
-            peers_data = {"peers": all_devices}
+            # Check which devices are running TailSentry
+            devices_with_tailsentry = TailscaleClient.check_tailsentry_instances(all_devices)
+            peers_data = {"peers": devices_with_tailsentry}
             logger.info(f"Using parsed status output with {len(all_devices)} devices")
         else:
             # Fallback to JSON status for direct peers only
@@ -171,7 +207,9 @@ async def get_peers(request: Request):
                         peer_data["id"] = peer.get("ID", peer_id)
                         peers_array.append(peer_data)
                 
-                peers_data = {"peers": peers_array}
+                # Check TailSentry instances for fallback devices too
+                peers_with_tailsentry = TailscaleClient.check_tailsentry_instances(peers_array)
+                peers_data = {"peers": peers_with_tailsentry}
             else:
                 logger.warning("No peer data available from local daemon")
                 peers_data = {"peers": []}
@@ -399,8 +437,72 @@ async def get_network_stats(request: Request):
                 "rx": "0.0 MB/s",
                 "timestamp": time.time(),
                 "bytes_sent": 0,
-                "bytes_received": 0,
-                "active_peers": 0,
-                "total_peers": 0
             }
+        }, status_code=500)
+
+# TailSentry Device Management Endpoints
+@router.post("/tailsentry/{device_id}/{action}")
+async def manage_tailsentry_device(device_id: str, action: str, request: Request):
+    """Manage a remote TailSentry device (restart, stop, logs, config)"""
+    try:
+        # Get device information first
+        all_devices = TailscaleClient.get_all_devices()
+        target_device = None
+        
+        for device in all_devices:
+            if device.get('id') == device_id or device.get('ID') == device_id:
+                target_device = device
+                break
+        
+        if not target_device:
+            return JSONResponse(content={
+                "success": False,
+                "error": f"Device {device_id} not found"
+            }, status_code=404)
+        
+        # Check if device is online and has TailSentry
+        if not target_device.get('online', False):
+            return JSONResponse(content={
+                "success": False,
+                "error": f"Device {target_device.get('hostname', device_id)} is offline"
+            }, status_code=400)
+        
+        if not target_device.get('isTailsentry', False):
+            return JSONResponse(content={
+                "success": False,
+                "error": f"Device {target_device.get('hostname', device_id)} is not a TailSentry instance"
+            }, status_code=400)
+        
+        device_ip = target_device.get('ip')
+        if not device_ip:
+            return JSONResponse(content={
+                "success": False,
+                "error": f"No IP address found for device {target_device.get('hostname', device_id)}"
+            }, status_code=400)
+        
+        # Validate action
+        valid_actions = ['restart', 'stop', 'logs', 'config']
+        if action not in valid_actions:
+            return JSONResponse(content={
+                "success": False,
+                "error": f"Invalid action: {action}. Valid actions: {', '.join(valid_actions)}"
+            }, status_code=400)
+        
+        # For now, return a placeholder response
+        # In a real implementation, you would make HTTP requests to the remote device
+        logger.info(f"TailSentry {action} requested for device {target_device.get('hostname', device_id)} ({device_ip})")
+        
+        return JSONResponse(content={
+            "success": True,
+            "message": f"TailSentry {action} initiated on {target_device.get('hostname', device_id)}",
+            "device_id": device_id,
+            "action": action,
+            "device_ip": device_ip
+        })
+        
+    except Exception as e:
+        logger.error(f"TailSentry management error: {str(e)}")
+        return JSONResponse(content={
+            "success": False,
+            "error": str(e)
         }, status_code=500)

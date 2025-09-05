@@ -1705,6 +1705,76 @@ class TailscaleClient:
             
         return TailscaleClient._api_request('get', f'/tailnet/TAILNET/devices/{device_id}')
 
+    @staticmethod
+    def check_tailsentry_instances(devices):
+        """Check which devices are running TailSentry by pinging their health endpoints"""
+        import asyncio
+        import aiohttp
+        
+        async def check_device(device):
+            """Check if a single device is running TailSentry"""
+            try:
+                ip = device.get("ip", "").strip()
+                if not ip:
+                    return {**device, "isTailsentry": False, "tailsentry_status": "no_ip"}
+                
+                # Try to connect to the TailSentry health endpoint
+                url = f"http://{ip}:8080/health"
+                timeout = aiohttp.ClientTimeout(total=5)  # 5 second timeout
+                
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.get(url) as response:
+                        if response.status == 200:
+                            health_data = await response.json()
+                            return {
+                                **device,
+                                "isTailsentry": True,
+                                "tailsentry_status": "healthy",
+                                "tailsentry_info": health_data
+                            }
+                        else:
+                            return {**device, "isTailsentry": False, "tailsentry_status": f"http_{response.status}"}
+                            
+            except asyncio.TimeoutError:
+                return {**device, "isTailsentry": False, "tailsentry_status": "timeout"}
+            except aiohttp.ClientError as e:
+                return {**device, "isTailsentry": False, "tailsentry_status": f"connection_error"}
+            except Exception as e:
+                logger.warning(f"Error checking TailSentry status for {device.get('hostname', 'unknown')}: {str(e)}")
+                return {**device, "isTailsentry": False, "tailsentry_status": "error"}
+        
+        async def check_all_devices():
+            """Check all devices concurrently"""
+            tasks = [check_device(device) for device in devices]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Handle any exceptions that occurred
+            processed_results = []
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    logger.error(f"Exception checking device {devices[i].get('hostname', 'unknown')}: {str(result)}")
+                    processed_results.append({
+                        **devices[i],
+                        "isTailsentry": False,
+                        "tailsentry_status": "check_failed"
+                    })
+                else:
+                    processed_results.append(result)
+            
+            return processed_results
+        
+        # Run the async check
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            result = loop.run_until_complete(check_all_devices())
+            loop.close()
+            return result
+        except Exception as e:
+            logger.error(f"Error in TailSentry instance checking: {str(e)}")
+            # Return devices with default status if checking fails
+            return [{**device, "isTailsentry": False, "tailsentry_status": "check_error"} for device in devices]
+
 
 class NetworkViz:
     """Helper class for network visualization"""
