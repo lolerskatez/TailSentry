@@ -241,6 +241,237 @@ class NotificationManager:
             logger.error(f"Failed to send user role change notification: {e}")
     
     @staticmethod
+    async def notify_backup_failed(error: str):
+        """Send backup failed notification"""
+        try:
+            await notification_service.send_notification(
+                "backup_failed",
+                error=error,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send backup failed notification: {e}")
+    
+    @staticmethod
+    async def notify_new_device_detected(device_name: str, device_id: str, os: str, ip_address: str):
+        """Send new device detected notification"""
+        try:
+            await notification_service.send_notification(
+                "new_device_detected",
+                device_name=device_name,
+                device_id=device_id,
+                os=os,
+                ip_address=ip_address,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send new device notification: {e}")
+    
+    @staticmethod
+    async def notify_high_cpu_usage(cpu_percentage: float, threshold: float, duration: str, hostname: str):
+        """Send high CPU usage notification"""
+        try:
+            await notification_service.send_notification(
+                "high_cpu_usage",
+                cpu_percentage=cpu_percentage,
+                threshold=threshold,
+                duration=duration,
+                hostname=hostname,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send high CPU usage notification: {e}")
+    
+    @staticmethod
+    async def notify_high_memory_usage(memory_percentage: float, threshold: float, memory_used: str, memory_total: str, hostname: str):
+        """Send high memory usage notification"""
+        try:
+            await notification_service.send_notification(
+                "high_memory_usage",
+                memory_percentage=memory_percentage,
+                threshold=threshold,
+                memory_used=memory_used,
+                memory_total=memory_total,
+                hostname=hostname,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send high memory usage notification: {e}")
+    
+    @staticmethod
+    async def notify_disk_space_low(disk_path: str, disk_used: str, disk_total: str, disk_percentage: float, disk_free: str):
+        """Send low disk space notification"""
+        try:
+            await notification_service.send_notification(
+                "disk_space_low",
+                disk_path=disk_path,
+                disk_used=disk_used,
+                disk_total=disk_total,
+                disk_percentage=disk_percentage,
+                disk_free=disk_free,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send disk space notification: {e}")
+    
+    @staticmethod
+    async def notify_certificate_expiring(domain: str, days_remaining: int, expiry_date: str):
+        """Send certificate expiring notification"""
+        try:
+            await notification_service.send_notification(
+                "certificate_expiring",
+                domain=domain,
+                days_remaining=days_remaining,
+                expiry_date=expiry_date,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send certificate expiring notification: {e}")
+    
+    @staticmethod
+    async def notify_suspicious_activity(activity_type: str, source_ip: str, details: str):
+        """Send suspicious activity notification"""
+        try:
+            await notification_service.send_notification(
+                "suspicious_activity",
+                activity_type=activity_type,
+                source_ip=source_ip,
+                details=details,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send suspicious activity notification: {e}")
+    
+    @staticmethod
+    async def notify_multiple_failed_logins(username: str, source_ip: str, attempt_count: int, time_window: str):
+        """Send multiple failed logins notification"""
+        try:
+            await notification_service.send_notification(
+                "multiple_failed_logins",
+                username=username,
+                source_ip=source_ip,
+                attempt_count=attempt_count,
+                time_window=time_window,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send multiple failed logins notification: {e}")
+    
+    @staticmethod
+    async def notify_service_failure(service_name: str, error_message: str, last_success: str, restart_attempts: int):
+        """Send service failure notification"""
+        try:
+            await notification_service.send_notification(
+                "service_failure",
+                service_name=service_name,
+                error_message=error_message,
+                last_success=last_success,
+                restart_attempts=restart_attempts,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send service failure notification: {e}")
+    
+    @staticmethod
+    async def notify_discord_bot_connected(bot_name: str, guild_count: int, command_count: int):
+        """Send Discord bot connected notification"""
+        try:
+            await notification_service.send_notification(
+                "discord_bot_connected",
+                bot_name=bot_name,
+                guild_count=guild_count,
+                command_count=command_count,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send Discord bot connected notification: {e}")
+    
+    @staticmethod
+    async def notify_discord_bot_disconnected(bot_name: str, disconnect_reason: str, uptime: str, auto_reconnect: bool):
+        """Send Discord bot disconnected notification"""
+        try:
+            await notification_service.send_notification(
+                "discord_bot_disconnected",
+                bot_name=bot_name,
+                disconnect_reason=disconnect_reason,
+                uptime=uptime,
+                auto_reconnect=auto_reconnect,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send Discord bot disconnected notification: {e}")
+    
+    @staticmethod
+    async def notify_device_key_expiring(device_name: str, days_remaining: int, expiry_date: str):
+        """Send device key expiring notification"""
+        try:
+            await notification_service.send_notification(
+                "device_key_expiring",
+                device_name=device_name,
+                days_remaining=days_remaining,
+                expiry_date=expiry_date,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send device key expiring notification: {e}")
+    
+    @staticmethod
+    async def notify_tailscale_update_available(new_version: str, current_version: str):
+        """Send Tailscale update available notification"""
+        try:
+            await notification_service.send_notification(
+                "tailscale_update_available",
+                new_version=new_version,
+                current_version=current_version,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send Tailscale update notification: {e}")
+    
+    @staticmethod
+    async def notify_update_available(new_version: str, current_version: str, changelog_url: str):
+        """Send TailSentry update available notification"""
+        try:
+            await notification_service.send_notification(
+                "update_available",
+                new_version=new_version,
+                current_version=current_version,
+                changelog_url=changelog_url,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send update available notification: {e}")
+    
+    @staticmethod
+    async def notify_database_backup(backup_file: str, backup_size: str, duration: str):
+        """Send database backup notification"""
+        try:
+            await notification_service.send_notification(
+                "database_backup",
+                backup_file=backup_file,
+                backup_size=backup_size,
+                duration=duration,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send database backup notification: {e}")
+    
+    @staticmethod
+    async def notify_webhook_failure(webhook_url: str, status_code: int, error_message: str, retry_count: int):
+        """Send webhook failure notification"""
+        try:
+            await notification_service.send_notification(
+                "webhook_failure",
+                webhook_url=webhook_url,
+                status_code=status_code,
+                error_message=error_message,
+                retry_count=retry_count,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+        except Exception as e:
+            logger.error(f"Failed to send webhook failure notification: {e}")
+    
+    @staticmethod
     async def notify_security_settings_changed(user: str):
         """Send security settings change notification"""
         try:

@@ -235,6 +235,81 @@ DEFAULT_TEMPLATES = {
         "title": "❌ Backup Failed",
         "message": "Configuration backup failed: {error}",
         "enabled": True
+    },
+    "new_device_detected": {
+        "title": "🖥️ New Device Joined Tailnet",
+        "message": "New device '{device_name}' ({device_id}) joined the Tailnet\nOS: {os}\nIP: {ip_address}\nFirst Seen: {timestamp}",
+        "enabled": True
+    },
+    "high_cpu_usage": {
+        "title": "🔥 High CPU Usage Alert",
+        "message": "CPU usage is at {cpu_percentage}% (threshold: {threshold}%)\nDuration: {duration}\nServer: {hostname}",
+        "enabled": True
+    },
+    "high_memory_usage": {
+        "title": "🧠 High Memory Usage Alert", 
+        "message": "Memory usage is at {memory_percentage}% (threshold: {threshold}%)\nUsed: {memory_used} / {memory_total}\nServer: {hostname}",
+        "enabled": True
+    },
+    "disk_space_low": {
+        "title": "💾 Low Disk Space Warning",
+        "message": "Disk space is low on {disk_path}\nUsed: {disk_used} / {disk_total} ({disk_percentage}%)\nFree space: {disk_free}",
+        "enabled": True
+    },
+    "certificate_expiring": {
+        "title": "🔐 SSL Certificate Expiring Soon",
+        "message": "SSL certificate for {domain} expires in {days_remaining} days\nExpiration Date: {expiry_date}\nAction required: Renew certificate",
+        "enabled": True
+    },
+    "suspicious_activity": {
+        "title": "🚨 Suspicious Activity Detected",
+        "message": "Suspicious activity detected: {activity_type}\nSource: {source_ip}\nDetails: {details}\nTime: {timestamp}",
+        "enabled": True
+    },
+    "multiple_failed_logins": {
+        "title": "🔒 Multiple Failed Login Attempts",
+        "message": "Multiple failed login attempts detected\nUser: {username}\nSource IP: {source_ip}\nAttempts: {attempt_count} in {time_window}\nLast attempt: {timestamp}",
+        "enabled": True
+    },
+    "service_failure": {
+        "title": "⚠️ Service Failure",
+        "message": "Service '{service_name}' has failed\nError: {error_message}\nLast successful run: {last_success}\nRestart attempts: {restart_attempts}",
+        "enabled": True
+    },
+    "discord_bot_connected": {
+        "title": "🤖 Discord Bot Connected",
+        "message": "Discord bot '{bot_name}' connected successfully\nGuilds: {guild_count}\nCommands available: {command_count}",
+        "enabled": True
+    },
+    "discord_bot_disconnected": {
+        "title": "🔌 Discord Bot Disconnected",
+        "message": "Discord bot '{bot_name}' disconnected\nReason: {disconnect_reason}\nUptime: {uptime}\nAuto-reconnect: {auto_reconnect}",
+        "enabled": True
+    },
+    "device_key_expiring": {
+        "title": "🔑 Device Key Expiring Soon",
+        "message": "Device key for '{device_name}' expires in {days_remaining} days\nExpiration: {expiry_date}\nAction: Reauthenticate device",
+        "enabled": True
+    },
+    "tailscale_update_available": {
+        "title": "🔄 Tailscale Update Available",
+        "message": "Tailscale update available: v{new_version}\nCurrent version: v{current_version}\nRun 'tailscale update' to upgrade",
+        "enabled": True
+    },
+    "update_available": {
+        "title": "📦 TailSentry Update Available",
+        "message": "TailSentry update available: v{new_version}\nCurrent version: v{current_version}\nChangelog: {changelog_url}",
+        "enabled": True
+    },
+    "database_backup": {
+        "title": "💾 Database Backup Completed",
+        "message": "Database backup completed successfully\nBackup file: {backup_file}\nSize: {backup_size}\nDuration: {duration}",
+        "enabled": False
+    },
+    "webhook_failure": {
+        "title": "🔗 Webhook Delivery Failed",
+        "message": "Failed to deliver webhook to {webhook_url}\nStatus: {status_code}\nError: {error_message}\nRetry attempt: {retry_count}",
+        "enabled": True
     }
 }
 
