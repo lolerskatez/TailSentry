@@ -46,6 +46,7 @@ class TailSentryDiscordBot:
         intents.messages = True
         intents.guilds = True
         # Note: message_content intent is now privileged and requires special approval
+        # We'll use slash commands instead which don't require message content access
         
         # Set default permissions for the bot
         default_permissions = discord.Permissions(
@@ -61,16 +62,32 @@ class TailSentryDiscordBot:
             default_permissions=default_permissions
         )
 
-        # Register commands
-        self._register_commands()
+        # Register slash commands
+        self._register_slash_commands()
+        self._register_events()
 
-    def _register_commands(self):
-        """Register bot commands"""
+    def _register_events(self):
+        """Register bot events"""
 
         @self.bot.event
         async def on_ready():
             logger.info(f"Discord bot logged in as {self.bot.user}")
+            logger.info(f"Bot ID: {self.bot.user.id}")
+            logger.info(f"Connected to {len(self.bot.guilds)} guilds")
             await self.bot.change_presence(activity=discord.Game(name="Monitoring TailSentry"))
+            # Sync slash commands
+            try:
+                logger.info("Attempting to sync slash commands...")
+                synced = await self.bot.tree.sync()
+                logger.info(f"Synced {len(synced)} slash commands")
+                for cmd in synced:
+                    logger.info(f"Registered command: /{cmd.name} - {cmd.description}")
+            except Exception as e:
+                logger.error(f"Failed to sync slash commands: {e}")
+                logger.error(f"Error details: {type(e).__name__}: {str(e)}")
+
+    def _register_commands(self):
+        """Register bot commands (prefix commands - legacy)"""
 
         @self.bot.event
         async def on_command_error(ctx, error):
@@ -184,6 +201,114 @@ class TailSentryDiscordBot:
 
             embed.set_footer(text="TailSentry Monitoring System")
             await ctx.send(embed=embed)
+
+    def _register_slash_commands(self):
+        """Register slash commands for the bot"""
+
+        @self.bot.tree.command(name="logs", description="Get recent logs from TailSentry")
+        @discord.app_commands.describe(lines="Number of lines to retrieve", level="Log level filter")
+        @discord.app_commands.choices(level=[
+            discord.app_commands.Choice(name="DEBUG", value="DEBUG"),
+            discord.app_commands.Choice(name="INFO", value="INFO"),
+            discord.app_commands.Choice(name="WARNING", value="WARNING"),
+            discord.app_commands.Choice(name="ERROR", value="ERROR"),
+            discord.app_commands.Choice(name="CRITICAL", value="CRITICAL")
+        ])
+        async def logs_slash(
+            interaction: discord.Interaction,
+            lines: int = 50,
+            level: Optional[str] = None
+        ):
+            """Get recent logs from TailSentry via slash command"""
+            try:
+                # Check permissions
+                if self.allowed_users and str(interaction.user.id) not in self.allowed_users and str(interaction.user) not in self.allowed_users:
+                    await interaction.response.send_message("❌ You don't have permission to view logs.", ephemeral=True)
+                    return
+
+                # Read logs
+                logs = await self._get_logs(lines, level)
+
+                if not logs:
+                    await interaction.response.send_message("📄 No logs found.", ephemeral=True)
+                    return
+
+                # Format logs
+                log_content = f"```\n{logs}\n```"
+
+                # Discord has a 2000 character limit per message
+                if len(log_content) > 2000:
+                    # Split into multiple messages
+                    chunks = [log_content[i:i+1990] for i in range(0, len(log_content), 1990)]
+                    await interaction.response.send_message(f"📄 **TailSentry Logs** (Last {lines} lines{f', Level: {level}' if level else ''}):")
+                    for i, chunk in enumerate(chunks[:5]):  # Limit to 5 messages
+                        if i > 0:
+                            await interaction.followup.send(chunk)
+                    if len(chunks) > 5:
+                        await interaction.followup.send("⚠️ Log output truncated due to length.")
+                else:
+                    await interaction.response.send_message(f"📄 **TailSentry Logs** (Last {lines} lines{f', Level: {level}' if level else ''}):\n{log_content}")
+
+            except Exception as e:
+                logger.error(f"Error in logs slash command: {e}")
+                await interaction.response.send_message("❌ Failed to retrieve logs.", ephemeral=True)
+
+        @self.bot.tree.command(name="status", description="Get TailSentry status")
+        async def status_slash(interaction: discord.Interaction):
+            """Get basic TailSentry status via slash command"""
+            try:
+                # Check permissions
+                if self.allowed_users and str(interaction.user.id) not in self.allowed_users and str(interaction.user) not in self.allowed_users:
+                    await interaction.response.send_message("❌ You don't have permission to view status.", ephemeral=True)
+                    return
+
+                # Get basic status info
+                status_info = await self._get_status()
+
+                embed = discord.Embed(
+                    title="🖥️ TailSentry Status",
+                    color=0x3498db,
+                    timestamp=datetime.utcnow()
+                )
+
+                for key, value in status_info.items():
+                    embed.add_field(name=key, value=value, inline=True)
+
+                await interaction.response.send_message(embed=embed)
+
+            except Exception as e:
+                logger.error(f"Error in status slash command: {e}")
+                await interaction.response.send_message("❌ Failed to get status.", ephemeral=True)
+
+        @self.bot.tree.command(name="help", description="Show available commands")
+        async def help_slash(interaction: discord.Interaction):
+            """Show help information via slash command"""
+            embed = discord.Embed(
+                title="🤖 TailSentry Discord Bot",
+                description="Available slash commands:",
+                color=0x3498db
+            )
+
+            embed.add_field(
+                name="/logs [lines] [level]",
+                value="Get recent logs (default: 50 lines)\nExample: `/logs lines:100 level:ERROR`",
+                inline=False
+            )
+
+            embed.add_field(
+                name="/status",
+                value="Get TailSentry status information",
+                inline=False
+            )
+
+            embed.add_field(
+                name="/help",
+                value="Show this help message",
+                inline=False
+            )
+
+            embed.set_footer(text="TailSentry Monitoring System")
+            await interaction.response.send_message(embed=embed)
 
     async def _get_logs(self, lines: int = 50, level: Optional[str] = None) -> str:
         """Get recent logs from the log file"""
