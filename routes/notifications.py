@@ -1,6 +1,6 @@
 """
 TailSentry Notifications System
-Handles SMTP, Telegram, Discord notifications and configuration
+Handles SMTP and Discord notifications and configuration
 """
 
 import os
@@ -63,27 +63,6 @@ class SMTPSettings(BaseModel):
             logger.warning(f"Non-standard SMTP port {v} specified")
         return v
 
-class TelegramSettings(BaseModel):
-    enabled: bool = False
-    bot_token: Optional[str] = Field(default=None, min_length=10)
-    chat_id: Optional[str] = Field(default=None, min_length=1)
-    parse_mode: str = Field(default="HTML")
-    disable_web_page_preview: bool = True
-    
-    @validator('bot_token')
-    def validate_bot_token(cls, v):
-        if v and not v.startswith(('bot', 'Bot')):
-            if ':' in v:  # Valid token format
-                return v
-            raise ValueError('Invalid bot token format')
-        return v
-    
-    @validator('parse_mode')
-    def validate_parse_mode(cls, v):
-        if v not in ['HTML', 'Markdown', 'MarkdownV2']:
-            raise ValueError('parse_mode must be HTML, Markdown, or MarkdownV2')
-        return v
-
 class DiscordSettings(BaseModel):
     enabled: bool = False
     webhook_url: Optional[str] = Field(default=None, min_length=10)
@@ -120,7 +99,6 @@ class NotificationTemplate(BaseModel):
 
 class NotificationSettings(BaseModel):
     smtp: SMTPSettings = SMTPSettings()
-    telegram: TelegramSettings = TelegramSettings()
     discord: DiscordSettings = DiscordSettings()
     discord_bot: DiscordBotSettings = DiscordBotSettings()
     global_enabled: bool = True
@@ -335,13 +313,6 @@ def get_current_notification_settings() -> NotificationSettings:
     config.smtp.from_email = os.getenv("SMTP_FROM_EMAIL", "noreply@localhost")
     config.smtp.from_name = os.getenv("SMTP_FROM_NAME", "TailSentry")
     
-    # Telegram settings
-    config.telegram.enabled = os.getenv("TELEGRAM_ENABLED", "false").lower() == "true"
-    config.telegram.bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
-    config.telegram.chat_id = os.getenv("TELEGRAM_CHAT_ID")
-    config.telegram.parse_mode = os.getenv("TELEGRAM_PARSE_MODE", "HTML")
-    config.telegram.disable_web_page_preview = os.getenv("TELEGRAM_DISABLE_PREVIEW", "true").lower() == "true"
-    
     # Discord settings
     discord_enabled = os.getenv("DISCORD_ENABLED", "false")
     discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
@@ -406,10 +377,6 @@ def save_notification_settings(config: NotificationSettings) -> bool:
             "SMTP_FROM_EMAIL": config.smtp.from_email,
             "SMTP_FROM_NAME": config.smtp.from_name,
             
-            # Telegram
-            "TELEGRAM_ENABLED": str(config.telegram.enabled).lower(),
-            "TELEGRAM_PARSE_MODE": config.telegram.parse_mode,
-            "TELEGRAM_DISABLE_PREVIEW": str(config.telegram.disable_web_page_preview).lower(),
             
             # Discord
             "DISCORD_ENABLED": str(config.discord.enabled).lower(),
@@ -424,10 +391,6 @@ def save_notification_settings(config: NotificationSettings) -> bool:
         # Add sensitive values if they exist
         if config.smtp.password:
             env_vars["SMTP_PASSWORD"] = config.smtp.password
-        if config.telegram.bot_token:
-            env_vars["TELEGRAM_BOT_TOKEN"] = config.telegram.bot_token
-        if config.telegram.chat_id:
-            env_vars["TELEGRAM_CHAT_ID"] = config.telegram.chat_id
         if config.discord.webhook_url:
             env_vars["DISCORD_WEBHOOK_URL"] = config.discord.webhook_url
         if config.discord.avatar_url:
@@ -512,9 +475,6 @@ class NotificationService:
         if channel in ["all", "smtp"] and config.smtp.enabled:
             results["smtp"] = await self._send_smtp(config.smtp, title, message)
         
-        if channel in ["all", "telegram"] and config.telegram.enabled:
-            results["telegram"] = await self._send_telegram(config.telegram, title, message)
-        
         if channel in ["all", "discord"] and config.discord.enabled:
             logger.info("Attempting to send Discord notification")
             results["discord"] = await self._send_discord(config.discord, title, message)
@@ -589,38 +549,6 @@ class NotificationService:
                 return {"success": False, "error": f"Failed to send to all {total_count} recipients", "details": results}
         except Exception as e:
             logger.error(f"SMTP notification failed: {e}")
-            return {"success": False, "error": str(e)}
-    
-    async def _send_telegram(self, tg_config: TelegramSettings, title: str, message: str) -> Dict[str, Any]:
-        """Send Telegram notification"""
-        try:
-            url = f"https://api.telegram.org/bot{tg_config.bot_token}/sendMessage"
-            
-            # Format message
-            if tg_config.parse_mode == "HTML":
-                formatted_message = f"<b>{title}</b>\n\n{message}"
-            elif tg_config.parse_mode in ["Markdown", "MarkdownV2"]:
-                formatted_message = f"*{title}*\n\n{message}"
-            else:
-                formatted_message = f"{title}\n\n{message}"
-            
-            payload = {
-                "chat_id": tg_config.chat_id,
-                "text": formatted_message,
-                "parse_mode": tg_config.parse_mode,
-                "disable_web_page_preview": tg_config.disable_web_page_preview
-            }
-            
-            async with httpx.AsyncClient() as client:
-                response = await client.post(url, json=payload, timeout=30)
-                
-                if response.status_code == 200:
-                    return {"success": True, "message": "Telegram message sent successfully"}
-                else:
-                    return {"success": False, "error": f"Telegram API error: {response.status_code}"}
-                    
-        except Exception as e:
-            logger.error(f"Telegram notification failed: {e}")
             return {"success": False, "error": str(e)}
     
     async def _send_discord(self, discord_config: DiscordSettings, title: str, message: str) -> Dict[str, Any]:
@@ -716,13 +644,6 @@ async def get_notification_settings(request: Request):
                 "from_email": config.smtp.from_email,
                 "from_name": config.smtp.from_name,
                 "has_password": bool(config.smtp.password)
-            },
-            "telegram": {
-                "enabled": config.telegram.enabled,
-                "parse_mode": config.telegram.parse_mode,
-                "disable_web_page_preview": config.telegram.disable_web_page_preview,
-                "has_bot_token": bool(config.telegram.bot_token),
-                "has_chat_id": bool(config.telegram.chat_id)
             },
             "discord": {
                 "enabled": config.discord.enabled,

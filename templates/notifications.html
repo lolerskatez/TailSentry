@@ -29,7 +29,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Notification Settings</h1>
-                    <p class="mt-2 text-gray-600 dark:text-gray-400">Configure SMTP, Telegram, and Discord notifications</p>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">Configure SMTP and Discord notifications</p>
                 </div>
                 <div class="flex space-x-2">
                     <button @click="testNotification()" 
@@ -130,11 +130,6 @@
                             class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
                         📧 SMTP Email
                     </button>
-                    <button @click="activeTab = 'telegram'" 
-                            :class="activeTab === 'telegram' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                        📱 Telegram
-                    </button>
                     <button @click="activeTab = 'discord'" 
                             :class="activeTab === 'discord' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                             class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
@@ -211,63 +206,6 @@
                     <button @click="testChannel('smtp')" 
                             class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
                         Test SMTP Connection
-                    </button>
-                </div>
-            </div>
-
-            <!-- Telegram Settings Tab -->
-            <div x-show="activeTab === 'telegram'" class="p-6">
-                <div class="mb-6">
-                    <label class="flex items-center">
-                        <input type="checkbox" x-model="settings.telegram.enabled" class="rounded">
-                        <span class="ml-2 text-lg font-medium text-gray-900 dark:text-white">Enable Telegram Notifications</span>
-                    </label>
-                </div>
-                
-                <div x-show="settings.telegram.enabled" class="space-y-6">
-                    <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-                        <h4 class="font-medium text-blue-900 dark:text-blue-300">Setup Instructions:</h4>
-                        <ol class="mt-2 text-sm text-blue-800 dark:text-blue-400 list-decimal list-inside space-y-1">
-                            <li>Create a bot by messaging @BotFather on Telegram</li>
-                            <li>Send /newbot and follow the instructions</li>
-                            <li>Copy the bot token provided</li>
-                            <li>Add your bot to a group or get your personal chat ID</li>
-                            <li>Message @userinfobot to get your chat ID</li>
-                        </ol>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bot Token</label>
-                            <input type="password" x-model="telegramBotToken" placeholder="123456789:ABCDEF..."
-                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            <p class="text-sm text-gray-500 mt-1" x-show="settings.telegram.has_bot_token">Token is currently set</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Chat ID</label>
-                            <input type="text" x-model="telegramChatId" placeholder="-123456789 or 123456789"
-                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            <p class="text-sm text-gray-500 mt-1" x-show="settings.telegram.has_chat_id">Chat ID is currently set</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Parse Mode</label>
-                            <select x-model="settings.telegram.parse_mode" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                                <option value="HTML">HTML</option>
-                                <option value="Markdown">Markdown</option>
-                                <option value="MarkdownV2">MarkdownV2</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="flex items-center">
-                                <input type="checkbox" x-model="settings.telegram.disable_web_page_preview" class="rounded">
-                                <span class="ml-2 text-gray-700 dark:text-gray-300">Disable Web Page Preview</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <button @click="testChannel('telegram')" 
-                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
-                        Test Telegram Bot
                     </button>
                 </div>
             </div>
@@ -473,13 +411,6 @@
                         from_name: 'TailSentry',
                         has_password: false
                     },
-                    telegram: {
-                        enabled: false,
-                        parse_mode: 'HTML',
-                        disable_web_page_preview: true,
-                        has_bot_token: false,
-                        has_chat_id: false
-                    },
                     discord: {
                         enabled: false,
                         username: 'TailSentry',
@@ -497,8 +428,6 @@
                 },
                 templates: {},
                 smtpPassword: '',
-                telegramBotToken: '',
-                telegramChatId: '',
                 discordWebhookUrl: '',
                 discordBotToken: '',
                 discordAllowedUsersText: '',
@@ -554,12 +483,6 @@
                         if (this.smtpPassword) {
                             settingsToSave.smtp.password = this.smtpPassword;
                         }
-                        if (this.telegramBotToken) {
-                            settingsToSave.telegram.bot_token = this.telegramBotToken;
-                        }
-                        if (this.telegramChatId) {
-                            settingsToSave.telegram.chat_id = this.telegramChatId;
-                        }
                         if (this.discordWebhookUrl) {
                             settingsToSave.discord.webhook_url = this.discordWebhookUrl;
                         }
@@ -579,8 +502,6 @@
                             this.showAlert('success', 'Notification settings saved successfully');
                             // Clear sensitive input fields
                             this.smtpPassword = '';
-                            this.telegramBotToken = '';
-                            this.telegramChatId = '';
                             this.discordWebhookUrl = '';
                             this.discordBotToken = '';
                             // Reload to get updated has_* flags
