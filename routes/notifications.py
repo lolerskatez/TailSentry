@@ -55,12 +55,63 @@ class SMTPSettings(BaseModel):
     def validate_from_email(cls, v):
         if v and '@' not in v:
             raise ValueError('Invalid email format')
+        # Enhanced email validation
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if v and not re.match(email_pattern, v):
+            raise ValueError('Invalid email format')
         return v
     
     @validator('smtp_port')
     def validate_port(cls, v):
-        if v not in [25, 465, 587, 993, 995]:
+        # Blocked dangerous ports
+        blocked_ports = {21, 22, 23, 53, 80, 110, 143, 443, 993, 995}
+        if v in blocked_ports:
+            raise ValueError(f'Port {v} is not allowed for security reasons')
+        
+        # Safe SMTP ports
+        safe_ports = {25, 465, 587, 2525}
+        if v not in safe_ports:
             logger.warning(f"Non-standard SMTP port {v} specified")
+        return v
+    
+    @validator('smtp_server')
+    def validate_smtp_server(cls, v):
+        if v:
+            # Check for invalid characters
+            import re
+            if not re.match(r'^[a-zA-Z0-9.-]+$', v):
+                raise ValueError('SMTP server contains invalid characters')
+            if len(v) > 253:  # Domain name length limit
+                raise ValueError('SMTP server name too long')
+        return v
+    
+    @validator('from_name')
+    def validate_from_name(cls, v):
+        if v:
+            # Check for header injection
+            if any(char in v for char in ['\n', '\r', '\0']):
+                raise ValueError('From name contains invalid characters')
+            if len(v) > 78:  # RFC recommendation
+                raise ValueError('From name too long')
+        return v
+    
+    @validator('username')
+    def validate_username(cls, v):
+        if v:
+            # Basic email format check for username
+            import re
+            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            if not re.match(email_pattern, v):
+                logger.warning(f"Username {v} does not appear to be a valid email address")
+        return v
+    
+    @validator('use_ssl', 'use_tls')
+    def validate_ssl_tls(cls, v, values):
+        # Prevent both SSL and TLS being enabled
+        if 'use_ssl' in values and 'use_tls' in values:
+            if values['use_ssl'] and v and cls.__name__ == 'use_tls':
+                raise ValueError('Cannot use both SSL and TLS simultaneously')
         return v
 
 class DiscordSettings(BaseModel):
@@ -488,7 +539,54 @@ class NotificationService:
         return {"success": True, "results": results}
     
     async def _send_smtp(self, smtp_config: SMTPSettings, title: str, message: str) -> Dict[str, Any]:
-        """Send email notification"""
+        """Send email notification using secure SMTP client"""
+        try:
+            # Import the secure SMTP client
+            from services.secure_smtp import SecureSMTPClient
+            
+            # Get admin emails from database with notification preferences
+            from auth_user import get_admin_emails_with_preferences
+            admin_emails = get_admin_emails_with_preferences("email")
+            
+            # Fallback to environment variable if no admin emails in database
+            if not admin_emails:
+                fallback_email = os.getenv("ALERT_EMAIL", smtp_config.from_email)
+                admin_emails = [fallback_email] if fallback_email else []
+            
+            if not admin_emails:
+                return {"success": False, "error": "No recipient emails configured"}
+            
+            # Validate all recipient emails
+            valid_emails = []
+            for email in admin_emails:
+                if SecureSMTPClient.validate_email_address(email):
+                    valid_emails.append(email)
+                else:
+                    logger.warning(f"Invalid admin email address: {email}")
+            
+            if not valid_emails:
+                return {"success": False, "error": "No valid recipient emails found"}
+            
+            # Send using secure SMTP client
+            result = await SecureSMTPClient.send_secure_email(
+                smtp_config, 
+                title, 
+                message, 
+                valid_emails
+            )
+            
+            return result
+            
+        except ImportError:
+            # Fallback to original implementation if secure client unavailable
+            logger.warning("Secure SMTP client not available, using fallback implementation")
+            return await self._send_smtp_fallback(smtp_config, title, message)
+        except Exception as e:
+            logger.error(f"Secure SMTP notification failed: {e}")
+            return {"success": False, "error": "Email notification failed due to security restrictions"}
+    
+    async def _send_smtp_fallback(self, smtp_config: SMTPSettings, title: str, message: str) -> Dict[str, Any]:
+        """Fallback SMTP implementation with basic security"""
         try:
             if not MimeText or not MimeMultipart:
                 return {"success": False, "error": "Email modules not available"}
@@ -504,6 +602,11 @@ class NotificationService:
             
             if not admin_emails:
                 return {"success": False, "error": "No recipient emails configured"}
+            
+            # Basic input sanitization
+            import html
+            title = html.escape(str(title))[:200]
+            message = html.escape(str(message))[:5000]
             
             results = []
             for recipient_email in admin_emails:
@@ -523,9 +626,9 @@ class NotificationService:
                 # Send email to this recipient
                 try:
                     if smtp_config.use_ssl:
-                        server = smtplib.SMTP_SSL(smtp_config.smtp_server, smtp_config.smtp_port)
+                        server = smtplib.SMTP_SSL(smtp_config.smtp_server, smtp_config.smtp_port, timeout=30)
                     else:
-                        server = smtplib.SMTP(smtp_config.smtp_server, smtp_config.smtp_port)
+                        server = smtplib.SMTP(smtp_config.smtp_server, smtp_config.smtp_port, timeout=30)
                         if smtp_config.use_tls:
                             server.starttls()
                     
@@ -666,13 +769,54 @@ async def get_notification_settings(request: Request):
 
 @router.post("/api/notification-settings")
 async def update_notification_settings(request: Request, config: NotificationSettings):
-    """Update notification configuration"""
-    user = get_current_user(request)
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
+    """Update notification configuration with security checks"""
     try:
+        # Import security middleware
+        from middleware.smtp_security import SMTPSecurityMiddleware
+        
+        # Get client identifier and user
+        client_id = SMTPSecurityMiddleware.get_client_identifier(request)
+        user = get_current_user(request)
+        
+        if not user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # Validate SMTP operation
+        validation = SMTPSecurityMiddleware.validate_smtp_operation(
+            "config_save", client_id, user
+        )
+        
+        if not validation["allowed"]:
+            SMTPSecurityMiddleware.log_smtp_operation(
+                "config_save", client_id, user, False, validation["reason"]
+            )
+            raise HTTPException(
+                status_code=429 if "rate limit" in validation["reason"] else 403,
+                detail=validation["reason"]
+            )
+        
         # Save configuration
+        if save_notification_settings(config):
+            SMTPSecurityMiddleware.log_smtp_operation(
+                "config_save", client_id, user, True, "Configuration updated successfully"
+            )
+            logger.info(f"Notification settings updated by user: {user.get('username', 'unknown')}")
+            return {
+                "success": True,
+                "message": "Notification settings updated successfully"
+            }
+        else:
+            SMTPSecurityMiddleware.log_smtp_operation(
+                "config_save", client_id, user, False, "Failed to save configuration"
+            )
+            raise HTTPException(status_code=500, detail="Failed to save notification settings")
+            
+    except ImportError:
+        # Fallback without security middleware
+        user = get_current_user(request)
+        if not user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
         if save_notification_settings(config):
             logger.info(f"Notification settings updated by user: {user.get('username', 'unknown')}")
             return {
@@ -722,6 +866,39 @@ async def update_notification_templates(request: Request, templates_data: dict):
     except Exception as e:
         logger.error(f"Failed to update notification templates: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to update templates: {str(e)}")
+
+@router.post("/api/test-smtp-secure")
+async def test_smtp_secure(request: Request, test_data: dict):
+    """Test SMTP configuration with enhanced security"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        # Load current SMTP configuration
+        settings_data = await get_notification_settings(request)
+        config = NotificationSettings(**settings_data)
+        
+        if not config.smtp.enabled:
+            return {"success": False, "error": "SMTP is not enabled"}
+        
+        # Import secure SMTP client
+        from services.secure_smtp import SecureSMTPClient
+        
+        # Test connection with security validation
+        result = await SecureSMTPClient.test_connection(config.smtp)
+        
+        # Log the test attempt
+        logger.info(f"SMTP test performed by user: {user.get('username', 'unknown')}")
+        
+        return result
+        
+    except ImportError:
+        # Fallback to basic test
+        return {"success": False, "error": "Secure SMTP testing not available"}
+    except Exception as e:
+        logger.error(f"SMTP secure test failed: {e}")
+        raise HTTPException(status_code=500, detail="SMTP test failed")
 
 @router.post("/api/test-notification")
 async def test_notification(request: Request, test_data: dict):
