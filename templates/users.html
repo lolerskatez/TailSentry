@@ -2,269 +2,436 @@
 {% set show_settings_nav = true %}
 {% set active_nav = 'manage_users' %}
 {% block title %}Manage Users - TailSentry{% endblock %}
-{% block content %}
-<div x-data="{
-    editUser: null,
-    addUser: false,
-    init() {
-        this.$watch('addUser', value => {
-            if (value) {
-                // Modal opened: update CSRF token input
-                setTimeout(() => {
-                    const getCookie = (name) => {
-                        const value = `; ${document.cookie}`;
-                        const parts = value.split(`; ${name}=`);
-                        if (parts.length === 2) return parts.pop().split(';').shift();
-                    };
-                    const csrf = getCookie('csrf_token') || window.__CSRF_TOKEN__ || '';
-                    const input = document.getElementById('add-user-csrf-token');
-                    if (input) input.value = csrf;
-                }, 10);
-            }
-        });
-    }
-}" class="max-w-6xl mx-auto py-4 px-4">
-    <h1 class="text-2xl font-bold mb-6 text-indigo-800">User Management</h1>
-        <div class="flex justify-end mb-6">
-            <button @click="addUser = true" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                Add User
-            </button>
-        </div>
-        <!-- Add User Modal -->
-        <div x-cloak>
-            <template x-if="addUser">
-                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md p-6 relative">
-                        <button @click="addUser = false" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                        <h2 class="text-xl font-bold mb-4 text-indigo-800 dark:text-indigo-200">Add User</h2>
-                        {% if error %}
-                        <div class="mb-4 p-2 bg-red-100 text-red-800 rounded border border-red-300 text-sm">{{ error }}</div>
-                        {% endif %}
-                        <form method="post" action="/users/add" id="add-user-form" autocomplete="off">
-                            <input type="hidden" name="csrf_token" id="add-user-csrf-token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
+{% block head %}
+    <style>
+        .user-card {
+            transition: all 0.3s ease;
+        }
+        .user-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .user-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .user-icon.admin {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .user-icon.user {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-indicator.active {
+            background-color: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+        .status-indicator.inactive {
+            background-color: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+        }
+        .action-button {
+            transition: all 0.2s ease;
+        }
+        .action-button:hover {
+            transform: scale(1.1);
+        }
+    </style>
+{% endblock %}
+
 <script>
-// Show CSRF or form errors in the Add User modal if present in the URL
-document.addEventListener('DOMContentLoaded', function() {
-    const params = new URLSearchParams(window.location.search);
-    if (params.has('error')) {
-        const modalBtn = document.querySelector('button[@click]');
-        if (modalBtn) modalBtn.click();
+function userManagement() {
+    return {
+        editUser: null,
+        addUser: false,
+        showDeleteConfirm: null,
+        init() {
+            this.$watch('addUser', value => {
+                if (value) {
+                    setTimeout(() => {
+                        const getCookie = (name) => {
+                            const value = `; ${document.cookie}`;
+                            const parts = value.split(`; ${name}=`);
+                            if (parts.length === 2) return parts.pop().split(';').shift();
+                        };
+                        const csrf = getCookie('csrf_token') || window.__CSRF_TOKEN__ || '';
+                        const input = document.getElementById('add-user-csrf-token');
+                        if (input) input.value = csrf;
+                        
+                        // Clear any potential autofill values
+                        const form = document.querySelector('form[action="/settings/users/add"]');
+                        if (form) {
+                            const inputs = form.querySelectorAll('input[type="text"], input[type="password"], input[type="email"]');
+                            inputs.forEach(input => {
+                                input.value = '';
+                                input.removeAttribute('readonly');
+                            });
+                        }
+                    }, 10);
+                }
+            });
+        }
     }
-});
+}
 </script>
 
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Name</label>
-                                <input type="text" name="name" autocomplete="off" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100" required>
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Username</label>
-                                <input type="text" name="username" autocomplete="new-username" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100" required>
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Role</label>
-                                <select name="role" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100" required>
-                                    <option value="admin">Admin</option>
-                                    <option value="user" selected>User</option>
-                                </select>
-                            </div>
-                            <div class="mb-6">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Password</label>
-                                <input type="password" name="password" autocomplete="new-password" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100" required>
-                            </div>
-                            <div class="flex justify-end gap-2">
-                                <button type="button" @click="addUser = false" class="px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Cancel</button>
-                                <button type="submit" class="px-4 py-2 rounded bg-indigo-600 text-white font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Create User</button>
-                            </div>
-                        </form>
+{% block content %}
+<div x-data="userManagement()" class="max-w-7xl mx-auto py-6 px-4">
+    
+    <!-- Header Section -->
+    <div class="mb-8">
+        <div class="text-center mb-6">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                User Management
+            </h1>
+            <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">
+                Manage user accounts and permissions
+            </p>
+        </div>
+        
+        <!-- Quick Actions Bar -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center">
+                        <span class="status-indicator active"></span>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300 ml-2">
+                            Total Users: <span class="font-bold text-indigo-600">{{ users|length }}</span>
+                        </span>
+                    </div>
+                    <div class="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                        Active: <span class="font-medium text-green-600">{{ users|selectattr('active')|list|length }}</span>
                     </div>
                 </div>
-            </template>
-        </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow overflow-hidden">
-                    <thead class="bg-indigo-50 dark:bg-gray-900">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-indigo-800 dark:text-indigo-200 uppercase tracking-wider">Username</th>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-indigo-800 dark:text-indigo-200 uppercase tracking-wider">Role</th>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-indigo-800 dark:text-indigo-200 uppercase tracking-wider">Created</th>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-indigo-800 dark:text-indigo-200 uppercase tracking-wider">Active</th>
-                            <th class="px-6 py-3 text-center text-xs font-bold text-indigo-800 dark:text-indigo-200 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% for user in users %}
-                        <tr class="{% if loop.index0 % 2 == 0 %}bg-white dark:bg-gray-800{% else %}bg-gray-50 dark:bg-gray-700{% endif %} hover:bg-indigo-50 dark:hover:bg-indigo-800 transition-colors">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{{ user.username }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ user.role }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ user.created_at }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                {% if user.active %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Yes</span>
-                                {% else %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">No</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm flex justify-center gap-2">
-                                <button @click="editUser = { username: '{{ user.username }}', name: '{{ user.name|default('') }}', role: '{{ user.role }}' }" title="Edit User" class="p-2 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900 text-yellow-600 dark:text-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                                    <!-- Heroicon: Pencil -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6-6 3 3-6 6zm2 2h2v2a2 2 0 01-2 2H7a2 2 0 01-2-2v-2a2 2 0 012-2h2v2z" /></svg>
-                                </button>
-                                {% if current_user.username != user.username %}
-                                <form method="post" action="/users/delete" onsubmit="return confirm('Delete user {{ user.username }}?');">
-                                    <input type="hidden" name="username" value="{{ user.username }}">
-                                    <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
-                                    <button type="submit" title="Delete User" class="p-2 rounded hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500">
-                                        <!-- Heroicon: Trash -->
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                    </button>
-                                </form>
-                                {% else %}
-                                <div title="You cannot delete your own account" class="p-2 rounded text-gray-400 dark:text-gray-600 cursor-not-allowed">
-                                    <!-- Disabled Trash Icon -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                </div>
-                                {% endif %}
-                                <form method="post" action="/users/active">
-                                    <input type="hidden" name="username" value="{{ user.username }}">
-                                    <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
-                                    <button type="submit" title="Toggle Active" class="p-2 rounded hover:bg-green-100 dark:hover:bg-green-900 text-green-600 dark:text-green-400 focus:outline-none focus:ring-2 focus:ring-green-500">
-                                        <!-- Heroicon: Check Circle -->
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a10 10 0 11-20 0 10 10 0 0120 0z" /></svg>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+                <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                    <button @click="addUser = true" 
+                            class="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2 min-w-[140px] shadow-lg">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        <span class="text-white font-medium">Add User</span>
+                    </button>
+                </div>
             </div>
-            <!-- Edit User Modal (direct child of x-data div) -->
-            <div x-cloak>
-                <template x-if="editUser">
-                    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md p-6 relative">
-                            <button @click="editUser = null" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                            <h2 class="text-xl font-bold mb-4 text-indigo-800 dark:text-indigo-200">Edit User</h2>
-                            <form method="post" action="/users/edit" autocomplete="off">
-                                <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
-                                <input type="hidden" name="original_username" :value="editUser.username">
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Name</label>
-                                    <input type="text" name="name" autocomplete="off" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100" :value="editUser.name">
-                                </div>
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Username</label>
-                                    <input type="text" name="username" autocomplete="off" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100" :value="editUser.username">
-                                </div>
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Role</label>
-                                    <select name="role" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100" :value="editUser.role">
-                                        <option value="admin">Admin</option>
-                                        <option value="user">User</option>
-                                    </select>
-                                </div>
-                                <div class="mb-6">
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Password <span class="text-xs text-gray-400">(leave blank to keep unchanged)</span></label>
-                                    <input type="password" name="password" autocomplete="new-password" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
-                                </div>
-                                <div class="flex justify-end gap-2">
-                                    <button type="button" @click="editUser = null" class="px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600">Cancel</button>
-                                    <button type="submit" class="px-4 py-2 rounded bg-indigo-600 text-white font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Save Changes</button>
-                                </div>
-                            </form>
+        </div>
+    </div>
+
+    <!-- Users Content -->
+    {% if users %}
+    <!-- Users Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {% for user in users %}
+        <div class="user-card bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700">
+            <!-- Card Header -->
+            <div class="bg-gradient-to-r from-indigo-500/5 to-purple-500/5 dark:from-indigo-500/10 dark:to-purple-500/10 p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="user-icon {{ user.role }}">
+                            {% if user.role == 'admin' %}👑{% else %}👤{% endif %}
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ user.username }}</h3>
+                            <p class="text-gray-600 dark:text-gray-400 text-sm">{{ user.name or 'No name set' }}</p>
                         </div>
                     </div>
-                </template>
+                </div>
+                
+                <!-- Status Row -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <span class="status-indicator {% if user.active %}active{% else %}inactive{% endif %}"></span>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {% if user.active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if user.role == 'admin' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200{% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% endif %}">
+                            {{ user.role.title() }}
+                        </span>
+                    </div>
+                </div>
             </div>
+            
+            <!-- Card Content -->
+            <div class="p-6">
+                <!-- User Details -->
+                <div class="space-y-3 mb-6">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Created</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ user.created_at }}</span>
+                    </div>
+                    {% if user.email %}
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Email</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[150px]" title="{{ user.email }}">{{ user.email }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.discord_username %}
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Discord</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[150px]" title="{{ user.discord_username }}">{{ user.discord_username }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Role</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ user.role.title() }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Status</span>
+                        <span class="text-sm font-medium {% if user.active %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if user.active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-2">
+                    <!-- Edit Button -->
+                    <button @click="editUser = { username: '{{ user.username }}', name: '{{ user.name|default('') }}', role: '{{ user.role }}', email: '{{ user.email|default('') }}', discord_username: '{{ user.discord_username|default('') }}' }" 
+                            class="action-button flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg font-medium transition-all flex items-center justify-center space-x-1 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                        <span>Edit</span>
+                    </button>
+
+                    <!-- Toggle Active Button -->
+                    <form method="post" action="/users/active" class="flex-1">
+                        <input type="hidden" name="username" value="{{ user.username }}">
+                        <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
+                        <button type="submit" 
+                                class="action-button w-full {% if user.active %}bg-orange-500 hover:bg-orange-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-3 py-2 rounded-lg font-medium transition-all flex items-center justify-center space-x-1 text-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                {% if user.active %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14L5 9m0 0l5-5m-5 5h11a2 2 0 012 2v0a2 2 0 01-2 2H9"></path>
+                                {% else %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                {% endif %}
+                            </svg>
+                            <span>{% if user.active %}Disable{% else %}Enable{% endif %}</span>
+                        </button>
+                    </form>
+
+                    <!-- Delete Button -->
+                    {% if current_user.username != user.username %}
+                    <button @click="showDeleteConfirm = '{{ user.username }}'" 
+                            class="action-button flex-1 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg font-medium transition-all flex items-center justify-center space-x-1 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        <span>Delete</span>
+                    </button>
+                    {% else %}
+                    <div class="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 px-3 py-2 rounded-lg font-medium flex items-center justify-center space-x-1 text-sm cursor-not-allowed">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"></path>
+                        </svg>
+                        <span>Protected</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div x-show="showDeleteConfirm" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
+            <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 dark:bg-red-900/30 rounded-full mb-4">
+                <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white text-center mb-2">Delete User</h3>
+            <p class="text-gray-600 dark:text-gray-400 text-center mb-6">
+                Are you sure you want to delete user <span class="font-medium text-gray-900 dark:text-white" x-text="showDeleteConfirm"></span>? This action cannot be undone.
+            </p>
+            <div class="flex gap-3">
+                <button @click="showDeleteConfirm = null" 
+                        class="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-3 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    Cancel
+                </button>
+                <form method="post" action="/users/delete" class="flex-1">
+                    <input type="hidden" name="username" :value="showDeleteConfirm">
+                    <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
+                    <button type="submit" 
+                            class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg font-medium transition-colors">
+                        Delete User
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div x-show="addUser" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Add New User</h3>
+                <p class="text-gray-600 dark:text-gray-400">Create a new user account for TailSentry.</p>
+            </div>
+            <form method="POST" action="/settings/users/add" class="space-y-4" autocomplete="off">
+                <input type="hidden" id="add-user-csrf-token" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
+                
+                <!-- Fake fields to prevent autofill -->
+                <input type="text" style="display:none" autocomplete="username">
+                <input type="password" style="display:none" autocomplete="current-password">
+                
+                <div>
+                    <label for="add-username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username</label>
+                    <input type="text" id="add-username" name="username" required autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <div>
+                    <label for="add-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
+                    <input type="text" id="add-name" name="name" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <div>
+                    <label for="add-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+                    <input type="password" id="add-password" name="password" required autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <div>
+                    <label for="add-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
+                    <input type="email" id="add-email" name="email" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')"
+                           placeholder="user@example.com"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <div>
+                    <label for="add-discord" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Discord Username</label>
+                    <input type="text" id="add-discord" name="discord_username" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')"
+                           placeholder="username#1234 or @username"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <div>
+                    <label for="add-role" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role</label>
+                    <select id="add-role" name="role" required
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                
+                <div class="flex space-x-3 pt-4">
+                    <button type="button" @click="addUser = false"
+                            class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-3 rounded-lg font-medium transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors">
+                        Add User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div x-show="editUser" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Edit User</h3>
+                <p class="text-gray-600 dark:text-gray-400">Update user account information.</p>
+            </div>
+            <form method="POST" action="/settings/users/edit" class="space-y-4">
+                <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
+                <input type="hidden" name="original_username" :value="editUser?.username">
+                
+                <div>
+                    <label for="edit-username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username</label>
+                    <input type="text" id="edit-username" name="username" :value="editUser?.username" required
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <div>
+                    <label for="edit-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
+                    <input type="text" id="edit-name" name="name" :value="editUser?.name"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <div>
+                    <label for="edit-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password (leave blank to keep current)</label>
+                    <input type="password" id="edit-password" name="password"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <div>
+                    <label for="edit-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
+                    <input type="email" id="edit-email" name="email" :value="editUser?.email"
+                           placeholder="user@example.com"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <div>
+                    <label for="edit-discord" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Discord Username</label>
+                    <input type="text" id="edit-discord" name="discord_username" :value="editUser?.discord_username"
+                           placeholder="username#1234 or @username"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <div>
+                    <label for="edit-role" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role</label>
+                    <select id="edit-role" name="role" :value="editUser?.role" required
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                        <option value="user" :selected="editUser?.role === 'user'">User</option>
+                        <option value="admin" :selected="editUser?.role === 'admin'">Admin</option>
+                    </select>
+                </div>
+                
+                <div class="flex space-x-3 pt-4">
+                    <button type="button" @click="editUser = null"
+                            class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-3 rounded-lg font-medium transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-lg font-medium transition-colors">
+                        Update User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No Users Found -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 text-center">
+        <div class="text-gray-500 dark:text-gray-400 mb-2">
+            <svg class="w-12 h-12 mx-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Users Found</h3>
+        <p class="text-gray-600 dark:text-gray-400 mb-4">Get started by creating your first user account.</p>
+        <button @click="addUser = true" 
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+            Add First User
+        </button>
+    </div>
+    {% endif %}
     </main>
-    <!-- CSRF JS: Place at end of file to ensure it attaches after DOM is ready -->
+
+    <!-- Scripts -->
     <script>
-// Utility to get CSRF token from cookie or window
-function getCSRFToken() {
-    const name = 'csrf_token=';
-    const decodedCookie = decodeURIComponent(document.cookie);
-    const ca = decodedCookie.split(';');
-    for(let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') {
-            c = c.substring(1);
-        }
-        if (c.indexOf(name) === 0) {
-            return c.substring(name.length, c.length);
-        }
-    }
-    return window.__CSRF_TOKEN__ || '';
-}
-// Always set CSRF token in form and header before submit
-function setCSRFOnForm(form) {
-    var token = getCSRFToken();
-    var csrfInput = form.querySelector('input[name="csrf_token"]');
-    if (csrfInput) {
-        csrfInput.value = token;
-        console.log('[CSRF PATCH] Set CSRF input value:', token);
-    }
-    // For AJAX, set header if possible
-    form._csrf_token = token;
-}
-document.addEventListener('submit', function(e) {
-    var form = e.target;
-    if (form.tagName === 'FORM') {
-        setCSRFOnForm(form);
-    }
-}, true);
-// Patch AJAX submit for add/edit user forms
-function patchAJAXForm(selector, url) {
-    console.log('[PATCH DEBUG] Setting up form handler for:', selector);
-    
-    // Use event delegation to handle dynamically created forms
-    document.addEventListener('submit', function(e) {
-        var form = e.target;
-        if (form.matches && form.matches(selector)) {
-            console.log('[PATCH DEBUG] Form submit intercepted:', form);
-            
-            setCSRFOnForm(form);
-            var token = form._csrf_token || getCSRFToken();
-            
-            // Properly serialize form data
-            var formData = new FormData(form);
-            console.log('[FORM DEBUG] FormData entries:');
-            for (let [key, value] of formData.entries()) {
-                console.log('  ', key, '=', value);
-            }
-            
-            var encodedData = new URLSearchParams();
-            for (let [key, value] of formData.entries()) {
-                encodedData.append(key, value);
-            }
-            
-            console.log('[FORM DEBUG] Sending data:', encodedData.toString());
-            
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', url, true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.setRequestHeader('X-CSRF-Token', token);
-            xhr.onload = function() {
-                if (xhr.status === 200 || xhr.status === 302) { 
-                    window.location.reload(); 
-                } else { 
-                    console.error('Form submission failed:', xhr.status, xhr.responseText);
-                    alert('Form submission failed: ' + xhr.status); 
-                }
-            };
-            xhr.send(encodedData.toString());
-            e.preventDefault();
-        }
-    });
-}
-document.addEventListener('DOMContentLoaded', function() {
-    patchAJAXForm('form[action="/users/add"]', '/users/add');
-    patchAJAXForm('form[action="/users/edit"]', '/users/edit');
-});
+        // User management functionality is handled by Alpine.js x-data above
     </script>
 {% endblock %}
