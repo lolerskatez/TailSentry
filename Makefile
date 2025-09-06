@@ -1,32 +1,85 @@
-# TailSentry Development and Deployment Automation
+# TailSentry Cross-Platform Development and Deployment
 
-.PHONY: help install dev test lint format clean build docker run-dev run-prod stop logs backup restore health
+# Detect OS for cross-platform compatibility
+UNAME_S := $(shell uname -s 2>/dev/null || echo Windows)
+ifeq ($(UNAME_S),Windows)
+    DETECTED_OS := Windows
+    PYTHON := python
+    VENV_ACTIVATE := venv\Scripts\activate
+    VENV_PYTHON := venv\Scripts\python
+    PIP := venv\Scripts\pip
+    SHELL_EXT := .ps1
+    EXEC_PREFIX := powershell -ExecutionPolicy Bypass -File
+else ifeq ($(UNAME_S),Linux)
+    DETECTED_OS := Linux
+    PYTHON := python3
+    VENV_ACTIVATE := venv/bin/activate
+    VENV_PYTHON := venv/bin/python
+    PIP := venv/bin/pip
+    SHELL_EXT := .sh
+    EXEC_PREFIX := ./
+else ifeq ($(UNAME_S),Darwin)
+    DETECTED_OS := macOS
+    PYTHON := python3
+    VENV_ACTIVATE := venv/bin/activate
+    VENV_PYTHON := venv/bin/python
+    PIP := venv/bin/pip
+    SHELL_EXT := .sh
+    EXEC_PREFIX := ./
+endif
+
+.PHONY: help install dev test lint format clean build docker run-dev run-prod stop logs backup restore health security
 
 # Default target
-help: ## Show this help message
-	@echo "TailSentry - Makefile Commands"
-	@echo "================================"
+help: ## Show this help message for $(DETECTED_OS)
+	@echo "TailSentry Cross-Platform Makefile ($(DETECTED_OS))"
+	@echo "================================================="
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # Installation and Setup
 install: ## Install dependencies and setup environment
-	python3 -m venv venv
-	./venv/bin/pip install --upgrade pip
-	./venv/bin/pip install -r requirements.txt
-	@echo "✅ Dependencies installed"
+	$(PYTHON) -m venv venv
+	$(PIP) install --upgrade pip
+	$(PIP) install -r requirements.txt
+	@echo "✅ Dependencies installed on $(DETECTED_OS)"
 
 install-dev: ## Install development dependencies
-	./venv/bin/pip install -r requirements-dev.txt
+	$(PIP) install -r requirements-dev.txt
 	@echo "✅ Development dependencies installed"
 
-setup: ## First-time setup with environment configuration
-	@if [ ! -f .env ]; then \
-		cp .env.example .env; \
-		echo "🔧 .env file created from template"; \
-		echo "⚠️  Please edit .env with your configuration"; \
-	fi
+setup: ## First-time cross-platform setup
+	@echo "🔧 Setting up TailSentry on $(DETECTED_OS)..."
+ifeq ($(DETECTED_OS),Windows)
+	@if not exist .env copy .env.example .env
+	@if not exist logs mkdir logs
+	@if not exist data mkdir data
+else
+	@if [ ! -f .env ]; then cp .env.example .env; echo "🔧 .env file created from template"; fi
 	@mkdir -p logs data
-	@echo "✅ Project setup complete"
+endif
+	@echo "✅ Project setup complete for $(DETECTED_OS)"
+
+# Security (Cross-Platform)
+security: ## Run security hardening and checks
+	@echo "🔒 Running security hardening for $(DETECTED_OS)..."
+ifeq ($(DETECTED_OS),Windows)
+	$(EXEC_PREFIX) security_hardening$(SHELL_EXT)
+	$(EXEC_PREFIX) scripts\dependency_security_check$(SHELL_EXT)
+else
+	chmod +x security_hardening$(SHELL_EXT)
+	$(EXEC_PREFIX)security_hardening$(SHELL_EXT)
+	chmod +x scripts/dependency_security_check$(SHELL_EXT)
+	$(EXEC_PREFIX)scripts/dependency_security_check$(SHELL_EXT)
+endif
+
+update-packages: ## Update packages and security patches
+	@echo "📦 Updating packages for $(DETECTED_OS)..."
+ifeq ($(DETECTED_OS),Windows)
+	$(EXEC_PREFIX) scripts\update_packages$(SHELL_EXT)
+else
+	chmod +x scripts/update_packages$(SHELL_EXT)
+	$(EXEC_PREFIX)scripts/update_packages$(SHELL_EXT)
+endif
 
 # Development
 dev: ## Run development server with auto-reload

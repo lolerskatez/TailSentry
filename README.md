@@ -73,55 +73,182 @@ After installation:
 
 For detailed configuration options, see [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md).
 
-## 🤖 Discord Bot Setup (Optional)
+## 🤖 Discord Bot Integration
 
-TailSentry includes an optional Discord bot for interactive log retrieval and status monitoring.
+TailSentry includes a comprehensive Discord bot for interactive monitoring, device management, and real-time notifications.
+
+### Features
+- **8 Interactive Slash Commands** for complete system control
+- **Real-time Device Notifications** when new devices join your Tailnet
+- **Security Access Control** with rate limiting and audit logging
+- **Rich Embeds** with formatted data and status indicators
+- **Cross-platform Support** (Windows/Linux compatible)
 
 ### 1. Create a Discord Bot
 
 1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Click "New Application" and give it a name
+2. Click "New Application" and give it a name (e.g., "TailSentry")
 3. Go to "Bot" section and click "Add Bot"
 4. Copy the bot token
+5. Optionally enable "Message Content Intent" (not required for slash commands)
 
-### 2. Configure Bot Permissions
+### 2. Set Bot Permissions
 
-In the "Bot" section:
-- Enable "Message Content Intent" under "Privileged Gateway Intents"
-- Set bot permissions (optional but recommended):
-  - Send Messages
-  - Read Message History
-  - Use Slash Commands
+Recommended permissions:
+- **Send Messages** - For command responses
+- **Use Slash Commands** - For interactive commands
+- **Read Message History** - For context
+- **Embed Links** - For rich formatted responses
 
 ### 3. Invite Bot to Server
 
 1. Go to "OAuth2" → "URL Generator"
 2. Select scopes: `bot`, `applications.commands`
-3. Select permissions: `Send Messages`, `Read Messages`
-4. Use the generated URL to invite the bot
+3. Select the permissions listed above
+4. Use the generated URL to invite the bot to your server
 
 ### 4. Configure TailSentry
 
 Add to your `.env` file:
 ```bash
+# Discord Bot Configuration
+DISCORD_BOT_ENABLED=true
 DISCORD_BOT_TOKEN=your_bot_token_here
-DISCORD_ALLOWED_USERS=user_id1,user_id2  # Optional: restrict to specific users
+DISCORD_COMMAND_PREFIX=!
+DISCORD_ALLOWED_USERS=user_id1,user_id2  # Optional: restrict access
+
+# Optional: Specific channels for notifications
+DISCORD_LOG_CHANNEL_ID=channel_id_here
+DISCORD_STATUS_CHANNEL_ID=channel_id_here
 ```
 
-### 5. Bot Commands
+### 5. Available Slash Commands
 
-Once configured, use these commands in Discord:
+Once configured, use these **slash commands** in Discord:
 
-- `!logs [lines] [level]` - Get recent logs (default: 50 lines)
-  - Example: `!logs 100 ERROR`
-- `!status` - Get TailSentry status
-- `!help` - Show available commands
+#### **Core Commands**
+- `/logs [lines] [level]` - Get recent application logs
+  - Example: `/logs 100 ERROR`
+- `/status` - Get overall TailSentry system status
+- `/help` - Show all available commands with descriptions
+
+#### **Device Management**
+- `/devices` - List all Tailscale devices on your network
+- `/device_info <device_name>` - Get detailed information about a specific device
+- `/health` - Show comprehensive system health metrics
+
+#### **Security & Monitoring**
+- `/audit_logs [lines]` - View security audit logs (elevated access)
+- `/metrics` - Display performance metrics and bot statistics
+
+### 6. Device Notifications
+
+The bot automatically monitors your Tailnet and sends notifications when:
+- **New devices join** your network
+- **Device status changes**
+- **Security events occur**
+
+Notifications include:
+- Device name and operating system
+- IP addresses and network information
+- First seen timestamp
+- Rich formatting with status indicators
+
+### 7. Security Features
+
+#### **Access Control**
+- **Rate Limiting**: 10 commands per minute per user
+- **User Restrictions**: Optionally limit access to specific Discord users
+- **Elevated Commands**: Some commands require explicit permission
+- **Audit Logging**: All command usage is logged with user details
+
+#### **Data Protection**
+- **Log Sanitization**: Removes sensitive data from Discord outputs
+- **Secure Tokens**: Bot tokens and secrets are protected
+- **Session Tracking**: Commands are tracked with unique session IDs
+
+### 8. Testing & Troubleshooting
+
+#### **Force Command Sync**
+If commands don't appear in Discord:
+```bash
+python force_sync_discord_commands.py
+```
+
+#### **Test Bot Functionality**
+```bash
+python test_discord_functionality.py
+```
+
+#### **Common Issues**
+- **Commands not appearing**: Run the force sync script above
+- **"Interaction failed"**: Check bot permissions in Discord server
+- **Rate limit errors**: Wait a minute and try again
+- **Access denied**: Check `DISCORD_ALLOWED_USERS` setting
+
+### 9. Example Usage
+
+```
+User: /health
+TailSentry Bot: 
+📊 TailSentry Health Check
+Overall Status: ✅ Healthy
+Uptime: 2h 15m 30s
+Services: ✅ Discord Bot: running
+Resource Usage: CPU: 12.3%, RAM: 45.2%, Disk: 8.1%
+
+User: /devices  
+TailSentry Bot:
+🌐 Tailscale Devices (6 total)
+
+📱 godzilla
+Status: 🟢 Online
+IP: 100.74.214.67
+OS: windows
+Last Seen: idle; offers exit node
+
+📱 shenron
+Status: 🟢 Online
+IP: 100.109.90.25
+OS: linux
+Last Seen: idle, tx 6652 rx 7588
+
+� bryson-desktop
+Status: 🔴 Offline
+IP: 100.124.58.64
+OS: windows
+Last Seen: 2025-08-15T22:48:21.1Z
+
+Summary
+Online: 2/6 • Use /device_info <name> for details
+
+User: /metrics
+TailSentry Bot:
+📈 TailSentry Metrics
+Performance: Response Time: 45ms, Requests/min: 12
+Bot Statistics: Commands Used: 47, Active Users: 3, Uptime: 2h 15m 30s
+```
+
+### Discord Bot Troubleshooting
+
+**If `/devices` shows mock data instead of real devices:**
+1. Verify Tailscale is installed: `tailscale status`
+2. Check bot logs for TailscaleClient import errors
+3. Run diagnostic test: `python test_tailscale_devices.py`
+4. Test bot integration: `python test_discord_device_integration.py`
+
+**Common fixes:**
+- Ensure Tailscale CLI is in PATH and accessible
+- Check file permissions for TailSentry service account
+- Restart TailSentry service if integration fails
 
 ### Security Notes
 
-- **Restrict Access**: Use `DISCORD_ALLOWED_USERS` to limit who can use commands
-- **Log Access**: Only administrators should have access to logs
-- **Bot Token**: Keep your bot token secure and never commit to version control
+- **Restrict Access**: Use `DISCORD_ALLOWED_USERS` to limit command access
+- **Audit Logging**: All bot interactions are logged for security review
+- **Rate Limiting**: Prevents spam and abuse with automatic throttling
+- **Data Sanitization**: Sensitive information is automatically filtered from outputs
+- **Elevated Commands**: Audit logs require explicit elevated access permissions
 
 ## 🔧 Management Commands
 
