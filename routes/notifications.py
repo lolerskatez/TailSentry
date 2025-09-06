@@ -832,6 +832,155 @@ async def test_notification(request: Request, test_data: dict):
         logger.error(f"Failed to send test notification: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to send test notification: {str(e)}")
 
+@router.post("/api/test-all-notifications")
+async def test_all_notifications(request: Request):
+    """Test all notification types"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        from datetime import datetime
+        import asyncio
+        
+        # Test data for each notification type
+        test_notifications = [
+            # System events
+            ("system_startup", {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}),
+            ("system_shutdown", {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}),
+            ("device_connected", {
+                "device_name": "test-device", 
+                "ip_address": "100.64.0.1", 
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }),
+            ("device_disconnected", {
+                "device_name": "test-device", 
+                "last_seen": "2 minutes ago", 
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }),
+            
+            # User events
+            ("user_login", {
+                "username": "test-user", 
+                "ip_address": "192.168.1.100", 
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }),
+            ("user_logout", {
+                "username": "test-user", 
+                "session_duration": "2h 15m", 
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }),
+            
+            # Security events
+            ("failed_login", {
+                "username": "test-user", 
+                "ip_address": "192.168.1.100", 
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }),
+            ("suspicious_activity", {
+                "activity_type": "Multiple failed login attempts", 
+                "source_ip": "192.168.1.100", 
+                "details": "5 failed attempts in 10 minutes",
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }),
+            
+            # Monitoring alerts
+            ("high_cpu_usage", {
+                "cpu_percentage": 85.5, 
+                "threshold": 80.0, 
+                "duration": "5 minutes",
+                "hostname": "test-server", 
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }),
+            ("high_memory_usage", {
+                "memory_percentage": 92.3, 
+                "threshold": 90.0, 
+                "memory_used": "7.4 GB",
+                "memory_total": "8.0 GB",
+                "hostname": "test-server", 
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }),
+            ("disk_space_low", {
+                "disk_path": "/var/log", 
+                "disk_used": "4.2 GB", 
+                "disk_total": "5.0 GB",
+                "disk_percentage": 84.0,
+                "disk_free": "800 MB", 
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }),
+            
+            # Application events
+            ("new_device_detected", {
+                "device_name": "new-laptop", 
+                "device_id": "test123", 
+                "os": "Windows 11",
+                "ip_address": "100.64.0.5", 
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }),
+            ("certificate_expiring", {
+                "domain": "example.com", 
+                "days_remaining": 7, 
+                "expiry_date": "2025-09-13",
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }),
+            ("service_failure", {
+                "service_name": "tailscale", 
+                "error_message": "Connection timeout", 
+                "last_success": "10 minutes ago",
+                "restart_attempts": 2,
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }),
+            ("update_available", {
+                "new_version": "v2.1.0", 
+                "current_version": "v2.0.5", 
+                "changelog_url": "https://github.com/tailsentry/releases",
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
+        ]
+        
+        results = {}
+        successful_count = 0
+        failed_count = 0
+        
+        # Send each test notification with a small delay
+        for notification_type, test_data in test_notifications:
+            try:
+                logger.info(f"Sending test notification: {notification_type}")
+                result = await notification_service.send_notification(notification_type, **test_data)
+                results[notification_type] = result
+                
+                if result.get("success", False):
+                    successful_count += 1
+                else:
+                    failed_count += 1
+                    
+                # Small delay between notifications to avoid rate limiting
+                await asyncio.sleep(0.5)
+                
+            except Exception as e:
+                logger.error(f"Failed to send test notification {notification_type}: {e}")
+                results[notification_type] = {"success": False, "error": str(e)}
+                failed_count += 1
+        
+        total_count = len(test_notifications)
+        success_rate = (successful_count / total_count) * 100 if total_count > 0 else 0
+        
+        return {
+            "success": True,
+            "message": f"Test complete: {successful_count}/{total_count} notifications sent successfully ({success_rate:.1f}%)",
+            "summary": {
+                "total": total_count,
+                "successful": successful_count,
+                "failed": failed_count,
+                "success_rate": success_rate
+            },
+            "results": results
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to send test notifications: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to send test notifications: {str(e)}")
+
 @router.post("/api/send-notification")
 async def send_notification_endpoint(request: Request, notification_data: dict):
     """Send a custom notification"""

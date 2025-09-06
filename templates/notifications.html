@@ -51,13 +51,28 @@
              x-transition:leave-start="opacity-100 translate-y-0 translate-x-0"
              x-transition:leave-end="opacity-0 translate-y-2 translate-x-2"
              class="fixed top-6 right-6 z-50 max-w-md">
-            <div :class="alert.type === 'success' ? 'bg-green-600' : 'bg-red-600'" 
+            <div :class="{
+                'bg-green-600': alert.type === 'success',
+                'bg-red-600': alert.type === 'error', 
+                'bg-blue-600': alert.type === 'info',
+                'bg-yellow-600': alert.type === 'warning'
+            }" 
                  class="text-white px-6 py-4 rounded-lg shadow-lg flex items-start gap-3 w-full">
+                <!-- Success Icon -->
                 <svg x-show="alert.type === 'success'" class="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
+                <!-- Error Icon -->
                 <svg x-show="alert.type === 'error'" class="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <!-- Info Icon -->
+                <svg x-show="alert.type === 'info'" class="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <!-- Warning Icon -->
+                <svg x-show="alert.type === 'warning'" class="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.732 15.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
                 <span x-text="alert.message" class="flex-1 text-sm leading-relaxed pr-2"></span>
                 <button @click="alert.show = false" class="text-white hover:text-gray-200 flex-shrink-0 mt-0.5">
@@ -602,16 +617,27 @@
                 async testNotification() {
                     this.loading = true;
                     try {
-                        const response = await fetch('/api/test-notification', {
+                        this.showAlert('info', 'Sending test notifications for all types... This may take a moment.');
+                        
+                        const response = await fetch('/api/test-all-notifications', {
                             method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({channel: 'all'})
+                            headers: {'Content-Type': 'application/json'}
                         });
                         
                         const result = await response.json();
                         
                         if (response.ok) {
-                            this.showAlert('success', 'Test notifications sent! Check your configured channels.');
+                            const summary = result.summary;
+                            if (summary.successful === summary.total) {
+                                this.showAlert('success', 
+                                    `🎉 All ${summary.total} test notifications sent successfully! Check your configured channels.`);
+                            } else if (summary.successful > 0) {
+                                this.showAlert('warning', 
+                                    `⚠️ ${summary.successful}/${summary.total} test notifications sent (${summary.success_rate.toFixed(1)}% success rate). Some channels may not be configured.`);
+                            } else {
+                                this.showAlert('error', 
+                                    `❌ No test notifications were sent successfully. Please check your notification settings.`);
+                            }
                         } else {
                             this.showAlert('error', result.detail || 'Failed to send test notifications');
                         }
@@ -647,12 +673,32 @@
                 
                 showAlert(type, message) {
                     this.alert = { show: true, type, message };
-                    // Auto-dismiss after 4 seconds
+                    
+                    // Different auto-dismiss times based on alert type
+                    let dismissTime;
+                    switch(type) {
+                        case 'info':
+                            dismissTime = 3000; // 3 seconds for info
+                            break;
+                        case 'success':
+                            dismissTime = 4000; // 4 seconds for success
+                            break;
+                        case 'warning':
+                            dismissTime = 6000; // 6 seconds for warnings
+                            break;
+                        case 'error':
+                            dismissTime = 8000; // 8 seconds for errors
+                            break;
+                        default:
+                            dismissTime = 4000; // Default 4 seconds
+                    }
+                    
+                    // Auto-dismiss
                     setTimeout(() => {
                         if (this.alert.show) {
                             this.alert.show = false;
                         }
-                    }, 4000);
+                    }, dismissTime);
                 }
             }
         }
