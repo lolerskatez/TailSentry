@@ -6,6 +6,7 @@ TailSentry is a secure, web-based management dashboard for Tailscale networks. I
 
 - **Device Management**: View, organize, and control all Tailscale devices
 - **User Management**: Comprehensive user administration with RBAC
+- **🔐 SSO Integration**: Enterprise authentication with OIDC/OAuth2 providers
 - **Security Monitoring**: Real-time security alerts and audit logging
 - **Network Analytics**: Traffic insights and performance monitoring
 - **Multi-platform**: Runs on Linux bare metal or Docker containers
@@ -274,6 +275,8 @@ journalctl -u tailsentry -f       # View logs
 - **[Installation Guide](INSTALLATION.md)** - Complete installation instructions
 - **[Deployment Guide](DEPLOYMENT.md)** - Production deployment best practices
 - **[Security Guide](SECURITY.md)** - Security configuration and hardening
+- **[🔐 SSO Setup Guide](SSO_SETUP_GUIDE.md)** - Enterprise SSO/OIDC configuration
+- **[🚀 SSO Quick Reference](SSO_QUICK_REFERENCE.md)** - Quick provider setup reference
 - **[API Documentation](routes/)** - REST API reference
 
 ## Contributing & Developer Onboarding

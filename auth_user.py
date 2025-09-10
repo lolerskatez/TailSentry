@@ -236,6 +236,16 @@ def add_email_column():
     conn.commit()
     conn.close()
 
+def add_discord_username_column():
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        c.execute('ALTER TABLE users ADD COLUMN discord_username TEXT')
+    except Exception:
+        pass  # Ignore if already exists
+    conn.commit()
+    conn.close()
+
 def add_notification_preferences_column():
     conn = get_db()
     c = conn.cursor()
@@ -350,11 +360,150 @@ def ensure_default_admin():
         conn.commit()
     conn.close()
 
+def create_or_update_sso_user(sso_provider: str, sso_user_id: str, email: str, display_name: str, username: Optional[str] = None, sso_metadata: Optional[dict] = None) -> Optional[dict]:
+    """Create or update a user from SSO login"""
+    import json
+    import logging
+    from datetime import datetime
+    
+    logger = logging.getLogger("tailsentry")
+    conn = get_db()
+    c = conn.cursor()
+    
+    # Check if user already exists by SSO provider and user ID
+    c.execute('SELECT * FROM users WHERE sso_provider = ? AND sso_user_id = ?', (sso_provider, sso_user_id))
+    existing_user = c.fetchone()
+    
+    if existing_user:
+        # Update existing SSO user
+        logger.info(f"[SSO] Updating existing SSO user: {sso_provider}:{sso_user_id}")
+        c.execute('''UPDATE users SET 
+                     email = ?, display_name = ?, last_sso_login = ?, sso_metadata = ?
+                     WHERE sso_provider = ? AND sso_user_id = ?''', 
+                  (email, display_name, datetime.now(), json.dumps(sso_metadata or {}), sso_provider, sso_user_id))
+        conn.commit()
+        conn.close()
+        return dict(existing_user)
+    
+    # Create new SSO user
+    if not username:
+        # Generate username from email or use sso_user_id
+        username = email.split('@')[0] if email and '@' in email else f"{sso_provider}_{sso_user_id}"
+        
+    # Ensure username is unique
+    original_username = username
+    counter = 1
+    while True:
+        c.execute('SELECT id FROM users WHERE username = ?', (username,))
+        if not c.fetchone():
+            break
+        username = f"{original_username}_{counter}"
+        counter += 1
+    
+    logger.info(f"[SSO] Creating new SSO user: {username} ({sso_provider}:{sso_user_id})")
+    
+    try:
+        c.execute('''INSERT INTO users 
+                     (username, password_hash, role, email, display_name, active, 
+                      sso_provider, sso_user_id, sso_metadata, last_sso_login) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                  (username, '', 'user', email, display_name, 1, 
+                   sso_provider, sso_user_id, json.dumps(sso_metadata or {}), datetime.now()))
+        
+        user_id = c.lastrowid
+        conn.commit()
+        
+        # Get the created user
+        c.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+        new_user = c.fetchone()
+        conn.close()
+        
+        logger.info(f"[SSO] Successfully created SSO user: {username}")
+        return dict(new_user)
+        
+    except Exception as e:
+        logger.error(f"[SSO] Failed to create SSO user: {e}")
+        conn.close()
+        return None
+
+def get_user_by_sso(sso_provider: str, sso_user_id: str) -> Optional[dict]:
+    """Get user by SSO provider and user ID"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM users WHERE sso_provider = ? AND sso_user_id = ?', (sso_provider, sso_user_id))
+    user = c.fetchone()
+    conn.close()
+    return dict(user) if user else None
+
+def link_sso_to_existing_user(username: str, sso_provider: str, sso_user_id: str, sso_metadata: Optional[dict] = None) -> bool:
+    """Link SSO provider to an existing local user account"""
+    import json
+    import logging
+    from datetime import datetime
+    
+    logger = logging.getLogger("tailsentry")
+    conn = get_db()
+    c = conn.cursor()
+    
+    try:
+        c.execute('''UPDATE users SET 
+                     sso_provider = ?, sso_user_id = ?, sso_metadata = ?, last_sso_login = ?
+                     WHERE username = ?''',
+                  (sso_provider, sso_user_id, json.dumps(sso_metadata or {}), datetime.now(), username))
+        
+        if c.rowcount > 0:
+            conn.commit()
+            logger.info(f"[SSO] Successfully linked {sso_provider} to user: {username}")
+            conn.close()
+            return True
+        else:
+            logger.warning(f"[SSO] User not found for linking: {username}")
+            conn.close()
+            return False
+            
+    except Exception as e:
+        logger.error(f"[SSO] Failed to link SSO to user {username}: {e}")
+        conn.close()
+        return False
+
+def add_sso_columns():
+    """Add SSO-related columns to users table"""
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        # Add SSO provider column (e.g., 'google', 'microsoft', 'github', 'local')
+        c.execute('ALTER TABLE users ADD COLUMN sso_provider TEXT DEFAULT "local"')
+    except Exception:
+        pass  # Ignore if already exists
+    
+    try:
+        # Add SSO user ID (the unique ID from the SSO provider)
+        c.execute('ALTER TABLE users ADD COLUMN sso_user_id TEXT')
+    except Exception:
+        pass  # Ignore if already exists
+    
+    try:
+        # Add SSO metadata (JSON field for additional provider data)
+        c.execute('ALTER TABLE users ADD COLUMN sso_metadata TEXT')
+    except Exception:
+        pass  # Ignore if already exists
+    
+    try:
+        # Add last SSO login timestamp
+        c.execute('ALTER TABLE users ADD COLUMN last_sso_login TIMESTAMP')
+    except Exception:
+        pass  # Ignore if already exists
+    
+    conn.commit()
+    conn.close()
+
 # Initialize DB and ensure admin user at module load
 init_db()
 add_email_column()
+add_discord_username_column()
 add_display_name_column()
 add_active_column()
 add_activity_log_column()
 add_notification_preferences_column()
+add_sso_columns()
 ensure_default_admin()

@@ -390,7 +390,7 @@ def set_active(request: Request, username: str = Form(...), active: int = Form(N
 
 # Add user
 @router.post("/users/add")
-async def add_user(request: Request, name: str = Form(""), username: str = Form(...), role: str = Form("user"), password: str = Form(...), user=Depends(get_current_user)):
+async def add_user(request: Request, name: str = Form(""), username: str = Form(...), role: str = Form("user"), password: str = Form(...), email: str = Form(""), discord_username: str = Form(""), user=Depends(get_current_user)):
     import logging
     logger = logging.getLogger("tailsentry")
     logger.info(f"[ADD USER] Request from {request.client.host if request.client else 'unknown'} | name: {name} | username: {username} | role: {role} | password_len: {len(password) if password else 0}")
@@ -403,14 +403,21 @@ async def add_user(request: Request, name: str = Form(""), username: str = Form(
         logger.info(f"[ADD USER] Attempting to create user: {username}")
         created = create_user(username, password, role)
         logger.info(f"[ADD USER] User creation result: {created}")
-        if created and name:
-            # Set display name if provided
+        if created and (name or email or discord_username):
+            # Set additional fields if provided
             conn = get_db()
             c = conn.cursor()
-            c.execute('UPDATE users SET display_name = ? WHERE username = ?', (name, username))
+            if name:
+                c.execute('UPDATE users SET display_name = ? WHERE username = ?', (name, username))
+                logger.info(f"[ADD USER] Display name set for {username}: {name}")
+            if email:
+                c.execute('UPDATE users SET email = ? WHERE username = ?', (email, username))
+                logger.info(f"[ADD USER] Email set for {username}: {email}")
+            if discord_username:
+                c.execute('UPDATE users SET discord_username = ? WHERE username = ?', (discord_username, username))
+                logger.info(f"[ADD USER] Discord username set for {username}: {discord_username}")
             conn.commit()
             conn.close()
-            logger.info(f"[ADD USER] Display name set for {username}: {name}")
         
         # Send notification for user creation
         if created:
@@ -445,6 +452,8 @@ async def edit_user(request: Request,
               username: str = Form(...),
               role: str = Form("user"),
               password: str = Form(""),
+              email: str = Form(""),
+              discord_username: str = Form(""),
               user=Depends(get_current_user)):
     if not user or user["role"] != "admin":
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
@@ -465,8 +474,8 @@ async def edit_user(request: Request,
         # Optionally update password
         if password:
             c.execute('UPDATE users SET password_hash = ? WHERE username = ?', (pwd_context.hash(password), username))
-        # Update display name
-        c.execute('UPDATE users SET display_name = ? WHERE username = ?', (name, username))
+        # Update additional fields
+        c.execute('UPDATE users SET display_name = ?, email = ?, discord_username = ? WHERE username = ?', (name, email, discord_username, username))
         conn.commit()
         
         # Send role change notification if role was changed

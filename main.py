@@ -88,6 +88,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Failed to start Discord bot: {e}")
     
+    # Initialize SSO providers
+    try:
+        from services.sso_auth import sso_auth
+        sso_auth.initialize_providers()
+        logger.info("SSO providers initialized")
+    except Exception as e:
+        logger.warning(f"Failed to initialize SSO providers: {e}")
+    
     yield
     
     # Shutdown
@@ -249,7 +257,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 # Import all routers (including settings) in a single line
 
 # Import all routers (including settings) in a single line
-from routes import tailscale, keys, api, config, version, dashboard, settings, authenticate, exit_node, logs, tailscale_settings
+from routes import tailscale, keys, api, config, version, dashboard, settings, authenticate, exit_node, logs, tailscale_settings, sso
 app.include_router(tailscale.router)
 app.include_router(keys.router)
 app.include_router(api.router, prefix="/api")
@@ -275,6 +283,9 @@ app.include_router(tailscale_settings.tailscale_settings_router)
 # Register TailSentry settings API
 from routes import tailsentry_settings
 app.include_router(tailsentry_settings.router)
+
+# Register SSO router
+app.include_router(sso.router)
 
 # Register Notifications API
 from routes import notifications

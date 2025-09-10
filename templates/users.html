@@ -49,43 +49,42 @@
             transform: scale(1.1);
         }
     </style>
-{% endblock %}
-
-<script>
-function userManagement() {
-    return {
-        editUser: null,
-        addUser: false,
-        showDeleteConfirm: null,
-        init() {
-            this.$watch('addUser', value => {
-                if (value) {
-                    setTimeout(() => {
-                        const getCookie = (name) => {
-                            const value = `; ${document.cookie}`;
-                            const parts = value.split(`; ${name}=`);
-                            if (parts.length === 2) return parts.pop().split(';').shift();
-                        };
-                        const csrf = getCookie('csrf_token') || window.__CSRF_TOKEN__ || '';
-                        const input = document.getElementById('add-user-csrf-token');
-                        if (input) input.value = csrf;
-                        
-                        // Clear any potential autofill values
-                        const form = document.querySelector('form[action="/settings/users/add"]');
-                        if (form) {
-                            const inputs = form.querySelectorAll('input[type="text"], input[type="password"], input[type="email"]');
-                            inputs.forEach(input => {
-                                input.value = '';
-                                input.removeAttribute('readonly');
-                            });
-                        }
-                    }, 10);
-                }
-            });
+    <script>
+    function userManagement() {
+        return {
+            editUser: null,
+            addUser: false,
+            showDeleteConfirm: null,
+            init() {
+                this.$watch('addUser', value => {
+                    if (value) {
+                        setTimeout(() => {
+                            const getCookie = (name) => {
+                                const value = `; ${document.cookie}`;
+                                const parts = value.split(`; ${name}=`);
+                                if (parts.length === 2) return parts.pop().split(';').shift();
+                            };
+                            const csrf = getCookie('csrf_token') || window.__CSRF_TOKEN__ || '';
+                            const input = document.getElementById('add-user-csrf-token');
+                            if (input) input.value = csrf;
+                            
+                            // Clear any potential autofill values
+                            const form = document.querySelector('form[action="/users/add"]');
+                            if (form) {
+                                const inputs = form.querySelectorAll('input[type="text"], input[type="password"], input[type="email"]');
+                                inputs.forEach(input => {
+                                    input.value = '';
+                                    input.removeAttribute('readonly');
+                                });
+                            }
+                        }, 10);
+                    }
+                });
+            }
         }
     }
-}
-</script>
+    </script>
+{% endblock %}
 
 {% block content %}
 <div x-data="userManagement()" class="max-w-7xl mx-auto py-6 px-4">
@@ -284,7 +283,7 @@ function userManagement() {
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Add New User</h3>
                 <p class="text-gray-600 dark:text-gray-400">Create a new user account for TailSentry.</p>
             </div>
-            <form method="POST" action="/settings/users/add" class="space-y-4" autocomplete="off">
+            <form method="POST" action="/users/add" class="space-y-4" autocomplete="off">
                 <input type="hidden" id="add-user-csrf-token" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
                 
                 <!-- Fake fields to prevent autofill -->
@@ -353,7 +352,7 @@ function userManagement() {
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Edit User</h3>
                 <p class="text-gray-600 dark:text-gray-400">Update user account information.</p>
             </div>
-            <form method="POST" action="/settings/users/edit" class="space-y-4">
+            <form method="POST" action="/users/edit" class="space-y-4">
                 <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request.state.csrf_token is defined else request.cookies.get('csrf_token', '') }}">
                 <input type="hidden" name="original_username" :value="editUser?.username">
                 
