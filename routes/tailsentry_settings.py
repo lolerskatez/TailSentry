@@ -514,6 +514,69 @@ async def export_settings(request: Request):
             }
         }
         
+        # Add Tailscale device settings
+        try:
+            tailscale_config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
+            if os.path.exists(tailscale_config_path):
+                with open(tailscale_config_path, 'r', encoding='utf-8') as f:
+                    tailscale_device_config = json.load(f)
+                    export_data["settings"]["tailscale_device"] = tailscale_device_config
+        except Exception as e:
+            logger.warning(f"Could not load Tailscale device settings for export: {e}")
+        
+        # Add notification settings
+        try:
+            from routes.notifications import get_current_notification_settings
+            notification_config = get_current_notification_settings()
+            
+            export_data["settings"]["notifications"] = {
+                "global_enabled": notification_config.global_enabled,
+                "retry_attempts": notification_config.retry_attempts,
+                "retry_delay": notification_config.retry_delay,
+                "rate_limit_enabled": notification_config.rate_limit_enabled,
+                "rate_limit_per_hour": notification_config.rate_limit_per_hour,
+                "smtp": {
+                    "enabled": notification_config.smtp.enabled,
+                    "smtp_server": notification_config.smtp.smtp_server,
+                    "smtp_port": notification_config.smtp.smtp_port,
+                    "use_tls": notification_config.smtp.use_tls,
+                    "use_ssl": notification_config.smtp.use_ssl,
+                    "username": notification_config.smtp.username,
+                    "from_email": notification_config.smtp.from_email,
+                    "from_name": notification_config.smtp.from_name
+                    # Note: password excluded for security
+                },
+                "discord": {
+                    "enabled": notification_config.discord.enabled,
+                    "username": notification_config.discord.username,
+                    "embed_color": notification_config.discord.embed_color,
+                    "avatar_url": notification_config.discord.avatar_url
+                    # Note: webhook_url excluded for security
+                },
+                "discord_bot": {
+                    "enabled": notification_config.discord_bot.enabled,
+                    "command_prefix": notification_config.discord_bot.command_prefix,
+                    "log_channel_id": notification_config.discord_bot.log_channel_id,
+                    "status_channel_id": notification_config.discord_bot.status_channel_id,
+                    "allowed_users": notification_config.discord_bot.allowed_users
+                    # Note: bot_token excluded for security
+                }
+            }
+        except Exception as e:
+            logger.warning(f"Could not load notification settings for export: {e}")
+        
+        # Add security notice
+        export_data["security_notice"] = {
+            "excluded_for_security": [
+                "SMTP passwords",
+                "Discord webhook URLs", 
+                "Discord bot tokens",
+                "User database (passwords, sessions)",
+                "API keys and secrets"
+            ],
+            "note": "Sensitive data has been excluded from this export for security reasons. You will need to reconfigure these settings after import."
+        }
+        
         return export_data
     except Exception as e:
         logger.error(f"Failed to export settings: {e}")

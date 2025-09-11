@@ -8,8 +8,8 @@
 
   <!-- Page Header -->
   <div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">TailSentry Configuration</h1>
-    <p class="mt-2 text-gray-600 dark:text-gray-400">Manage your TailSentry application settings and security configuration.</p>
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Configuration Management</h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-400">Export and import TailSentry configurations for migration and deployment.</p>
   </div>
 
   <!-- Success/Error Messages -->
@@ -32,352 +32,60 @@
     </div>
   </div>
 
-  <!-- Tab Navigation -->
-  <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
-    <nav class="-mb-px flex space-x-8" aria-label="Configuration Tabs">
-      <button @click="activeTab = 'security'" 
-              :class="activeTab === 'security' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
-              class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
-        🔒 Security
-      </button>
-      <button @click="activeTab = 'application'" 
-              :class="activeTab === 'application' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
-              class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
-        ⚙️ Application
-      </button>
-      <button @click="activeTab = 'monitoring'" 
-              :class="activeTab === 'monitoring' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
-              class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
-        📊 Monitoring
-      </button>
-      <button @click="activeTab = 'backup'" 
-              :class="activeTab === 'backup' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
-              class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
-        💾 Backup
-      </button>
-      <button @click="activeTab = 'smtp'" 
-              :class="activeTab === 'smtp' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'"
-              class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
-        📧 SMTP
-      </button>
-    </nav>
-  </div>
-
-  <!-- Security Settings Tab -->
-  <div x-show="activeTab === 'security'" class="space-y-6">
+  <!-- Configuration Management Content -->
+  <div class="space-y-6">
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Security Configuration</h3>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Configuration Management</h3>
+      <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+        Export your current configuration for backup purposes or import settings to quickly set up new instances.
+      </p>
       
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Session Timeout (minutes)
-          </label>
-          <input type="number" x-model.number="config.security.session_timeout_minutes" min="5" max="1440"
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Session Secret
-          </label>
-          <div class="flex gap-2">
-            <input type="password" :value="config.security.has_session_secret ? '••••••••••••••••' : ''" readonly
-                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 dark:bg-gray-600 dark:border-gray-600 dark:text-white">
-            <button @click="generateSessionSecret()" 
-                    class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500">
-              Generate New
-            </button>
-          </div>
-        </div>
-        
-        <div class="flex items-center">
-          <input type="checkbox" x-model="config.security.force_https" id="force_https"
-                 class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-          <label for="force_https" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-            Force HTTPS (disable for local development)
-          </label>
-        </div>
-      </div>
-      
-      <div class="mt-6">
-        <button @click="saveSecuritySettings()" :disabled="loading"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
-          <span x-show="!loading">Save Security Settings</span>
-          <span x-show="loading">Saving...</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Application Settings Tab -->
-  <div x-show="activeTab === 'application'" class="space-y-6">
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Application Configuration</h3>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Data Directory
-          </label>
-          <input type="text" x-model="config.application.data_dir" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Log Level
-          </label>
-          <select x-model="config.application.log_level"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-            <option value="DEBUG">DEBUG</option>
-            <option value="INFO">INFO</option>
-            <option value="WARNING">WARNING</option>
-            <option value="ERROR">ERROR</option>
-            <option value="CRITICAL">CRITICAL</option>
-          </select>
-        </div>
-        
-        <div class="md:col-span-2">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Log Format
-          </label>
-          <textarea x-model="config.application.log_format" rows="3"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
-        </div>
-        
-        <div class="flex items-center">
-          <input type="checkbox" x-model="config.application.development" id="development"
-                 class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-          <label for="development" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-            Development Mode
-          </label>
-        </div>
-      </div>
-      
-      <div class="mt-6">
-        <button @click="saveApplicationSettings()" :disabled="loading"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
-          <span x-show="!loading">Save Application Settings</span>
-          <span x-show="loading">Saving...</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Monitoring Settings Tab -->
-  <div x-show="activeTab === 'monitoring'" class="space-y-6">
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Monitoring & Alerts</h3>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="flex items-center">
-          <input type="checkbox" x-model="config.monitoring.health_check_enabled" id="health_check"
-                 class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-          <label for="health_check" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-            Enable Health Checks
-          </label>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Health Check Interval (seconds)
-          </label>
-          <input type="number" x-model.number="config.monitoring.health_check_interval" min="60" max="3600"
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Alert Email
-          </label>
-          <input type="email" x-model="config.monitoring.alert_email" placeholder="admin@example.com"
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Webhook URL
-          </label>
-          <div class="flex gap-2">
-            <input type="url" x-model="config.monitoring.webhook_url" placeholder="https://hooks.slack.com/..."
-                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-            <button @click="testWebhook()" :disabled="!config.monitoring.webhook_url || loading"
-                    class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 disabled:opacity-50">
-              Test
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      <div class="mt-6">
-        <button @click="saveMonitoringSettings()" :disabled="loading"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
-          <span x-show="!loading">Save Monitoring Settings</span>
-          <span x-show="loading">Saving...</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Backup Settings Tab -->
-  <div x-show="activeTab === 'backup'" class="space-y-6">
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Backup & Export</h3>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="flex items-center">
-          <input type="checkbox" x-model="config.backup.backup_enabled" id="backup_enabled"
-                 class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-          <label for="backup_enabled" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-            Enable Automatic Backups
-          </label>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Backup Retention (days)
-          </label>
-          <input type="number" x-model.number="config.backup.backup_retention_days" min="1" max="365"
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-        </div>
-      </div>
-      
-      <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
-        <h4 class="text-md font-medium text-gray-900 dark:text-white mb-4">Manual Backup & Export</h4>
-        <div class="flex flex-wrap gap-3">
-          <button @click="backupConfig()" :disabled="loading"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
-            Create Backup
-          </button>
-          
+        <!-- Export Section -->
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Export Configuration</h4>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Download your current settings as a JSON file for backup or migration to another instance.
+          </p>
           <button @click="exportSettings()" :disabled="loading"
-                  class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 disabled:opacity-50">
-            Export Settings
+                  class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 disabled:opacity-50">
+            <span x-show="!loading">Export Settings</span>
+            <span x-show="loading">Exporting...</span>
           </button>
-          
+        </div>
+        
+        <!-- Import Section -->
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Import Configuration</h4>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Upload a previously exported configuration file to apply those settings to this instance.
+          </p>
           <div class="relative">
-            <input type="file" @change="importSettings($event)" accept=".json" class="hidden" id="import-file">
+            <input type="file" @change="importSettings($event)" accept=".json" class="hidden" id="import-file" x-ref="importFile">
             <button @click="$refs.importFile.click()" :disabled="loading"
-                    class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 disabled:opacity-50">
-              Import Settings
+                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+              <span x-show="!loading">Import Settings</span>
+              <span x-show="loading">Importing...</span>
             </button>
           </div>
         </div>
       </div>
       
-      <div class="mt-6">
-        <button @click="saveBackupSettings()" :disabled="loading"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
-          <span x-show="!loading">Save Backup Settings</span>
-          <span x-show="loading">Saving...</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SMTP Settings Tab -->
-  <div x-show="activeTab === 'smtp'" class="space-y-6">
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">SMTP Configuration</h3>
-      <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">Configure email settings for password reset and notifications.</p>
-      
-      <div class="space-y-6">
-        <!-- SMTP Enable Toggle -->
-        <div class="flex items-center">
-          <input type="checkbox" x-model="config.smtp.smtp_enabled" id="smtp_enabled"
-                 class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
-          <label for="smtp_enabled" class="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Enable SMTP
-          </label>
-        </div>
-        
-        <!-- SMTP Configuration Fields -->
-        <div x-show="config.smtp.smtp_enabled" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              SMTP Host <span class="text-red-500">*</span>
-            </label>
-            <input type="text" x-model="config.smtp.smtp_host" placeholder="smtp.gmail.com"
-                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+      <!-- Warning Notice -->
+      <div class="mt-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-md p-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
           </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              SMTP Port <span class="text-red-500">*</span>
-            </label>
-            <input type="number" x-model.number="config.smtp.smtp_port" min="1" max="65535" placeholder="587"
-                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              SMTP Username <span class="text-red-500">*</span>
-            </label>
-            <input type="text" x-model="config.smtp.smtp_user" placeholder="your-email@gmail.com"
-                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              SMTP Password <span class="text-red-500">*</span>
-            </label>
-            <input type="password" x-model="config.smtp.smtp_password" placeholder="App password or regular password"
-                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              From Email Address <span class="text-red-500">*</span>
-            </label>
-            <input type="email" x-model="config.smtp.smtp_from" placeholder="noreply@yourdomain.com"
-                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-          </div>
-          
-          <div class="flex items-center">
-            <input type="checkbox" x-model="config.smtp.smtp_tls" id="smtp_tls"
-                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
-            <label for="smtp_tls" class="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Use TLS Encryption
-            </label>
-          </div>
-        </div>
-        
-        <!-- SMTP Help Text -->
-        <div x-show="config.smtp.smtp_enabled" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-md p-4">
-          <div class="flex">
-            <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-              </svg>
-            </div>
-            <div class="ml-3">
-              <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">SMTP Configuration Help</h3>
-              <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
-                <ul class="list-disc pl-5 space-y-1">
-                  <li>For Gmail: Use port 587 with TLS enabled and an app password</li>
-                  <li>For Outlook/Hotmail: Use smtp.outlook.com with port 587</li>
-                  <li>For custom SMTP: Check with your email provider for settings</li>
-                  <li>All fields marked with <span class="text-red-500">*</span> are required for password reset functionality</li>
-                </ul>
-              </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">Important</h3>
+            <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+              <p>Importing settings will overwrite your current configuration. TailSentry may require a restart after importing.</p>
             </div>
           </div>
         </div>
-      </div>
-      
-      <div class="mt-6 flex space-x-4">
-        <button @click="saveSettings('smtp')" :disabled="loading"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
-          <span x-show="!loading">Save SMTP Settings</span>
-          <span x-show="loading">Saving...</span>
-        </button>
-        
-        <button @click="testSMTP()" :disabled="loading || !config.smtp.smtp_enabled"
-                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 disabled:opacity-50">
-          <span x-show="!loading">Test SMTP Connection</span>
-          <span x-show="loading">Testing...</span>
-        </button>
       </div>
     </div>
   </div>
@@ -386,189 +94,16 @@
 <script>
 function tailsentrySettings() {
     return {
-        activeTab: 'security',
         loading: false,
         message: '',
         messageType: 'success',
-        config: {
-            security: {
-                session_timeout_minutes: 30,
-                force_https: false,
-                cors_origins: ['*'],
-                has_session_secret: false
-            },
-            tailscale: {
-                tailscale_tailnet: '-',
-                api_timeout: 10,
-                force_live_data: true,
-                has_pat: false
-            },
-            application: {
-                development: false,
-                data_dir: '/app/data',
-                log_level: 'INFO',
-                log_format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-            },
-            monitoring: {
-                health_check_enabled: true,
-                health_check_interval: 300,
-                alert_email: '',
-                webhook_url: '',
-                has_webhook_url: false
-            },
-      smtp: {
-        smtp_enabled: false,
-        smtp_host: '',
-        smtp_port: 587,
-        smtp_user: '',
-        smtp_password: '',
-        smtp_from: '',
-        smtp_tls: true
-      },
-            backup: {
-                backup_enabled: true,
-                backup_retention_days: 30
-            }
-        },
 
         init() {
-            this.loadSettings();
-        },
-
-        async loadSettings() {
-            try {
-                const response = await fetch('/api/tailsentry-settings');
-                if (response.ok) {
-                    const data = await response.json();
-                    this.config = { ...this.config, ...data };
-                }
-            } catch (error) {
-                console.error('Failed to load settings:', error);
-                this.showMessage('Failed to load settings', 'error');
-            }
-        },
-
-        async saveSecuritySettings() {
-            await this.saveSettings('security');
-        },
-
-        async saveTailscaleSettings() {
-            await this.saveSettings('tailscale');
-        },
-
-        async saveApplicationSettings() {
-            await this.saveSettings('application');
-        },
-
-        async saveMonitoringSettings() {
-            await this.saveSettings('monitoring');
-        },
-
-        async saveBackupSettings() {
-            await this.saveSettings('backup');
-        },
-
-        async saveSettings(section = null) {
-            this.loading = true;
-            try {
-                const response = await fetch('/api/tailsentry-settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(this.config)
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    this.showMessage(`${section ? section.charAt(0).toUpperCase() + section.slice(1) + ' s' : 'S'}ettings saved successfully${result.restart_required ? ' (restart required)' : ''}`, 'success');
-                    this.loadSettings(); // Reload to get updated state
-                } else {
-                    this.showMessage('Error: ' + (result.error || 'Unknown error'), 'error');
-                }
-            } catch (error) {
-                this.showMessage('Network error: ' + error.message, 'error');
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        async generateSessionSecret() {
-            this.loading = true;
-            try {
-                const response = await fetch('/api/tailsentry-settings/generate-secret', {
-                    method: 'POST'
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    this.showMessage('New session secret generated', 'success');
-                    this.config.security.has_session_secret = true;
-                } else {
-                    this.showMessage('Failed to generate session secret', 'error');
-                }
-            } catch (error) {
-                this.showMessage('Error generating session secret', 'error');
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        async testWebhook() {
-            this.loading = true;
-            try {
-                const response = await fetch('/api/tailsentry-settings/test-webhook', {
-                    method: 'POST'
-                });
-                
-                const result = await response.json();
-                this.showMessage(result.message, result.success ? 'success' : 'error');
-            } catch (error) {
-                this.showMessage('Webhook test failed', 'error');
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        async testSMTP() {
-            this.loading = true;
-            try {
-                const response = await fetch('/api/tailsentry-settings/test-smtp', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(this.config.smtp)
-                });
-                
-                const result = await response.json();
-                this.showMessage(result.message, result.success ? 'success' : 'error');
-            } catch (error) {
-                this.showMessage('SMTP test failed', 'error');
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        async backupConfig() {
-            this.loading = true;
-            try {
-                const response = await fetch('/api/tailsentry-settings/backup-config', {
-                    method: 'POST'
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    this.showMessage('Configuration backed up successfully', 'success');
-                } else {
-                    this.showMessage('Backup failed', 'error');
-                }
-            } catch (error) {
-                this.showMessage('Backup failed', 'error');
-            } finally {
-                this.loading = false;
-            }
+            // No settings to load for config management
         },
 
         async exportSettings() {
+            this.loading = true;
             try {
                 const response = await fetch('/api/tailsentry-settings/export');
                 if (response.ok) {
@@ -582,12 +117,14 @@ function tailsentrySettings() {
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-                    this.showMessage('Settings exported successfully', 'success');
+                    this.showMessage('Configuration exported successfully', 'success');
                 } else {
                     this.showMessage('Export failed', 'error');
                 }
             } catch (error) {
-                this.showMessage('Export failed', 'error');
+                this.showMessage('Export failed: ' + error.message, 'error');
+            } finally {
+                this.loading = false;
             }
         },
 
@@ -595,6 +132,7 @@ function tailsentrySettings() {
             const file = event.target.files[0];
             if (!file) return;
 
+            this.loading = true;
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
@@ -608,13 +146,14 @@ function tailsentrySettings() {
                     
                     const result = await response.json();
                     if (result.success) {
-                        this.showMessage('Settings imported successfully (restart required)', 'success');
-                        this.loadSettings();
+                        this.showMessage('Configuration imported successfully! TailSentry restart may be required.', 'success');
                     } else {
                         this.showMessage('Import failed: ' + (result.message || 'Unknown error'), 'error');
                     }
                 } catch (error) {
-                    this.showMessage('Invalid settings file', 'error');
+                    this.showMessage('Invalid configuration file: ' + error.message, 'error');
+                } finally {
+                    this.loading = false;
                 }
             };
             reader.readAsText(file);

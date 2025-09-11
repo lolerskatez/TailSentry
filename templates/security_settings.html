@@ -1,0 +1,511 @@
+{% extends "base.html" %}
+{% set show_settings_nav = true %}
+{% set active_nav = 'security_settings' %}
+{% block title %}Security Settings - TailSentry{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto py-4 px-4" x-data="securitySettings()">
+
+  <!-- Page Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+      Security Settings
+    </h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-400">Configure authentication, access controls, and security policies for your TailSentry instance.</p>
+  </div>
+
+  <!-- Success/Error Messages -->
+  <div x-show="message" x-transition class="mb-6">
+    <div :class="messageType === 'success' ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900 dark:border-green-700 dark:text-green-100' : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900 dark:border-red-700 dark:text-red-100'" 
+         class="border px-4 py-3 rounded-md">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg x-show="messageType === 'success'" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          <svg x-show="messageType === 'error'" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium" x-text="message"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Security Overview Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <div class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-4">
+          <div class="text-lg font-medium text-gray-900 dark:text-white">Authentication</div>
+          <div class="text-sm text-gray-500 dark:text-gray-400" x-text="config.security.has_session_secret ? 'Secured' : 'Needs Setup'"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-4">
+          <div class="text-lg font-medium text-gray-900 dark:text-white">HTTPS</div>
+          <div class="text-sm text-gray-500 dark:text-gray-400" x-text="config.security.force_https ? 'Enforced' : 'Optional'"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <div class="w-8 h-8 bg-yellow-100 dark:bg-yellow-900 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-4">
+          <div class="text-lg font-medium text-gray-900 dark:text-white">Session Timeout</div>
+          <div class="text-sm text-gray-500 dark:text-gray-400" x-text="config.security.session_timeout_minutes + ' minutes'"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Security Settings -->
+  <div class="space-y-6">
+    
+    <!-- Authentication & Sessions -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+        </svg>
+        Authentication & Sessions
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Session Timeout (minutes)
+          </label>
+          <input type="number" x-model.number="config.security.session_timeout_minutes" min="5" max="1440"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+          <p class="mt-1 text-sm text-gray-500">Automatically log out inactive users (5-1440 minutes)</p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Session Secret
+          </label>
+          <div class="flex gap-2">
+            <input :type="generatedSecret ? 'text' : 'password'" 
+                   :value="generatedSecret || (config.security.has_session_secret ? '••••••••••••••••••••••••••••••••' : '')" 
+                   readonly
+                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 dark:bg-gray-600 dark:border-gray-600 dark:text-white">
+            <button @click="generateSessionSecret()" 
+                    class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500">
+              Generate New
+            </button>
+          </div>
+          <p class="mt-1 text-sm text-gray-500">
+            <span x-show="!generatedSecret">Cryptographic key for session security</span>
+            <span x-show="generatedSecret" class="text-amber-600 dark:text-amber-400">⚠️ Copy this secret now - it will be hidden in 30 seconds for security</span>
+          </p>
+        </div>
+
+        <div class="md:col-span-2">
+          <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div>
+              <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Remember Login Sessions</label>
+              <p class="text-xs text-gray-500 mt-1">Allow users to stay logged in across browser sessions</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer group">
+              <input type="checkbox" x-model="config.security.remember_sessions" class="sr-only">
+              <div class="relative">
+                <div class="block bg-gray-300 dark:bg-gray-600 w-14 h-8 rounded-full shadow-inner transition-colors duration-300"
+                     :class="config.security.remember_sessions ? 'bg-indigo-500 dark:bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'"></div>
+                <div class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 shadow-md flex items-center justify-center"
+                     :class="config.security.remember_sessions ? 'transform translate-x-6' : 'transform translate-x-0'">
+                  <div x-show="config.security.remember_sessions" class="w-3 h-3">
+                    <svg class="w-3 h-3 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                <span x-show="!config.security.remember_sessions">Disabled</span>
+                <span x-show="config.security.remember_sessions" class="text-indigo-600 dark:text-indigo-400">Enabled</span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Network Security -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+        </svg>
+        Network Security
+      </h3>
+      
+      <div class="space-y-4">
+        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <div>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Force HTTPS</label>
+            <p class="text-xs text-gray-500 mt-1">Redirect all HTTP traffic to HTTPS (disable for local development)</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer group">
+            <input type="checkbox" x-model="config.security.force_https" class="sr-only">
+            <div class="relative">
+              <div class="block bg-gray-300 dark:bg-gray-600 w-14 h-8 rounded-full shadow-inner transition-colors duration-300"
+                   :class="config.security.force_https ? 'bg-indigo-500 dark:bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'"></div>
+              <div class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 shadow-md flex items-center justify-center"
+                   :class="config.security.force_https ? 'transform translate-x-6' : 'transform translate-x-0'">
+                <div x-show="config.security.force_https" class="w-3 h-3">
+                  <svg class="w-3 h-3 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+              <span x-show="!config.security.force_https">Disabled</span>
+              <span x-show="config.security.force_https" class="text-indigo-600 dark:text-indigo-400">Enabled</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <div>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Secure Headers</label>
+            <p class="text-xs text-gray-500 mt-1">Enable security headers (HSTS, CSP, X-Frame-Options)</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer group">
+            <input type="checkbox" x-model="config.security.secure_headers" class="sr-only">
+            <div class="relative">
+              <div class="block bg-gray-300 dark:bg-gray-600 w-14 h-8 rounded-full shadow-inner transition-colors duration-300"
+                   :class="config.security.secure_headers ? 'bg-indigo-500 dark:bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'"></div>
+              <div class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 shadow-md flex items-center justify-center"
+                   :class="config.security.secure_headers ? 'transform translate-x-6' : 'transform translate-x-0'">
+                <div x-show="config.security.secure_headers" class="w-3 h-3">
+                  <svg class="w-3 h-3 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+              <span x-show="!config.security.secure_headers">Disabled</span>
+              <span x-show="config.security.secure_headers" class="text-indigo-600 dark:text-indigo-400">Enabled</span>
+            </span>
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Allowed CORS Origins
+          </label>
+          <textarea x-model="config.security.cors_origins_text" rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    placeholder="https://yourdomain.com&#10;https://app.yourdomain.com&#10;*"></textarea>
+          <p class="mt-1 text-sm text-gray-500">One origin per line. Use * to allow all origins (not recommended for production)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Access Control -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+        Access Control
+      </h3>
+      
+      <div class="space-y-4">
+        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <div>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">IP Whitelist Mode</label>
+            <p class="text-xs text-gray-500 mt-1">Only allow access from specified IP addresses</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer group">
+            <input type="checkbox" x-model="config.security.ip_whitelist_enabled" class="sr-only">
+            <div class="relative">
+              <div class="block bg-gray-300 dark:bg-gray-600 w-14 h-8 rounded-full shadow-inner transition-colors duration-300"
+                   :class="config.security.ip_whitelist_enabled ? 'bg-indigo-500 dark:bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'"></div>
+              <div class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 shadow-md flex items-center justify-center"
+                   :class="config.security.ip_whitelist_enabled ? 'transform translate-x-6' : 'transform translate-x-0'">
+                <div x-show="config.security.ip_whitelist_enabled" class="w-3 h-3">
+                  <svg class="w-3 h-3 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+              <span x-show="!config.security.ip_whitelist_enabled">Disabled</span>
+              <span x-show="config.security.ip_whitelist_enabled" class="text-indigo-600 dark:text-indigo-400">Enabled</span>
+            </span>
+          </label>
+        </div>
+
+        <div x-show="config.security.ip_whitelist_enabled" x-transition class="space-y-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Allowed IP Addresses
+            </label>
+            <textarea x-model="config.security.ip_whitelist" rows="3"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      placeholder="192.168.1.0/24&#10;10.0.0.0/8&#10;100.64.0.0/10"></textarea>
+            <p class="mt-1 text-sm text-gray-500">One IP address or CIDR block per line</p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <div>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Rate Limiting</label>
+            <p class="text-xs text-gray-500 mt-1">Prevent brute force attacks and API abuse</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer group">
+            <input type="checkbox" x-model="config.security.rate_limiting_enabled" class="sr-only">
+            <div class="relative">
+              <div class="block bg-gray-300 dark:bg-gray-600 w-14 h-8 rounded-full shadow-inner transition-colors duration-300"
+                   :class="config.security.rate_limiting_enabled ? 'bg-indigo-500 dark:bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'"></div>
+              <div class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 shadow-md flex items-center justify-center"
+                   :class="config.security.rate_limiting_enabled ? 'transform translate-x-6' : 'transform translate-x-0'">
+                <div x-show="config.security.rate_limiting_enabled" class="w-3 h-3">
+                  <svg class="w-3 h-3 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+              <span x-show="!config.security.rate_limiting_enabled">Disabled</span>
+              <span x-show="config.security.rate_limiting_enabled" class="text-indigo-600 dark:text-indigo-400">Enabled</span>
+            </span>
+          </label>
+        </div>
+
+        <div x-show="config.security.rate_limiting_enabled" x-transition>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Login Attempts (per 15 min)
+              </label>
+              <input type="number" x-model.number="config.security.login_rate_limit" min="1" max="100"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                API Requests (per minute)
+              </label>
+              <input type="number" x-model.number="config.security.api_rate_limit" min="10" max="1000"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security Monitoring -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+        </svg>
+        Security Monitoring
+      </h3>
+      
+      <div class="space-y-4">
+        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <div>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Security Event Logging</label>
+            <p class="text-xs text-gray-500 mt-1">Log authentication attempts, permission changes, and security events</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer group">
+            <input type="checkbox" x-model="config.security.security_logging" class="sr-only">
+            <div class="relative">
+              <div class="block bg-gray-300 dark:bg-gray-600 w-14 h-8 rounded-full shadow-inner transition-colors duration-300"
+                   :class="config.security.security_logging ? 'bg-indigo-500 dark:bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'"></div>
+              <div class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 shadow-md flex items-center justify-center"
+                   :class="config.security.security_logging ? 'transform translate-x-6' : 'transform translate-x-0'">
+                <div x-show="config.security.security_logging" class="w-3 h-3">
+                  <svg class="w-3 h-3 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+              <span x-show="!config.security.security_logging">Disabled</span>
+              <span x-show="config.security.security_logging" class="text-indigo-600 dark:text-indigo-400">Enabled</span>
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Save Button -->
+  <div class="mt-8 flex justify-end">
+    <button @click="saveSettings()" :disabled="loading"
+            class="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 flex items-center">
+      <svg x-show="!loading" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+      <svg x-show="loading" class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span x-show="!loading">Save Security Settings</span>
+      <span x-show="loading">Saving...</span>
+    </button>
+  </div>
+
+</div>
+
+<script>
+function securitySettings() {
+    return {
+        loading: false,
+        message: '',
+        messageType: 'success',
+        generatedSecret: '', // Store the generated secret to display
+        config: {
+            security: {
+                session_timeout_minutes: 30,
+                force_https: false,
+                cors_origins: ['*'],
+                cors_origins_text: '*',
+                has_session_secret: false,
+                remember_sessions: true,
+                secure_headers: true,
+                ip_whitelist_enabled: false,
+                ip_whitelist: '',
+                rate_limiting_enabled: true,
+                login_rate_limit: 5,
+                api_rate_limit: 60,
+                security_logging: true
+            }
+        },
+
+        init() {
+            this.loadSettings();
+        },
+
+        async loadSettings() {
+            try {
+                const response = await fetch('/api/security-settings');
+                if (response.ok) {
+                    const data = await response.json();
+                    // Map the flat API response to our nested structure
+                    this.config.security = { ...this.config.security, ...data };
+                    // Convert CORS origins array to text for editing
+                    if (Array.isArray(this.config.security.cors_origins)) {
+                        this.config.security.cors_origins_text = this.config.security.cors_origins.join('\n');
+                    }
+                    // Convert IP whitelist array to text if it's an array
+                    if (Array.isArray(this.config.security.ip_whitelist)) {
+                        this.config.security.ip_whitelist = this.config.security.ip_whitelist.join('\n');
+                    }
+                } else {
+                    this.showMessage('Failed to load security settings', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+                this.showMessage('Failed to load security settings', 'error');
+            }
+        },
+
+        async saveSettings() {
+            this.loading = true;
+            try {
+                // Convert CORS origins text back to array
+                const corsOrigins = this.config.security.cors_origins_text
+                    .split('\n')
+                    .map(origin => origin.trim())
+                    .filter(origin => origin.length > 0);
+                
+                const settingsToSave = {
+                    ...this.config.security,
+                    cors_origins: corsOrigins
+                };
+
+                const response = await fetch('/api/security-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settingsToSave)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    this.showMessage('Security settings saved successfully' + (result.restart_required ? ' (restart required)' : ''), 'success');
+                    this.loadSettings(); // Reload to get updated state
+                } else {
+                    this.showMessage('Error: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                this.showMessage('Network error: ' + error.message, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async generateSessionSecret() {
+            this.loading = true;
+            try {
+                const response = await fetch('/api/security-settings/generate-secret', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    this.showMessage('New session secret generated successfully', 'success');
+                    this.config.security.has_session_secret = true;
+                    // Store the generated secret to display it
+                    this.generatedSecret = result.secret;
+                    // Clear the secret after 30 seconds for security
+                    setTimeout(() => {
+                        this.generatedSecret = '';
+                    }, 30000);
+                } else {
+                    this.showMessage('Failed to generate session secret', 'error');
+                }
+            } catch (error) {
+                this.showMessage('Error generating session secret', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        showMessage(msg, type) {
+            this.message = msg;
+            this.messageType = type;
+            setTimeout(() => {
+                this.message = '';
+            }, 5000);
+        }
+    };
+}
+</script>
+{% endblock %}

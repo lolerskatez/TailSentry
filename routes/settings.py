@@ -57,6 +57,18 @@ async def manage_users(request: Request):
     })
 
 
+@router.get("/settings/security")
+async def security_settings_page(request: Request):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    return templates.TemplateResponse("security_settings.html", {
+        "request": request, 
+        "active_nav": "settings", 
+        "user": user,
+        "current_user": user
+    })
+
 @router.get("/settings/tailscale")
 async def tailscale_settings_page(request: Request):
     user = get_current_user(request)

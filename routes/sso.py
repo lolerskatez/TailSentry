@@ -148,6 +148,7 @@ async def sso_settings(request: Request, user=Depends(get_current_user)):
         
         return templates.TemplateResponse("sso_settings.html", {
             "request": request,
+            "user": user,
             "current_user": user,
             "sso_config": config
         })

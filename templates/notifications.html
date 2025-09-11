@@ -250,6 +250,31 @@
                         </label>
                     </div>
                 </div>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Health Check Alerts</label>
+                            <p class="text-xs text-gray-500 mt-1">Monitor system health (5 min intervals)</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" x-model="settings.health_check_enabled">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="space-y-4" x-show="settings.health_check_enabled" x-transition>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Alert Email</label>
+                        <div class="relative">
+                            <input type="email" x-model="settings.alert_email" placeholder="admin@example.com"
+                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
+                            </svg>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-1">Email for health check failure alerts</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -633,6 +658,8 @@
                     retry_delay: 60,
                     rate_limit_enabled: true,
                     rate_limit_per_hour: 100,
+                    health_check_enabled: true,
+                    alert_email: '',
                     smtp: {
                         enabled: false,
                         smtp_server: '',

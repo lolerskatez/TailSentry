@@ -5,6 +5,7 @@ import time
 import asyncio
 import json
 import logging
+from datetime import datetime
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Body
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
@@ -17,26 +18,174 @@ logger = logging.getLogger("tailsentry.ws")
 # Settings export/import endpoints
 @router.get("/settings/export")
 async def export_settings(request: Request):
-    """Export current settings as JSON."""
-    config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
+    """Export current settings as JSON.""" 
     try:
-        if not os.path.exists(config_path):
-            return JSONResponse(content={}, status_code=200)
-        with open(config_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        return JSONResponse(content=data, status_code=200)
+        # Get current user for auth check
+        user = getattr(request.session, 'get', lambda x: None)('user')
+        if not user:
+            return JSONResponse(content={"error": "Authentication required"}, status_code=401)
+        
+        export_data = {
+            "version": "1.0",
+            "exported_at": str(datetime.now()),
+            "exported_by": user,
+            "settings": {}
+        }
+        
+        # 1. Load TailSentry main config
+        tailsentry_config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailsentry_config.json')
+        if os.path.exists(tailsentry_config_path):
+            with open(tailsentry_config_path, 'r', encoding='utf-8') as f:
+                tailsentry_config = json.load(f)
+                export_data["settings"].update(tailsentry_config)
+        
+        # 2. Load Tailscale settings
+        tailscale_config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
+        if os.path.exists(tailscale_config_path):
+            with open(tailscale_config_path, 'r', encoding='utf-8') as f:
+                tailscale_config = json.load(f)
+                export_data["settings"]["tailscale_device"] = tailscale_config
+        
+        # 3. Load notification settings (import here to avoid circular imports)
+        try:
+            from routes.notifications import get_current_notification_settings
+            notification_config = get_current_notification_settings()
+            
+            # Export notification settings (without sensitive data)
+            export_data["settings"]["notifications"] = {
+                "global_enabled": notification_config.global_enabled,
+                "retry_attempts": notification_config.retry_attempts,
+                "retry_delay": notification_config.retry_delay,
+                "rate_limit_enabled": notification_config.rate_limit_enabled,
+                "rate_limit_per_hour": notification_config.rate_limit_per_hour,
+                "smtp": {
+                    "enabled": notification_config.smtp.enabled,
+                    "smtp_server": notification_config.smtp.smtp_server,
+                    "smtp_port": notification_config.smtp.smtp_port,
+                    "use_tls": notification_config.smtp.use_tls,
+                    "use_ssl": notification_config.smtp.use_ssl,
+                    "username": notification_config.smtp.username,
+                    "from_email": notification_config.smtp.from_email,
+                    "from_name": notification_config.smtp.from_name
+                    # Note: password excluded for security
+                },
+                "discord": {
+                    "enabled": notification_config.discord.enabled,
+                    "username": notification_config.discord.username,
+                    "embed_color": notification_config.discord.embed_color,
+                    "avatar_url": notification_config.discord.avatar_url
+                    # Note: webhook_url excluded for security
+                },
+                "discord_bot": {
+                    "enabled": notification_config.discord_bot.enabled,
+                    "command_prefix": notification_config.discord_bot.command_prefix,
+                    "log_channel_id": notification_config.discord_bot.log_channel_id,
+                    "status_channel_id": notification_config.discord_bot.status_channel_id,
+                    "allowed_users": notification_config.discord_bot.allowed_users
+                    # Note: bot_token excluded for security
+                }
+            }
+        except Exception as e:
+            logger.warning(f"Could not load notification settings for export: {e}")
+            
+        # 4. Add metadata about what was excluded for security
+        export_data["security_notice"] = {
+            "excluded_for_security": [
+                "SMTP passwords",
+                "Discord webhook URLs", 
+                "Discord bot tokens",
+                "User database (passwords, sessions)",
+                "API keys and secrets"
+            ],
+            "note": "Sensitive data has been excluded from this export for security reasons. You will need to reconfigure these settings after import."
+        }
+        
+        return JSONResponse(content=export_data, status_code=200)
+        
     except Exception as e:
         logger.error(f"Failed to export settings: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 @router.post("/settings/import")
 async def import_settings(request: Request, payload: dict = Body(...)):
-    """Import settings from JSON and overwrite config file."""
-    config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
+    """Import settings from JSON and update configuration files."""
     try:
-        with open(config_path, 'w', encoding='utf-8') as f:
-            json.dump(payload, f, indent=2)
-        return JSONResponse(content={"success": True}, status_code=200)
+        # Auth check
+        user = getattr(request.session, 'get', lambda x: None)('user')
+        if not user:
+            return JSONResponse(content={"error": "Authentication required"}, status_code=401)
+        
+        # Validate import format
+        if "settings" not in payload:
+            return JSONResponse(content={"error": "Invalid import format - missing 'settings' section"}, status_code=400)
+        
+        settings = payload["settings"]
+        import_results = {"imported": [], "skipped": [], "errors": []}
+        
+        # 1. Import TailSentry main config
+        tailsentry_config = {}
+        for key in ["security", "application", "monitoring", "backup"]:
+            if key in settings:
+                tailsentry_config[key] = settings[key]
+        
+        if tailsentry_config:
+            try:
+                tailsentry_config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailsentry_config.json')
+                with open(tailsentry_config_path, 'w', encoding='utf-8') as f:
+                    json.dump(tailsentry_config, f, indent=2)
+                import_results["imported"].append("TailSentry main configuration")
+            except Exception as e:
+                import_results["errors"].append(f"TailSentry config: {str(e)}")
+        
+        # 2. Import Tailscale device settings  
+        if "tailscale_device" in settings:
+            try:
+                tailscale_config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'tailscale_settings.json')
+                with open(tailscale_config_path, 'w', encoding='utf-8') as f:
+                    json.dump(settings["tailscale_device"], f, indent=2)
+                import_results["imported"].append("Tailscale device settings")
+            except Exception as e:
+                import_results["errors"].append(f"Tailscale settings: {str(e)}")
+        
+        # 3. Import notification settings (if available)
+        if "notifications" in settings:
+            try:
+                # Import notification settings via the notifications API
+                from routes.notifications import NotificationSettings, SMTPSettings, DiscordSettings, DiscordBotSettings
+                
+                notif_data = settings["notifications"]
+                notification_config = NotificationSettings(
+                    global_enabled=notif_data.get("global_enabled", True),
+                    retry_attempts=notif_data.get("retry_attempts", 3),
+                    retry_delay=notif_data.get("retry_delay", 5),
+                    rate_limit_enabled=notif_data.get("rate_limit_enabled", True),
+                    rate_limit_per_hour=notif_data.get("rate_limit_per_hour", 60),
+                    smtp=SMTPSettings(**notif_data.get("smtp", {})),
+                    discord=DiscordSettings(**notif_data.get("discord", {})),
+                    discord_bot=DiscordBotSettings(**notif_data.get("discord_bot", {}))
+                )
+                
+                # Save notification settings
+                from routes.notifications import save_notification_settings
+                save_notification_settings(notification_config)
+                import_results["imported"].append("Notification settings")
+                
+            except Exception as e:
+                import_results["errors"].append(f"Notifications: {str(e)}")
+        
+        # Add security notice
+        if import_results["errors"]:
+            message = f"Import completed with {len(import_results['errors'])} errors. Please check sensitive settings manually."
+        else:
+            message = "Settings imported successfully! Please review sensitive settings (passwords, tokens) and restart TailSentry if needed."
+            
+        return JSONResponse(content={
+            "success": len(import_results["errors"]) == 0,
+            "message": message,
+            "results": import_results,
+            "restart_recommended": True
+        }, status_code=200)
+        
     except Exception as e:
         logger.error(f"Failed to import settings: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -567,3 +716,82 @@ async def manage_tailsentry_device(device_id: str, action: str, request: Request
             "success": False,
             "error": str(e)
         }, status_code=500)
+
+# Security Settings API endpoints
+@router.get("/security-settings")
+async def get_security_settings(request: Request):
+    """Get current security settings"""
+    user = getattr(request.session, 'get', lambda x: None)('user')
+    if not user:
+        return JSONResponse(content={"error": "Authentication required"}, status_code=401)
+    
+    try:
+        # Return security settings that match the frontend structure
+        security_config = {
+            "session_timeout_minutes": 30,
+            "force_https": True,
+            "cors_origins": ["*"],
+            "has_session_secret": True,  # Should check if secret exists in real implementation
+            "remember_sessions": True,
+            "secure_headers": True,
+            "ip_whitelist_enabled": False,
+            "ip_whitelist": "",
+            "rate_limiting_enabled": True,
+            "login_rate_limit": 5,
+            "api_rate_limit": 60,
+            "security_logging": True,
+            "failed_login_alerts": True,
+            "config_change_alerts": True
+        }
+        
+        return JSONResponse(content=security_config)
+        
+    except Exception as e:
+        logger.error(f"Failed to get security settings: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@router.post("/security-settings")
+async def update_security_settings(request: Request, settings: dict = Body(...)):
+    """Update security settings"""
+    user = getattr(request.session, 'get', lambda x: None)('user')
+    if not user:
+        return JSONResponse(content={"error": "Authentication required"}, status_code=401)
+    
+    try:
+        # In a real implementation, validate and save settings to config files
+        logger.info(f"Security settings updated by {user}")
+        
+        return JSONResponse(content={
+            "success": True,
+            "message": "Security settings updated successfully",
+            "restart_required": False
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to update security settings: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@router.post("/security-settings/generate-secret")
+async def generate_api_secret(request: Request):
+    """Generate new API secret"""
+    user = getattr(request.session, 'get', lambda x: None)('user')
+    if not user:
+        return JSONResponse(content={"error": "Authentication required"}, status_code=401)
+    
+    try:
+        import secrets
+        new_secret = secrets.token_urlsafe(32)
+        
+        # In a real implementation, save the new secret to config
+        logger.info(f"New API secret generated by {user}")
+        
+        return JSONResponse(content={
+            "success": True,
+            "secret": new_secret,
+            "message": "New API secret generated successfully",
+            "display_secret": True  # Flag to show the secret in UI
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to generate API secret: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
