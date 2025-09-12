@@ -1,0 +1,684 @@
+{% extends "base.html" %}
+{% block title %}TailSentry - FAQ{% endblock %}
+
+{% block head %}
+<style>
+  [x-cloak] { display: none !important; }
+  
+  /* FAQ-specific styles */
+  .faq-card {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .faq-card:hover {
+    transform: translateY(-2px);
+  }
+  
+  .faq-toggle {
+    width: 100%;
+    text-align: left;
+  }
+  
+  .faq-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease-out;
+  }
+  
+  .faq-icon {
+    transition: transform 0.3s ease;
+  }
+  
+  .rotate {
+    transform: rotate(180deg);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- FAQ Hero Section -->
+<div class="bg-gradient-to-br from-indigo-600 to-purple-700 text-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+    <div class="text-center">
+      <div class="inline-block p-3 bg-white/10 backdrop-blur-sm rounded-xl mb-6">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">Frequently Asked Questions</h1>
+      <p class="max-w-2xl mx-auto text-lg text-white/90">
+        Find answers to common questions about TailSentry. From setup to advanced features, we've got you covered.
+      </p>
+      
+      <!-- Search Bar -->
+      <div class="mt-8 max-w-md mx-auto" x-data="{ searchTerm: '' }">
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+          <input 
+            type="text" 
+            x-model="searchTerm"
+            placeholder="Search FAQ..." 
+            class="w-full pl-10 pr-4 py-2 rounded-lg border-2 border-white/20 bg-white/10 backdrop-blur-sm text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ Categories Navigation -->
+<div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div class="flex flex-wrap justify-center gap-2 sm:gap-4" x-data="{ activeCategory: 'all' }">
+      <button 
+        @click="activeCategory = 'all'" 
+        :class="activeCategory === 'all' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
+        class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      >
+        <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+        </svg>
+        All Questions
+      </button>
+      <button 
+        @click="activeCategory = 'getting-started'" 
+        :class="activeCategory === 'getting-started' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
+        class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      >
+        <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+        </svg>
+        Getting Started
+      </button>
+      <button 
+        @click="activeCategory = 'features'" 
+        :class="activeCategory === 'features' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
+        class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      >
+        <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+        </svg>
+        Features
+      </button>
+      <button 
+        @click="activeCategory = 'security'" 
+        :class="activeCategory === 'security' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
+        class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      >
+        <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+        </svg>
+        Security
+      </button>
+      <button 
+        @click="activeCategory = 'troubleshooting'" 
+        :class="activeCategory === 'troubleshooting' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
+        class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      >
+        <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+        Troubleshooting
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ Content -->
+<div class="bg-gray-50 dark:bg-gray-900 py-12">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8" x-data="{
+    activeCategory: 'all',
+    searchTerm: '',
+    faqs: {
+      'getting-started': [
+        {
+          id: 'what-is-tailsentry',
+          question: 'What is TailSentry?',
+          answer: `<p class="mb-4">TailSentry is a secure, web-based management dashboard for Tailscale networks. It provides an intuitive interface for monitoring devices, managing users, and configuring network settings while maintaining enterprise-grade security standards.</p>
+                  <div class="grid md:grid-cols-2 gap-4 mb-4">
+                    <div class="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-lg">
+                      <h4 class="font-semibold text-indigo-900 dark:text-indigo-300 mb-2">Key Features</h4>
+                      <ul class="text-sm text-indigo-800 dark:text-indigo-200 space-y-1">
+                        <li>• Device Management & Monitoring</li>
+                        <li>• User Administration with RBAC</li>
+                        <li>• Enterprise SSO Integration</li>
+                        <li>• Real-time Security Alerts</li>
+                      </ul>
+                    </div>
+                    <div class="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-lg">
+                      <h4 class="font-semibold text-purple-900 dark:text-purple-300 mb-2">Supported Platforms</h4>
+                      <ul class="text-sm text-purple-800 dark:text-purple-200 space-y-1">
+                        <li>• Linux (Ubuntu, Debian, CentOS)</li>
+                        <li>• Docker Containers</li>
+                        <li>• Windows Compatible</li>
+                        <li>• Cloud & On-Premise</li>
+                      </ul>
+                    </div>
+                  </div>`
+        },
+        {
+          id: 'system-requirements',
+          question: 'What are the system requirements?',
+          answer: `<p class="mb-4">TailSentry is designed to run efficiently on most modern systems. Here are the minimum and recommended requirements:</p>
+                  <div class="mb-4 overflow-x-auto">
+                    <table class="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <thead>
+                        <tr class="bg-gray-100 dark:bg-gray-700">
+                          <th class="py-2 px-4 border-b text-left">Component</th>
+                          <th class="py-2 px-4 border-b text-left">Minimum</th>
+                          <th class="py-2 px-4 border-b text-left">Recommended</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">CPU</td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">2 cores</td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">4+ cores</td>
+                        </tr>
+                        <tr>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">Memory</td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">2 GB RAM</td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">4+ GB RAM</td>
+                        </tr>
+                        <tr>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">Disk</td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">10 GB</td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">20+ GB SSD</td>
+                        </tr>
+                        <tr>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">OS</td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">Ubuntu 20.04, Debian 11, CentOS 8</td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">Latest LTS versions</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>`
+        },
+        {
+          id: 'installation',
+          question: 'How do I install TailSentry?',
+          answer: `<p class="mb-4">TailSentry supports multiple installation methods for different environments:</p>
+                  <div class="space-y-4">
+                    <div class="border-l-4 border-green-500 pl-4 bg-green-50 dark:bg-green-900/20 p-4 rounded-r-lg">
+                      <h4 class="font-semibold text-green-900 dark:text-green-300 mb-2 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Interactive Setup (Recommended)
+                      </h4>
+                      <p class="text-sm text-green-800 dark:text-green-200">
+                        Run the setup script for guided installation:
+                      </p>
+                      <pre class="mt-2 p-2 bg-gray-800 text-green-300 rounded text-xs overflow-x-auto">curl -sSL https://tailsentry.example.com/setup.sh | sudo bash</pre>
+                    </div>
+                    
+                    <div class="border-l-4 border-blue-500 pl-4 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-r-lg">
+                      <h4 class="font-semibold text-blue-900 dark:text-blue-300 mb-2 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                        </svg>
+                        Docker Installation
+                      </h4>
+                      <p class="text-sm text-blue-800 dark:text-blue-200">
+                        Deploy using Docker Compose:
+                      </p>
+                      <pre class="mt-2 p-2 bg-gray-800 text-blue-300 rounded text-xs overflow-x-auto">git clone https://github.com/example/tailsentry.git
+cd tailsentry
+docker-compose up -d</pre>
+                    </div>
+                  </div>`
+        }
+      ],
+      'features': [
+        {
+          id: 'device-management',
+          question: 'How does device management work?',
+          answer: `<p class="mb-4">TailSentry's device management provides a comprehensive view of all devices in your Tailscale network with features for monitoring, grouping, and controlling access.</p>
+                  <div class="mb-4">
+                    <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Key Device Management Features:</h4>
+                    <ul class="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
+                      <li>Real-time device status monitoring</li>
+                      <li>Device grouping and tagging</li>
+                      <li>Access control per device</li>
+                      <li>Connection history and analytics</li>
+                      <li>Remote device actions (when configured)</li>
+                    </ul>
+                  </div>
+                  <p class="text-gray-700 dark:text-gray-300">Device management is accessible from the main dashboard. Administrators can view detailed information about each connected device, including IP addresses, online status, and connection metrics.</p>`
+        },
+        {
+          id: 'notification-settings',
+          question: 'How do I configure notifications?',
+          answer: `<p class="mb-4">TailSentry offers flexible notification options to keep you informed about important events and potential security issues.</p>
+                  <div class="mb-4">
+                    <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Available Notification Channels:</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                      <div class="flex items-start">
+                        <div class="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
+                          <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <h5 class="font-medium text-blue-900 dark:text-blue-300">Email</h5>
+                          <p class="text-sm text-blue-800 dark:text-blue-200">Receive alerts via email with detailed information</p>
+                        </div>
+                      </div>
+                      <div class="flex items-start">
+                        <div class="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg mr-3">
+                          <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <h5 class="font-medium text-purple-900 dark:text-purple-300">Discord</h5>
+                          <p class="text-sm text-purple-800 dark:text-purple-200">Integration with Discord for real-time notifications</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="text-sm bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 pl-3 py-2 text-yellow-800 dark:text-yellow-200">
+                    <strong>Note:</strong> To configure notifications, navigate to Settings > Notifications and configure your preferred channels and alert types.
+                  </p>`
+        }
+      ],
+      'security': [
+        {
+          id: 'security-best-practices',
+          question: 'What security best practices should I follow?',
+          answer: `<p class="mb-4">Securing your TailSentry deployment is critical for maintaining the integrity of your Tailscale network. Here are recommended security practices:</p>
+                  <div class="mb-4 space-y-3">
+                    <div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
+                      <h5 class="font-semibold text-gray-900 dark:text-gray-100 mb-1">1. Regular Updates</h5>
+                      <p class="text-sm text-gray-700 dark:text-gray-300">Keep TailSentry updated to the latest version to benefit from security patches and improvements.</p>
+                    </div>
+                    <div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
+                      <h5 class="font-semibold text-gray-900 dark:text-gray-100 mb-1">2. Strong Authentication</h5>
+                      <p class="text-sm text-gray-700 dark:text-gray-300">Implement SSO or enforce strong password policies with MFA when possible.</p>
+                    </div>
+                    <div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
+                      <h5 class="font-semibold text-gray-900 dark:text-gray-100 mb-1">3. Network Isolation</h5>
+                      <p class="text-sm text-gray-700 dark:text-gray-300">Run TailSentry on a dedicated host with limited network exposure.</p>
+                    </div>
+                    <div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
+                      <h5 class="font-semibold text-gray-900 dark:text-gray-100 mb-1">4. API Key Rotation</h5>
+                      <p class="text-sm text-gray-700 dark:text-gray-300">Regularly rotate API keys and secrets used for Tailscale integration.</p>
+                    </div>
+                  </div>`
+        },
+        {
+          id: 'sso-setup',
+          question: 'How do I configure SSO for authentication?',
+          answer: `<p class="mb-4">Single Sign-On (SSO) integration enhances security and streamlines user authentication. TailSentry supports various identity providers:</p>
+                  <div class="mb-4">
+                    <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Supported SSO Providers:</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-3 text-center border border-gray-200 dark:border-gray-700">
+                        <div class="w-6 h-6 mx-auto mb-2 text-blue-600 dark:text-blue-400">
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                          </svg>
+                        </div>
+                        <div class="text-sm font-medium">Google</div>
+                      </div>
+                      <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-3 text-center border border-gray-200 dark:border-gray-700">
+                        <div class="w-6 h-6 mx-auto mb-2 text-blue-800 dark:text-blue-400">
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm0 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm-2.426 9.574h-1.183v1.929h1.183c.636 0 1.005-.384 1.005-.965s-.369-.964-1.005-.964zm.159 2.656h-1.342v2.2h-1.409v-6.455h2.659c1.285 0 2.341.894 2.341 2.128 0 1.233-1.056 2.127-2.249 2.127z"/>
+                          </svg>
+                        </div>
+                        <div class="text-sm font-medium">Okta</div>
+                      </div>
+                      <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-3 text-center border border-gray-200 dark:border-gray-700">
+                        <div class="w-6 h-6 mx-auto mb-2 text-blue-500 dark:text-blue-400">
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7.08 4.86a4.14 4.14 0 100 8.28 4.14 4.14 0 000-8.28m0 10.07c-5.63 0-6.65 4.5-6.65 4.5v.7h13.3v-.7s-1.02-4.5-6.65-4.5"/>
+                            <path d="M16.92 9a3.5 3.5 0 100 7 3.5 3.5 0 000-7m0 8.51c-4.75 0-5.61 3.8-5.61 3.8v.69h11.23v-.69s-.87-3.8-5.62-3.8"/>
+                          </svg>
+                        </div>
+                        <div class="text-sm font-medium">Azure AD</div>
+                      </div>
+                      <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-3 text-center border border-gray-200 dark:border-gray-700">
+                        <div class="w-6 h-6 mx-auto mb-2 text-black dark:text-white">
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0C5.372 0 0 5.373 0 12s5.372 12 12 12c6.627 0 12-5.373 12-12S18.627 0 12 0zm.14 19.018c-3.868 0-7-3.14-7-7.018 0-3.878 3.132-7.018 7-7.018 3.867 0 7 3.14 7 7.018 0 3.878-3.133 7.018-7 7.018zm-1.834-3.374l4.917-4.793-4.993-5.067-1.748 1.706 3.248 3.29-3.15 3.064 1.726 1.8z"/>
+                          </svg>
+                        </div>
+                        <div class="text-sm font-medium">Generic OIDC</div>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="text-gray-700 dark:text-gray-300 mb-3">To configure SSO:</p>
+                  <ol class="list-decimal list-inside space-y-1 text-gray-700 dark:text-gray-300">
+                    <li>Navigate to Settings > SSO Settings</li>
+                    <li>Select your identity provider</li>
+                    <li>Enter the required configuration parameters</li>
+                    <li>Test the configuration</li>
+                    <li>Enable SSO for authentication</li>
+                  </ol>`
+        }
+      ],
+      'troubleshooting': [
+        {
+          id: 'common-issues',
+          question: 'How do I resolve common connection issues?',
+          answer: `<p class="mb-4">If you're experiencing connection problems with TailSentry, try these troubleshooting steps:</p>
+                  <div class="space-y-4">
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <h4 class="font-semibold text-gray-900 dark:text-gray-100 mb-2">1. Verify Tailscale API Connectivity</h4>
+                      <p class="text-gray-700 dark:text-gray-300 mb-2">Ensure your Tailscale API key has the correct permissions and hasn't expired.</p>
+                      <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                        <code class="text-xs text-gray-800 dark:text-gray-200">curl -H "Authorization: Bearer YOUR_API_KEY" https://api.tailscale.com/api/v2/tailnet/-/devices</code>
+                      </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <h4 class="font-semibold text-gray-900 dark:text-gray-100 mb-2">2. Check TailSentry Logs</h4>
+                      <p class="text-gray-700 dark:text-gray-300 mb-2">Review application logs for error messages:</p>
+                      <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                        <code class="text-xs text-gray-800 dark:text-gray-200">cat /var/log/tailsentry/tailsentry.log | grep ERROR</code>
+                      </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <h4 class="font-semibold text-gray-900 dark:text-gray-100 mb-2">3. Verify Service Status</h4>
+                      <p class="text-gray-700 dark:text-gray-300 mb-2">Ensure the TailSentry service is running properly:</p>
+                      <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                        <code class="text-xs text-gray-800 dark:text-gray-200">systemctl status tailsentry</code>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-4 bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded-r">
+                    <h5 class="flex items-center text-yellow-800 dark:text-yellow-300 font-medium">
+                      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                      </svg>
+                      Still Having Issues?
+                    </h5>
+                    <p class="text-sm text-yellow-700 dark:text-yellow-200 mt-1">
+                      If you've tried the steps above and still experience problems, please check the support section for additional help or contact our technical support team.
+                    </p>
+                  </div>`
+        },
+        {
+          id: 'error-logs',
+          question: 'Where can I find error logs?',
+          answer: `<p class="mb-4">TailSentry maintains various logs to help diagnose issues. Here's where you can find them:</p>
+                  <div class="overflow-x-auto mb-4">
+                    <table class="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <thead>
+                        <tr class="bg-gray-100 dark:bg-gray-700">
+                          <th class="py-2 px-4 border-b text-left">Log Type</th>
+                          <th class="py-2 px-4 border-b text-left">Location</th>
+                          <th class="py-2 px-4 border-b text-left">Purpose</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">Application Log</td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700"><code class="text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded">/var/log/tailsentry/tailsentry.log</code></td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">General application events and errors</td>
+                        </tr>
+                        <tr>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">Access Log</td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700"><code class="text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded">/var/log/tailsentry/access.log</code></td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">HTTP request logs and API access</td>
+                        </tr>
+                        <tr>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">Audit Log</td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700"><code class="text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded">/var/log/tailsentry/audit.log</code></td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">Security-related events and changes</td>
+                        </tr>
+                        <tr>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">Discord Bot Log</td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700"><code class="text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded">/var/log/tailsentry/discord_bot.log</code></td>
+                          <td class="py-2 px-4 border-b dark:border-gray-700">Discord integration events and errors</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="text-gray-700 dark:text-gray-300 mb-3">You can also view logs directly from the web interface:</p>
+                  <ol class="list-decimal list-inside space-y-1 text-gray-700 dark:text-gray-300">
+                    <li>Navigate to the "Logs" section in the main navigation</li>
+                    <li>Use filters to find specific errors or events</li>
+                    <li>Download log files for offline analysis</li>
+                  </ol>`
+        }
+      ]
+    },
+    expandedFaq: null,
+    isVisible(category, faq) {
+      // For category filtering
+      const categoryMatch = this.activeCategory === 'all' || category === this.activeCategory;
+      
+      // For search filtering
+      const searchMatch = this.searchTerm === '' || 
+                         faq.question.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+                         faq.answer.toLowerCase().includes(this.searchTerm.toLowerCase());
+      
+      return categoryMatch && searchMatch;
+    },
+    toggleFaq(faqId) {
+      this.expandedFaq = this.expandedFaq === faqId ? null : faqId;
+    }
+  }">
+    <!-- Getting Started Section -->
+    <div class="mb-12" x-show="activeCategory === 'all' || activeCategory === 'getting-started'">
+      <div class="flex items-center mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
+        <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md mr-4">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Getting Started</h2>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Installation, setup, and basic configuration</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <template x-for="faq in faqs['getting-started']" :key="faq.id">
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all faq-card" 
+               x-show="isVisible('getting-started', faq)">
+            <button class="faq-toggle w-full text-left px-6 py-4 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800"
+                    @click="toggleFaq(faq.id)"
+                    :aria-expanded="expandedFaq === faq.id">
+              <div class="flex justify-between items-center">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white" x-text="faq.question"></h3>
+                <svg class="w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform faq-icon" 
+                     :class="{'rotate': expandedFaq === faq.id}"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </button>
+            <div class="overflow-hidden transition-all faq-content"
+                 :class="{'max-h-0': expandedFaq !== faq.id, 'max-h-[2000px] py-4 px-6 border-t border-gray-200 dark:border-gray-700': expandedFaq === faq.id}">
+              <div class="prose prose-indigo dark:prose-invert max-w-none" x-html="faq.answer"></div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="mb-12" x-show="activeCategory === 'all' || activeCategory === 'features'">
+      <div class="flex items-center mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
+        <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md mr-4">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Features</h2>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Core functionality and capabilities</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <template x-for="faq in faqs['features']" :key="faq.id">
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all faq-card" 
+               x-show="isVisible('features', faq)">
+            <button class="faq-toggle w-full text-left px-6 py-4 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800"
+                    @click="toggleFaq(faq.id)"
+                    :aria-expanded="expandedFaq === faq.id">
+              <div class="flex justify-between items-center">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white" x-text="faq.question"></h3>
+                <svg class="w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform faq-icon" 
+                     :class="{'rotate': expandedFaq === faq.id}"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </button>
+            <div class="overflow-hidden transition-all faq-content"
+                 :class="{'max-h-0': expandedFaq !== faq.id, 'max-h-[2000px] py-4 px-6 border-t border-gray-200 dark:border-gray-700': expandedFaq === faq.id}">
+              <div class="prose prose-indigo dark:prose-invert max-w-none" x-html="faq.answer"></div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Security Section -->
+    <div class="mb-12" x-show="activeCategory === 'all' || activeCategory === 'security'">
+      <div class="flex items-center mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
+        <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md mr-4">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Security</h2>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Security best practices and configuration</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <template x-for="faq in faqs['security']" :key="faq.id">
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all faq-card" 
+               x-show="isVisible('security', faq)">
+            <button class="faq-toggle w-full text-left px-6 py-4 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800"
+                    @click="toggleFaq(faq.id)"
+                    :aria-expanded="expandedFaq === faq.id">
+              <div class="flex justify-between items-center">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white" x-text="faq.question"></h3>
+                <svg class="w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform faq-icon" 
+                     :class="{'rotate': expandedFaq === faq.id}"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </button>
+            <div class="overflow-hidden transition-all faq-content"
+                 :class="{'max-h-0': expandedFaq !== faq.id, 'max-h-[2000px] py-4 px-6 border-t border-gray-200 dark:border-gray-700': expandedFaq === faq.id}">
+              <div class="prose prose-indigo dark:prose-invert max-w-none" x-html="faq.answer"></div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Troubleshooting Section -->
+    <div class="mb-12" x-show="activeCategory === 'all' || activeCategory === 'troubleshooting'">
+      <div class="flex items-center mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
+        <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md mr-4">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Troubleshooting</h2>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Solutions for common issues</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <template x-for="faq in faqs['troubleshooting']" :key="faq.id">
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all faq-card" 
+               x-show="isVisible('troubleshooting', faq)">
+            <button class="faq-toggle w-full text-left px-6 py-4 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800"
+                    @click="toggleFaq(faq.id)"
+                    :aria-expanded="expandedFaq === faq.id">
+              <div class="flex justify-between items-center">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white" x-text="faq.question"></h3>
+                <svg class="w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform faq-icon" 
+                     :class="{'rotate': expandedFaq === faq.id}"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </button>
+            <div class="overflow-hidden transition-all faq-content"
+                 :class="{'max-h-0': expandedFaq !== faq.id, 'max-h-[2000px] py-4 px-6 border-t border-gray-200 dark:border-gray-700': expandedFaq === faq.id}">
+              <div class="prose prose-indigo dark:prose-invert max-w-none" x-html="faq.answer"></div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+    
+    <!-- No results message -->
+    <div class="text-center py-12" 
+         x-show="(activeCategory === 'all' && searchTerm !== '' && 
+                 !Object.values(faqs).flat().some(faq => 
+                   faq.question.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                   faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
+                 )) ||
+                 (activeCategory !== 'all' && searchTerm !== '' && 
+                  !faqs[activeCategory].some(faq => 
+                    faq.question.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
+                  ))">
+      <div class="inline-block p-4 rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+        <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <h3 class="text-xl font-medium text-gray-900 dark:text-white mb-2">No matches found</h3>
+      <p class="text-gray-600 dark:text-gray-400">Try adjusting your search or filter to find what you're looking for.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Support Section -->
+<div class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+  <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">Still need help?</h2>
+    <p class="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+      If you couldn't find an answer to your question, our support team is ready to help.
+    </p>
+    <div class="flex flex-wrap justify-center gap-4">
+      <a href="/support" class="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium rounded-lg shadow-md hover:from-indigo-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+        Contact Support
+      </a>
+      <a href="https://github.com/tailsentry/docs" class="px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
+        View Documentation
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Initialize the Alpine components
+  document.addEventListener('alpine:init', () => {
+    // We're using the x-data directive in the HTML for our components
+  });
+
+  // Update search parameter in URL
+  document.addEventListener('DOMContentLoaded', () => {
+    // For potential URL parameter handling
+  });
+</script>
+{% endblock %}

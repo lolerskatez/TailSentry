@@ -291,6 +291,10 @@ app.include_router(sso.router)
 from routes import notifications
 app.include_router(notifications.router)
 
+# Register FAQ router
+from routes import faq
+app.include_router(faq.router)
+
 # Global context processor for all templates
 @app.middleware("http")
 async def add_global_template_vars(request: Request, call_next):

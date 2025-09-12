@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TailSentry FAQ - Design Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* CSS Reset and Base Styles */
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Design System Variables */
+        :root {
+            --primary-50: #eff6ff;
+            --primary-100: #dbeafe;
+            --primary-500: #3b82f6;
+            --primary-600: #2563eb;
+            --primary-700: #1d4ed8;
+            --secondary-500: #8b5cf6;
+            --secondary-600: #7c3aed;
+            
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            
+            --success-50: #ecfdf5;
+            --success-500: #10b981;
+            --warning-50: #fffbeb;
+            --warning-500: #f59e0b;
+            
+            --border-radius-sm: 0.375rem;
+            --border-radius-md: 0.5rem;
+            --border-radius-lg: 0.75rem;
+            --border-radius-xl: 1rem;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Typography System */
+        .text-display {
+            font-size: 3.75rem;
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+        
+        .text-h1 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+        
+        .text-h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 600;
+        }
+        
+        .text-h3 {
+            font-size: 1.125rem;
+            line-height: 1.75rem;
+            font-weight: 600;
+        }
+        
+        .text-body {
+            font-size: 1rem;
+            line-height: 1.75rem;
+            font-weight: 400;
+        }
+        
+        .text-body-sm {
+            font-size: 0.875rem;
+            line-height: 1.5rem;
+            font-weight: 400;
+        }
+
+        /* Icon System */
+        .icon-xs { width: 0.875rem; height: 0.875rem; }
+        .icon-sm { width: 1rem; height: 1rem; }
+        .icon-md { width: 1.25rem; height: 1.25rem; }
+        .icon-lg { width: 1.5rem; height: 1.5rem; }
+        .icon-xl { width: 2rem; height: 2rem; }
+        .icon-2xl { width: 2.5rem; height: 2.5rem; }
+
+        /* Animation System */
+        @keyframes fadeInUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+        
+        @keyframes slideDown {
+            from { 
+                max-height: 0; 
+                opacity: 0; 
+                padding-top: 0;
+                padding-bottom: 0;
+            }
+            to { 
+                max-height: 800px; 
+                opacity: 1; 
+                padding-top: 1.5rem;
+                padding-bottom: 1.5rem;
+            }
+        }
+
+        /* Component Styles */
+        .hero-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6B73FF 100%);
+        }
+        
+        .faq-card {
+            background: white;
+            border-radius: var(--border-radius-xl);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .faq-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+            border-color: var(--primary-300);
+        }
+        
+        .faq-toggle {
+            padding: 1.5rem;
+            border-radius: var(--border-radius-lg);
+            transition: all 0.2s ease;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+        }
+        
+        .faq-toggle:hover {
+            background-color: var(--gray-50);
+        }
+        
+        .faq-toggle:focus {
+            outline: 2px solid var(--primary-500);
+            outline-offset: 2px;
+        }
+        
+        .faq-question {
+            color: var(--gray-900);
+            font-size: 1.125rem;
+            font-weight: 600;
+            line-height: 1.75rem;
+            transition: color 0.2s ease;
+        }
+        
+        .faq-toggle:hover .faq-question {
+            color: var(--primary-600);
+        }
+        
+        .faq-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            padding: 0 1.5rem;
+        }
+        
+        .faq-content.open {
+            animation: slideDown 0.4s ease-out forwards;
+            opacity: 1;
+        }
+        
+        .faq-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            transition: all 0.3s ease;
+            color: var(--gray-400);
+            flex-shrink: 0;
+        }
+        
+        .faq-icon.rotate {
+            transform: rotate(180deg);
+            color: var(--primary-500);
+        }
+        
+        .category-filter {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: 1px solid var(--gray-200);
+            background: white;
+            color: var(--gray-700);
+            text-decoration: none;
+        }
+        
+        .category-filter:hover {
+            border-color: var(--primary-300);
+            background: var(--primary-50);
+            color: var(--primary-700);
+        }
+        
+        .category-filter.active {
+            background: linear-gradient(135deg, var(--primary-500), var(--secondary-500));
+            color: white;
+            border-color: transparent;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--border-radius-lg);
+            font-size: 1rem;
+            background: white;
+            transition: all 0.2s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-100);
+        }
+        
+        .section-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: var(--border-radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            background: linear-gradient(135deg, var(--primary-500), var(--secondary-500));
+        }
+        
+        .animate-fade-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        
+        /* Utility Classes */
+        .text-gradient {
+            background: linear-gradient(135deg, var(--primary-600), var(--secondary-600));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .glass-effect {
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        /* Animation Delays */
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-400 { animation-delay: 0.4s; }
+        .delay-2000 { animation-delay: 2s; }
+        .delay-4000 { animation-delay: 4s; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Hero Section -->
+    <section class="relative hero-gradient text-white py-20 overflow-hidden">
+        <!-- Background Animation -->
+        <div class="fixed inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-bounce"></div>
+            <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-bounce delay-2000"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-bounce delay-4000"></div>
+        </div>
+
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 mb-8 inline-block">
+                <svg class="icon-xl text-white mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h1 class="text-5xl md:text-6xl font-bold text-white mb-6 animate-fade-in">
+                How can we <span class="text-gradient">help you</span>?
+            </h1>
+            <p class="text-xl text-white/90 max-w-2xl mx-auto leading-relaxed animate-fade-in delay-200">
+                Find answers to common questions about TailSentry. From setup to advanced features, we've got you covered.
+            </p>
+
+            <!-- Search Bar -->
+            <div class="mt-10 max-w-md mx-auto animate-fade-in delay-400">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <svg class="icon-sm text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    <input type="text" placeholder="Search FAQ..." class="search-input" id="faq-search">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Categories Navigation -->
+    <section class="py-8 px-4 sm:px-6 lg:px-8 glass-effect border-y border-white/20">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex flex-wrap justify-center gap-4" id="category-nav">
+                <button class="category-filter active" data-category="all">
+                    <svg class="icon-sm inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    All Questions
+                </button>
+                <button class="category-filter" data-category="getting-started">
+                    <svg class="icon-sm inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Getting Started
+                </button>
+                <button class="category-filter" data-category="features">
+                    <svg class="icon-sm inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                    Features
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Content -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12" id="faq-content">
+        <!-- Getting Started Section -->
+        <div class="faq-section mb-12" data-category="getting-started">
+            <div class="section-header">
+                <div class="section-icon">
+                    <svg class="icon-md text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-h2 text-gray-900">Getting Started</h2>
+                    <p class="text-body-sm text-gray-600 mt-1">Installation, setup, and basic configuration</p>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <!-- FAQ Item 1 -->
+                <div class="faq-card">
+                    <button class="faq-toggle" data-target="faq-1" aria-expanded="false" aria-controls="faq-1">
+                        <div class="flex justify-between items-center w-full">
+                            <h3 class="faq-question">
+                                What is TailSentry?
+                            </h3>
+                            <svg class="faq-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </button>
+                    <div id="faq-1" class="faq-content">
+                        <div class="prose prose-gray max-w-none">
+                            <p class="text-body text-gray-600 leading-relaxed mb-4">
+                                TailSentry is a secure, web-based management dashboard for Tailscale networks. It provides an intuitive interface for managing devices, users, and network configurations while maintaining enterprise-grade security standards.
+                            </p>
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div class="bg-blue-50 p-4 rounded-lg">
+                                    <h4 class="text-h3 text-blue-900 mb-2">Key Features</h4>
+                                    <ul class="text-body-sm text-blue-800 space-y-1">
+                                        <li>• Device Management & Monitoring</li>
+                                        <li>• User Administration with RBAC</li>
+                                        <li>• Enterprise SSO Integration</li>
+                                        <li>• Real-time Security Alerts</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-purple-50 p-4 rounded-lg">
+                                    <h4 class="text-h3 text-purple-900 mb-2">Supported Platforms</h4>
+                                    <ul class="text-body-sm text-purple-800 space-y-1">
+                                        <li>• Linux (Ubuntu, Debian, CentOS)</li>
+                                        <li>• Docker Containers</li>
+                                        <li>• Windows Compatible</li>
+                                        <li>• Cloud & On-Premise</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 2 -->
+                <div class="faq-card">
+                    <button class="faq-toggle" data-target="faq-2" aria-expanded="false" aria-controls="faq-2">
+                        <div class="flex justify-between items-center w-full">
+                            <h3 class="faq-question">
+                                How do I install TailSentry?
+                            </h3>
+                            <svg class="faq-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </button>
+                    <div id="faq-2" class="faq-content">
+                        <div class="prose prose-gray max-w-none">
+                            <p class="text-body text-gray-600 leading-relaxed mb-4">
+                                TailSentry supports multiple installation methods for different environments and use cases.
+                            </p>
+                            <div class="space-y-4">
+                                <div class="border-l-4 border-green-500 pl-4 bg-green-50 p-4 rounded-r-lg">
+                                    <h4 class="font-semibold text-green-900 mb-2 flex items-center">
+                                        <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        Recommended: Interactive Setup
+                                    </h4>
+                                    <p class="text-body-sm text-green-800">Run the setup script for guided installation with automatic dependency handling.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // FAQ accordion functionality
+        document.querySelectorAll('.faq-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                const content = document.getElementById(targetId);
+                const icon = this.querySelector('.faq-icon');
+
+                // Close other FAQ items
+                document.querySelectorAll('.faq-content').forEach(item => {
+                    if (item !== content) {
+                        item.classList.remove('open');
+                        const otherToggle = document.querySelector(`[data-target="${item.id}"]`);
+                        const otherIcon = otherToggle.querySelector('.faq-icon');
+                        otherIcon.classList.remove('rotate');
+                        otherToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+
+                // Toggle current FAQ item
+                const isOpen = content.classList.toggle('open');
+                icon.classList.toggle('rotate');
+                this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+        });
+
+        // Category filtering
+        const categoryButtons = document.querySelectorAll('.category-filter');
+        const faqSections = document.querySelectorAll('.faq-section');
+
+        categoryButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const category = this.getAttribute('data-category');
+
+                // Update active button
+                categoryButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+
+                // Show/hide sections
+                if (category === 'all') {
+                    faqSections.forEach(section => section.style.display = 'block');
+                } else {
+                    faqSections.forEach(section => {
+                        if (section.getAttribute('data-category') === category) {
+                            section.style.display = 'block';
+                        } else {
+                            section.style.display = 'none';
+                        }
+                    });
+                }
+            });
+        });
+
+        // Search functionality
+        const searchInput = document.getElementById('faq-search');
+        const faqItems = document.querySelectorAll('.faq-card');
+
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question').textContent.toLowerCase();
+                const content = item.querySelector('.faq-content').textContent.toLowerCase();
+
+                if (question.includes(searchTerm) || content.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
