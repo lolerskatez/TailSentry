@@ -9,7 +9,7 @@ router = APIRouter()
 @router.get("/subnets")
 def subnets(request: Request):
     subnets = TailscaleClient.subnet_routes()
-    return templates.TemplateResponse("subnets.html", {"request": request, "subnets": subnets})
+    return templates.TemplateResponse(request, "subnets.html", {"subnets": subnets})
 
 @router.post("/subnets/toggle")
 def toggle_subnet(request: Request, cidr: str = Form(...), enable: bool = Form(...)):
@@ -27,7 +27,7 @@ def exitnode(request: Request):
         self_obj = {}
     capabilities = self_obj.get("Capabilities", {}) if isinstance(self_obj, dict) else {}
     is_exit = capabilities.get("ExitNode", False) if isinstance(capabilities, dict) else False
-    return templates.TemplateResponse("exitnode.html", {"request": request, "is_exit": is_exit})
+    return templates.TemplateResponse(request, "exitnode.html", {"is_exit": is_exit})
 
 @router.post("/exitnode/toggle")
 def toggle_exitnode(request: Request, enable: bool = Form(...)):
@@ -38,7 +38,7 @@ def toggle_exitnode(request: Request, enable: bool = Form(...)):
 def service(request: Request):
     status = TailscaleClient.service_status()
     logs = TailscaleClient.logs()
-    return templates.TemplateResponse("service.html", {"request": request, "status": status, "logs": logs})
+    return templates.TemplateResponse(request, "service.html", {"status": status, "logs": logs})
 
 @router.post("/service/control")
 def service_control(request: Request, action: str = Form(...)):

@@ -141,15 +141,14 @@ async def sso_settings(request: Request, user=Depends(get_current_user)):
     try:
         config = sso_manager.config.get_all_config()
         
-        return templates.TemplateResponse("sso_settings.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "sso_settings.html", {
             "user": user,
             "current_user": user,
             "sso_config": config
         })
     except Exception as e:
         logger.error(f"Failed to load SSO settings: {e}")
-        return templates.TemplateResponse("500.html", {"request": request}, status_code=500)
+        return templates.TemplateResponse(request, "500.html", {}, status_code=500)
 
 @router.post("/settings/sso/toggle")
 async def toggle_sso(request: Request, enabled: bool = Form(...), user=Depends(get_current_user)):

@@ -29,7 +29,7 @@ async def logs_page(request: Request):
     if isinstance(result, RedirectResponse):
         return result
     user = result
-    return templates.TemplateResponse("logs.html", {"request": request, "user": user})
+    return templates.TemplateResponse(request, "logs.html", {"user": user})
 
 # API endpoint for logs with server-side filtering
 

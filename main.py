@@ -217,7 +217,7 @@ import uuid
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc: HTTPException):
     """Custom 404 error handler"""
-    return templates.TemplateResponse("404.html", {"request": request}, 404)
+    return templates.TemplateResponse(request, "404.html", {}, 404)
 
 @app.exception_handler(403)
 async def forbidden_handler(request: Request, exc: HTTPException):
@@ -225,7 +225,7 @@ async def forbidden_handler(request: Request, exc: HTTPException):
     import traceback
     error_id = str(uuid.uuid4())[:8]
     logger.error(f"403 Forbidden {error_id}: {str(exc)} | Path: {request.url.path} | Method: {request.method} | User-Agent: {request.headers.get('user-agent')} | Remote: {request.client.host if request.client else 'unknown'}\nTraceback:\n{traceback.format_exc()}")
-    return templates.TemplateResponse("403.html", {"request": request, "error_id": error_id, "detail": str(exc)}, 403)
+    return templates.TemplateResponse(request, "403.html", {"error_id": error_id, "detail": str(exc)}, 403)
 
 @app.exception_handler(500)
 async def internal_error_handler(request: Request, exc: Exception):
@@ -233,8 +233,7 @@ async def internal_error_handler(request: Request, exc: Exception):
     import traceback
     error_id = str(uuid.uuid4())[:8]
     logger.error(f"Internal server error {error_id}: {str(exc)} | Path: {request.url.path} | Method: {request.method} | User-Agent: {request.headers.get('user-agent')} | Remote: {request.client.host if request.client else 'unknown'}\nTraceback:\n{traceback.format_exc()}")
-    return templates.TemplateResponse("500.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "500.html", {
         "error_id": error_id,
         "detail": str(exc)
     }, 500)
@@ -245,8 +244,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     import traceback
     error_id = str(uuid.uuid4())[:8]
     logger.error(f"Validation error {error_id}: {str(exc)} | Path: {request.url.path} | Method: {request.method} | User-Agent: {request.headers.get('user-agent')} | Remote: {request.client.host if request.client else 'unknown'}\nValidation details: {exc.errors()}\nTraceback:\n{traceback.format_exc()}")
-    return templates.TemplateResponse("error.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "error.html", {
         "status_code": 400,
         "title": "Invalid Request",
         "message": "The request contains invalid data. Please check your input and try again.",
@@ -259,8 +257,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     """Catch-all exception handler"""
     error_id = str(uuid.uuid4())[:8]
     logger.error(f"Unhandled exception {error_id}: {str(exc)}", exc_info=True)
-    return templates.TemplateResponse("error.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "error.html", {
         "status_code": 500,
         "title": "Unexpected Error",
         "message": "An unexpected error occurred. We've been notified and are working to fix it."
@@ -347,7 +344,7 @@ async def root(request: Request):
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    return templates.TemplateResponse("dashboard.html", {"request": request, "user": user})
+    return templates.TemplateResponse(request, "dashboard.html", {"user": user})
 
 # Test route for debugging
 @app.get("/test", include_in_schema=False)

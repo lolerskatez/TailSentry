@@ -14,7 +14,6 @@ async def faq(request: Request):
         # FAQ should be accessible even if user is not authenticated
         user = None
     
-    return templates.TemplateResponse("faq.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "faq.html", {
         "user": user,
     })

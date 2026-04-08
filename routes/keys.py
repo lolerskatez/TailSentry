@@ -10,7 +10,7 @@ router = APIRouter()
  # @login_required
 def keys_dashboard(request: Request):
     keys = TailscaleClient.api_list_keys()
-    return templates.TemplateResponse("keys.html", {"request": request, "keys": keys})
+    return templates.TemplateResponse(request, "keys.html", {"keys": keys})
 
 @router.post("/keys/create")
  # @login_required

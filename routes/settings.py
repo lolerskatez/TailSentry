@@ -20,8 +20,7 @@ async def notifications_settings(request: Request):
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    return templates.TemplateResponse("notifications.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "notifications.html", {
         "active_nav": "settings", 
         "user": user,
         "current_user": user
@@ -32,8 +31,7 @@ async def appearance_settings(request: Request):
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    return templates.TemplateResponse("appearance.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "appearance.html", {
         "active_nav": "settings", 
         "user": user,
         "current_user": user
@@ -46,8 +44,7 @@ async def manage_users(request: Request):
         return RedirectResponse(url="/login", status_code=302)
     from auth_user import list_users
     users = list_users()
-    return templates.TemplateResponse("users.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "users.html", {
         "users": users, 
         "active_nav": "settings", 
         "user": user, 
@@ -60,8 +57,7 @@ async def security_settings_page(request: Request):
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    return templates.TemplateResponse("security_settings.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "security_settings.html", {
         "active_nav": "settings", 
         "user": user,
         "current_user": user
@@ -72,8 +68,7 @@ async def tailscale_settings_page(request: Request):
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    return templates.TemplateResponse("tailscale_settings.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "tailscale_settings.html", {
         "active_nav": "settings", 
         "user": user,
         "current_user": user
@@ -84,8 +79,7 @@ async def tailsentry_settings_page(request: Request):
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    return templates.TemplateResponse("tailsentry_settings.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "tailsentry_settings.html", {
         "active_nav": "settings", 
         "user": user,
         "current_user": user

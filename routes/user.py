@@ -67,7 +67,7 @@ def check_role(user: dict, allowed_roles: list) -> bool:
 
 @router.get("/login")
 def login_form(request: Request):
-    return templates.TemplateResponse("login.html", context={"request": request, "error": None})
+    return templates.TemplateResponse(request, "login.html", {"error": None})
 
 @router.post("/login")
 async def login(request: Request, response: Response, username: str = Form(...), password: str = Form(...), remember_me: str = Form(None)):
@@ -116,7 +116,7 @@ async def login(request: Request, response: Response, username: str = Form(...),
                     )
                 except Exception as e:
                     logger.error(f"[LOGIN] Failed to send failed login notification: {e}")
-                return templates.TemplateResponse("login.html", {"request": request, "error": "Account is disabled. Please contact an administrator."})
+                return templates.TemplateResponse(request, "login.html", {"error": "Account is disabled. Please contact an administrator."})
             else:
                 logger.warning(f"[LOGIN] Invalid password for user: {username}")
                 try:
@@ -126,7 +126,7 @@ async def login(request: Request, response: Response, username: str = Form(...),
                     )
                 except Exception as e:
                     logger.error(f"[LOGIN] Failed to send failed login notification: {e}")
-                return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+                return templates.TemplateResponse(request, "login.html", {"error": "Invalid credentials"})
         else:
             logger.warning(f"[LOGIN] Login attempt for non-existent user: {username}")
             try:
@@ -136,7 +136,7 @@ async def login(request: Request, response: Response, username: str = Form(...),
                 )
             except Exception as e:
                 logger.error(f"[LOGIN] Failed to send failed login notification: {e}")
-            return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+            return templates.TemplateResponse(request, "login.html", {"error": "Invalid credentials"})
 
 @router.get("/logout")
 def logout(request: Request, response: Response):
@@ -145,20 +145,19 @@ def logout(request: Request, response: Response):
 
 @router.get("/register")
 def register_form(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request, "error": None})
+    return templates.TemplateResponse(request, "register.html", {"error": None})
 
 @router.post("/register")
 def register(request: Request, username: str = Form(...), password: str = Form(...)):
     if create_user(username, password):
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse("register.html", {"request": request, "error": "Username already exists"})
+    return templates.TemplateResponse(request, "register.html", {"error": "Username already exists"})
 
 @router.get("/users")
 def users(request: Request, user=Depends(get_current_user)):
     if not user or user["role"] != "admin":
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse("users.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "users.html", {
         "users": list_users(), 
         "current_user": user
     })
@@ -177,8 +176,7 @@ async def delete_user_route(request: Request, username: str = Form(...), user=De
         logger.warning(f"[DELETE USER] Admin {user['username']} attempted to delete their own account")
         # Return to users page with error message
         from auth_user import list_users
-        return templates.TemplateResponse("users.html", {
-            "request": request, 
+        return templates.TemplateResponse(request, "users.html", {
             "users": list_users(), 
             "current_user": user,
             "error": "You cannot delete your own account. Use another admin account to delete this one if needed."
@@ -210,7 +208,7 @@ async def delete_user_route(request: Request, username: str = Form(...), user=De
 def change_password_form(request: Request, user=Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    return templates.TemplateResponse("change_password.html", {"request": request, "error": None, "success": None})
+    return templates.TemplateResponse(request, "change_password.html", {"error": None, "success": None})
 
 @router.post("/change-password")
 async def change_password(request: Request, old_password: str = Form(...), new_password: str = Form(...), user=Depends(get_current_user)):
@@ -221,7 +219,7 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
     from auth_user import verify_user, get_db, pwd_context
     # Verify old password
     if not verify_user(user["username"], old_password):
-        return templates.TemplateResponse("change_password.html", {"request": request, "error": "Current password is incorrect.", "success": None})
+        return templates.TemplateResponse(request, "change_password.html", {"error": "Current password is incorrect.", "success": None})
     # Update password
     conn = get_db()
     c = conn.cursor()
@@ -235,14 +233,13 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
     except Exception as e:
         logger.error(f"[PASSWORD CHANGE] Failed to send notification: {e}")
     
-    return templates.TemplateResponse("change_password.html", {"request": request, "error": None, "success": "Password changed successfully."})
+    return templates.TemplateResponse(request, "change_password.html", {"error": None, "success": "Password changed successfully."})
 
 @router.get("/reset-password-request")
 def reset_password_request_form(request: Request):
     from routes.tailsentry_settings import is_smtp_configured
     smtp_warning = None if is_smtp_configured() else "SMTP is not configured. Please contact your administrator for password reset assistance."
-    return templates.TemplateResponse("reset_password_request.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "reset_password_request.html", {
         "error": None, 
         "success": None,
         "smtp_warning": smtp_warning
@@ -255,8 +252,7 @@ async def reset_password_request(request: Request, email: str = Form(...)):
     
     # Check if SMTP is configured
     if not is_smtp_configured():
-        return templates.TemplateResponse("reset_password_request.html", {
-            "request": request, 
+        return templates.TemplateResponse(request, "reset_password_request.html", {
             "error": "Password reset is not available. SMTP is not configured. Please contact your administrator for assistance.", 
             "success": None,
             "smtp_warning": "SMTP is not configured. Please contact your administrator for password reset assistance."
@@ -266,8 +262,7 @@ async def reset_password_request(request: Request, email: str = Form(...)):
         valid = validate_email(email)
         email = valid.email
     except EmailNotValidError:
-        return templates.TemplateResponse("reset_password_request.html", {
-            "request": request, 
+        return templates.TemplateResponse(request, "reset_password_request.html", {
             "error": "Invalid email address.", 
             "success": None,
             "smtp_warning": None
@@ -275,8 +270,7 @@ async def reset_password_request(request: Request, email: str = Form(...)):
     
     user = get_user_by_email(email)
     if not user:
-        return templates.TemplateResponse("reset_password_request.html", {
-            "request": request, 
+        return templates.TemplateResponse(request, "reset_password_request.html", {
             "error": "No user with that email.", 
             "success": None,
             "smtp_warning": None
@@ -284,8 +278,7 @@ async def reset_password_request(request: Request, email: str = Form(...)):
     
     token = serializer.dumps(email, salt="reset-password")
     await send_reset_email(email, token)
-    return templates.TemplateResponse("reset_password_request.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "reset_password_request.html", {
         "error": None, 
         "success": "Password reset link sent!",
         "smtp_warning": None
@@ -293,7 +286,7 @@ async def reset_password_request(request: Request, email: str = Form(...)):
 
 @router.get("/reset-password")
 def reset_password_form(request: Request, token: str = ""):
-    return templates.TemplateResponse("reset_password.html", {"request": request, "error": None, "success": None, "token": token})
+    return templates.TemplateResponse(request, "reset_password.html", {"error": None, "success": None, "token": token})
 
 @router.post("/reset-password")
 def reset_password(request: Request, new_password: str = Form(...), token: str = Form(...)):
@@ -301,18 +294,18 @@ def reset_password(request: Request, new_password: str = Form(...), token: str =
     try:
         email = serializer.loads(token, salt="reset-password", max_age=RESET_TOKEN_EXPIRY)
     except SignatureExpired:
-        return templates.TemplateResponse("reset_password.html", {"request": request, "error": "Token expired.", "success": None, "token": token})
+        return templates.TemplateResponse(request, "reset_password.html", {"error": "Token expired.", "success": None, "token": token})
     except BadSignature:
-        return templates.TemplateResponse("reset_password.html", {"request": request, "error": "Invalid token.", "success": None, "token": token})
+        return templates.TemplateResponse(request, "reset_password.html", {"error": "Invalid token.", "success": None, "token": token})
     user = get_user_by_email(email)
     if not user:
-        return templates.TemplateResponse("reset_password.html", {"request": request, "error": "User not found.", "success": None, "token": token})
+        return templates.TemplateResponse(request, "reset_password.html", {"error": "User not found.", "success": None, "token": token})
     conn = get_db()
     c = conn.cursor()
     c.execute('UPDATE users SET password_hash = ? WHERE email = ?', (pwd_context.hash(new_password), email))
     conn.commit()
     conn.close()
-    return templates.TemplateResponse("reset_password.html", {"request": request, "error": None, "success": "Password updated!", "token": token})
+    return templates.TemplateResponse(request, "reset_password.html", {"error": None, "success": "Password updated!", "token": token})
 
 @router.get("/profile")
 def profile_form(request: Request, user=Depends(get_current_user)):
@@ -323,7 +316,7 @@ def profile_form(request: Request, user=Depends(get_current_user)):
     user = dict(user)
     user["activity_log"] = get_user_activity_log(user["username"])
     user["notification_preferences"] = get_user_notification_preferences(user["username"])
-    return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": None, "success": None, "active_nav": "profile"})
+    return templates.TemplateResponse(request, "profile.html", {"user": user, "error": None, "success": None, "active_nav": "profile"})
 
 @router.post("/profile")
 def profile_update(request: Request, 
@@ -387,7 +380,7 @@ def profile_update(request: Request,
         user = dict(user)
         user["activity_log"] = get_user_activity_log(str(user["username"]))
         user["notification_preferences"] = get_user_notification_preferences(user["username"])
-    return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": error, "success": success, "active_nav": "profile"})
+    return templates.TemplateResponse(request, "profile.html", {"user": user, "error": error, "success": success, "active_nav": "profile"})
 
 @router.post("/users/role")
 def set_role(request: Request, username: str = Form(...), role: str = Form(...), user=Depends(get_current_user)):
@@ -460,11 +453,11 @@ async def add_user(request: Request, name: str = Form(""), username: str = Form(
         # If CSRF or other error, show in modal
         logger.error(f"[ADD USER] HTTPException: {e}")
         error = e.detail if hasattr(e, 'detail') else str(e)
-        return templates.TemplateResponse("users.html", {"request": request, "users": list_users(), "current_user": user, "error": error})
+        return templates.TemplateResponse(request, "users.html", {"users": list_users(), "current_user": user, "error": error})
     except Exception as e:
         logger.error(f"[ADD USER] General Exception: {type(e).__name__}: {e}")
         error = f"User creation failed: {str(e)}"
-        return templates.TemplateResponse("users.html", {"request": request, "users": list_users(), "current_user": user, "error": error})
+        return templates.TemplateResponse(request, "users.html", {"users": list_users(), "current_user": user, "error": error})
 
 # Edit user
 @router.post("/users/edit")
