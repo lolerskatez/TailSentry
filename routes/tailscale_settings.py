@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from fastapi import status as http_status
+import asyncio
 import json
 import os
 import logging
@@ -251,20 +252,20 @@ async def apply_tailscale_settings(request: Request):
         elif auth_key_was_updated and new_auth_key_value:
             # Auth Key updated - need to authenticate with new Auth Key
             logger.info("Auth Key was updated, using it for tailscale up authentication")
-            result = TailscaleClient.up(authkey=new_auth_key_value, extra_args=['--reset'])
+            result = await asyncio.to_thread(TailscaleClient.up, authkey=new_auth_key_value, extra_args=['--reset'])
             # After successful auth, apply all saved settings
             if result is True:
-                result = apply_all_settings_to_tailscale(current_settings)
+                result = await asyncio.to_thread(apply_all_settings_to_tailscale, current_settings)
         elif pat_was_updated and new_pat_value:
             # PAT updated - need to authenticate with new PAT (legacy support)
             logger.info("PAT was updated, using it as authkey for tailscale up")
-            result = TailscaleClient.up(authkey=new_pat_value, extra_args=['--reset'])
+            result = await asyncio.to_thread(TailscaleClient.up, authkey=new_pat_value, extra_args=['--reset'])
             # After successful auth, apply all saved settings
             if result is True:
-                result = apply_all_settings_to_tailscale(current_settings)
+                result = await asyncio.to_thread(apply_all_settings_to_tailscale, current_settings)
         else:
             # Regular setting change - apply all current settings from file
-            result = apply_all_settings_to_tailscale(current_settings)
+            result = await asyncio.to_thread(apply_all_settings_to_tailscale, current_settings)
         
         logger.info(f"TailscaleClient operation result: {result}")
         if result is not True:
@@ -485,7 +486,7 @@ async def tailscale_service_control(request: Request):
         elif action in ["start", "stop"]:
             # Only allow start/stop, not restart to avoid killing TailSentry
             try:
-                result = TailscaleClient.service_control(action)
+                result = await asyncio.to_thread(TailscaleClient.service_control, action)
                 logger.info(f"Service control {action} result: {result}")
                 
                 # Consider it successful if no exception was raised
@@ -503,7 +504,7 @@ async def tailscale_service_control(request: Request):
                 logger.info("Using tailscale down/up sequence instead of systemctl restart for safety")
                 
                 # First try to disconnect
-                down_result = TailscaleClient.down()
+                down_result = await asyncio.to_thread(TailscaleClient.down)
                 logger.info(f"Tailscale down result: {down_result}")
                 
                 if down_result is not True:
@@ -514,7 +515,7 @@ async def tailscale_service_control(request: Request):
                 await asyncio.sleep(2)
                 
                 # Then reconnect
-                up_result = TailscaleClient.up()
+                up_result = await asyncio.to_thread(TailscaleClient.up)
                 logger.info(f"Tailscale up result: {up_result}")
                 
                 if up_result is True:
@@ -528,7 +529,7 @@ async def tailscale_service_control(request: Request):
                 
         elif action == "up":
             try:
-                result = TailscaleClient.up()
+                result = await asyncio.to_thread(TailscaleClient.up)
                 logger.info(f"Tailscale up result: {result}")
                 
                 if result is True:
@@ -541,7 +542,7 @@ async def tailscale_service_control(request: Request):
                 
         elif action == "down":
             try:
-                result = TailscaleClient.down()
+                result = await asyncio.to_thread(TailscaleClient.down)
                 logger.info(f"Tailscale down result: {result}")
                 
                 if result is True:
