@@ -1,0 +1,261 @@
+# Alert Rules for TailSentry Monitoring
+# Copy to /etc/prometheus/alert_rules.yml
+
+groups:
+  - name: tailsentry_alerts
+    interval: 30s
+    
+    rules:
+      # ====== Service Health ======
+      
+      - alert: TailSentryDown
+        expr: up{job="tailsentry"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: tailsentry
+        annotations:
+          summary: "TailSentry service is DOWN"
+          description: "TailSentry {{ $labels.instance }} is not responding on metrics endpoint"
+          runbook: "1. Check service status: systemctl status tailsentry"
+                   "2. Check logs: tail -f /opt/tailsentry/logs/tailsentry.log"
+                   "3. Restart if needed: systemctl restart tailsentry"
+
+      # ====== Devices ======
+      
+      - alert: DevicesOfflineWarning
+        expr: tailsentry_devices_offline > 3
+        for: 10m
+        labels:
+          severity: warning
+          component: devices
+        annotations:
+          summary: "{{ $value }} devices offline"
+          description: "{{ $value }} TailSentry devices are offline for more than 10 minutes"
+          runbook: "Check device status in dashboard: http://localhost:8080/dashboard"
+
+      - alert: DevicesOfflineCritical
+        expr: tailsentry_devices_offline > 10
+        for: 5m
+        labels:
+          severity: critical
+          component: devices
+        annotations:
+          summary: "{{ $value }} devices OFFLINE - Critical"
+          description: "{{ $value }} devices are offline - potential network issue"
+          runbook: "1. Check network connectivity"
+                   "2. Verify devices are using Tailscale"
+                   "3. Check TailSentry ACLs"
+
+      # ====== Exit Nodes ======
+      
+      - alert: NoActiveExitNodes
+        expr: tailsentry_exit_nodes_active == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: exit_nodes
+        annotations:
+          summary: "No active exit nodes"
+          description: "All TailSentry exit nodes are down"
+          runbook: "1. Verify exit nodes are running"
+                   "2. Check exit node status in dashboard"
+                   "3. Restart exit node services"
+
+      # ====== API Performance ======
+      
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(tailsentry_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High API latency: {{ $value }}s"
+          description: "API p95 response time exceeds 2 seconds"
+          runbook: "1. Check CPU usage: top"
+                   "2. Check disk I/O: iostat"
+                   "3. Review slow queries in logs"
+
+      - alert: APIErrors
+        expr: rate(tailsentry_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "{{ $value }} API errors per second"
+          description: "High rate of API errors detected"
+          runbook: "1. Check TailSentry logs for errors"
+                   "2. Verify database connectivity"
+                   "3. Check service dependencies"
+
+      # ====== Database ======
+      
+      - alert: DatabaseErrors
+        expr: increase(tailsentry_db_errors_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "{{ $value }} database errors in 5 minutes"
+          description: "Spike in database errors detected"
+          runbook: "1. Check database logs"
+                   "2. Verify database is accessible"
+                   "3. Check disk space on database server"
+
+      - alert: DatabaseConnectionPoolExhausted
+        expr: tailsentry_db_connections_active > 45
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection pool exhausted: {{ $value }}/50"
+          description: "Running out of available database connections"
+          runbook: "1. Identify slow queries"
+                   "2. Increase connection pool size"
+                   "3. Restart TailSentry service"
+
+      # ====== Resource Utilization ======
+      
+      - alert: HighMemoryUsage
+        expr: tailsentry_memory_bytes / (1024 * 1024) > 512
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage: {{ $value }}MB"
+          description: "TailSentry using more than 512MB RAM"
+          runbook: "1. Check for memory leaks: ps aux | grep tailsentry"
+                   "2. Monitor memory growth"
+                   "3. Consider restarting if trending up"
+
+      - alert: CriticalMemoryUsage
+        expr: tailsentry_memory_bytes / (1024 * 1024) > 1024
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "CRITICAL memory usage: {{ $value }}MB"
+          description: "TailSentry using more than 1GB RAM"
+          runbook: "1. Immediately restart service: systemctl restart tailsentry"
+                   "2. Investigate memory leak"
+                   "3. Check for hung requests"
+
+      # ====== Authentication ======
+      
+      - alert: FailedLoginAttempts
+        expr: rate(tailsentry_logins_total{status="failed"}[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: authentication
+        annotations:
+          summary: "{{ $value }} failed logins per second"
+          description: "High rate of failed login attempts detected"
+          runbook: "1. Check audit logs for suspicious activity"
+                   "2. Verify user credentials are correct"
+                   "3. Check for brute force attacks"
+
+      - alert: BruteForceAttackDetected
+        expr: rate(tailsentry_logins_total{status="failed"}[1m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          component: authentication
+        annotations:
+          summary: "Potential brute force attack detected"
+          description: "{{ $value }} failed logins per minute from same source"
+          runbook: "1. Check source IP in logs"
+                   "2. Block IP if confirmed attack"
+                   "3. Reset passwords for affected users"
+
+      - alert: SSOAuthenticationFailures
+        expr: increase(tailsentry_sso_authentications_total{status="failed"}[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: authentication
+        annotations:
+          summary: "{{ $value }} SSO authentication failures"
+          description: "SSO provider may be experiencing issues"
+          runbook: "1. Verify SSO provider status"
+                   "2. Check provider connectivity"
+                   "3. Verify client credentials"
+
+      # ====== High Request Rate (Possible DDoS) ======
+      
+      - alert: UnusuallyHighRequestRate
+        expr: rate(tailsentry_requests_total[1m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "{{ $value }} requests per second - Check for attack"
+          description: "Request rate is unusually high"
+          runbook: "1. Check if rate limiter is active"
+                   "2. Verify requests are from legitimate sources"
+                   "3. Consider enabling additional DDoS protection"
+
+      - alert: CriticalRequestRate
+        expr: rate(tailsentry_requests_total[1m]) > 5000
+        for: 2m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "CRITICAL request rate: {{ $value }}/sec - Possible DDoS"
+          description: "Extremely high request rate detected"
+          runbook: "1. IMMEDIATE: Enable DDoS protection"
+                   "2. Check for attack sources"
+                   "3. Block malicious IPs"
+                   "4. Contact ISP if needed"
+
+      # ====== Uptime ======
+      
+      - alert: ServiceRecentlyRestarted
+        expr: tailsentry_uptime_seconds < 300
+        for: 1m
+        labels:
+          severity: info
+          component: tailsentry
+        annotations:
+          summary: "TailSentry recently restarted"
+          description: "Service has been up for less than 5 minutes ({{ $value }}s)"
+          runbook: "Check why service restarted: journalctl -u tailsentry -n 50"
+
+# ====== Reboot Alerts (Optional) ======
+# Requires node_exporter running
+
+groups:
+  - name: system_alerts
+    interval: 30s
+    
+    rules:
+      - alert: HighCPUUsage
+        expr: (100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage: {{ $value }}%"
+          description: "CPU usage has been above 80% for 10 minutes"
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes * 100) < 10
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Low disk space: {{ $value }}% free"
+          description: "Less than 10% disk space remaining"
+          runbook: "1. Identify large files: du -sh /opt/tailsentry/*"
+                   "2. Delete old logs: find /opt/tailsentry/logs -mtime +30 -delete"
+                   "3. Clear cache if available"

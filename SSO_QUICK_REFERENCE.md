@@ -1,3 +1,11 @@
+# ⚠️ ARCHIVED - See SSO_SETUP_GUIDE.md
+
+**This file has been archived.** All content from this quick reference has been consolidated into [SSO_SETUP_GUIDE.md](SSO_SETUP_GUIDE.md) under the **Quick Reference** section.
+
+Please refer to [SSO_SETUP_GUIDE.md](SSO_SETUP_GUIDE.md) for the authoritative SSO configuration guide.
+
+---
+
 # 🚀 SSO Quick Reference - TailSentry
 
 ## 📋 Provider Quick Setup

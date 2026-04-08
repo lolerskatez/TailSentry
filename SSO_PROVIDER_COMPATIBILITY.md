@@ -1,3 +1,11 @@
+# ⚠️ ARCHIVED - See SSO_SETUP_GUIDE.md
+
+**This file has been archived.** All content from this compatibility guide has been consolidated into [SSO_SETUP_GUIDE.md](SSO_SETUP_GUIDE.md) under the **Provider Compatibility** section.
+
+Please refer to [SSO_SETUP_GUIDE.md](SSO_SETUP_GUIDE.md) for the authoritative SSO configuration guide.
+
+---
+
 # 🔐 SSO Provider Compatibility - TailSentry
 
 ## ✅ Tested & Verified Providers

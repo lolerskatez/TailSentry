@@ -19,29 +19,46 @@
     text-align: left;
   }
   
-  .faq-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: all 0.3s ease-out;
-  }
-  
-  .faq-icon {
-    transition: transform 0.3s ease;
   }
   
   .rotate {
     transform: rotate(180deg);
   }
+  
+  /* Sticky navigation styles */
+  #faq-categories-nav {
+    position: relative;
+    z-index: 50;
+    width: 100%;
+    transition: all 0.3s ease;
+  }
+  
+  .sticky-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    background: rgba(31, 41, 55, 0.95);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+  
+  @keyframes slideDown {
+    from {
+      transform: translateY(-100%);
+  .nav-spacer {
+    height: var(--nav-height, 57px);
+  }
+  
+  /* Add padding to content when nav is sticky to prevent jump */
+  .sticky-nav + .bg-gray-50 {
+    padding-top: 4rem;
+  }
 </style>
 {% endblock %}
-
 {% block content %}
-<!-- FAQ Hero Section -->
-<div class="bg-gradient-to-br from-indigo-600 to-purple-700 text-white">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-    <div class="text-center">
-      <div class="inline-block p-3 bg-white/10 backdrop-blur-sm rounded-xl mb-6">
-        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
       </div>
@@ -50,190 +67,218 @@
         Find answers to common questions about TailSentry. From setup to advanced features, we've got you covered.
       </p>
       
-      <!-- Search Bar -->
-      <div class="mt-8 max-w-md mx-auto" x-data="{ searchTerm: '' }">
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-          </div>
-          <input 
-            type="text" 
-            x-model="searchTerm"
-            placeholder="Search FAQ..." 
-            class="w-full pl-10 pr-4 py-2 rounded-lg border-2 border-white/20 bg-white/10 backdrop-blur-sm text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
-          >
-        </div>
+  <!-- Search Bar -->
+</div>
+
+<!-- FAQ Categories and Content Wrapper -->
+<div x-data="faqData()">
+        <button 
+          @click="activeCategory = 'all'; window.history.pushState(null, '', '#all')" 
+          :class="activeCategory === 'all' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
+          class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+          </svg>
+          All Questions
+        </button>
+        <button 
+          @click="activeCategory = 'getting-started'; window.history.pushState(null, '', '#category-getting-started')" 
+          :class="activeCategory === 'getting-started' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
+          class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+                          },
+                        ],
+                        'features': [
+                          {
+                            id: 'key-features',
+                            question: 'What are the key features of TailSentry?',
+                            answer: `<p class="mb-4">TailSentry offers a comprehensive set of features designed to simplify Tailscale network management:</p>
+          Getting Started
+        </button>
+        <button 
+          @click="activeCategory = 'features'; window.history.pushState(null, '', '#category-features')" 
+          :class="activeCategory === 'features' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
+          class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          }
+                        ],
+                        'security': [
+                          {
+                            id: 'security-features',
+                            question: 'How secure is TailSentry?',
+                            answer: `<p class="mb-4">TailSentry is built with security as a fundamental design principle:</p>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+          </svg>
+          Features
+        </button>
+        <button 
+          @click="activeCategory = 'security'; window.history.pushState(null, '', '#category-security')" 
+          :class="activeCategory === 'security' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
+          class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          }
+                        ],
+                        'troubleshooting': [
+                          {
+                            id: 'common-issues',
+                            question: 'How do I resolve common connection issues?',
+                            answer: `<p class="mb-4">Here are some steps to troubleshoot common connection problems:</p>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+          </svg>
+          Security
+        </button>
+        <button 
+          @click="activeCategory = 'troubleshooting'; window.history.pushState(null, '', '#category-troubleshooting')" 
+          :class="activeCategory === 'troubleshooting' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
+          class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          }
+                        ],
+                      },
+                      expandedFaq: null,
+                      isVisible(category, faq) {
+                        // For category filtering
+                        const categoryMatch = this.activeCategory === 'all' || category === this.activeCategory;
+                        // For search filtering
+                        const searchMatch = this.searchTerm === '' || 
+                                           faq.question.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+                                           faq.answer.toLowerCase().includes(this.searchTerm.toLowerCase());
+                        return categoryMatch && searchMatch;
+                      },
+                      toggleFaq(faqId) {
+                        this.expandedFaq = this.expandedFaq === faqId ? null : faqId;
+                      }
+                    }">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          Troubleshooting
+        </button>
       </div>
     </div>
   </div>
-</div>
-
-<!-- FAQ Categories Navigation -->
-<div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-    <div class="flex flex-wrap justify-center gap-2 sm:gap-4" x-data="{ activeCategory: 'all' }">
-      <button 
-        @click="activeCategory = 'all'" 
-        :class="activeCategory === 'all' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
-        class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
-      >
-        <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-        </svg>
-        All Questions
-      </button>
-      <button 
-        @click="activeCategory = 'getting-started'" 
-        :class="activeCategory === 'getting-started' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
-        class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
-      >
-        <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-        </svg>
-        Getting Started
-      </button>
-      <button 
-        @click="activeCategory = 'features'" 
-        :class="activeCategory === 'features' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
-        class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
-      >
-        <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-        </svg>
-        Features
-      </button>
-      <button 
-        @click="activeCategory = 'security'" 
-        :class="activeCategory === 'security' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
-        class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
-      >
-        <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-        </svg>
-        Security
-      </button>
-      <button 
-        @click="activeCategory = 'troubleshooting'" 
-        :class="activeCategory === 'troubleshooting' ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900'"
-        class="px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
-      >
-        <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-        </svg>
-        Troubleshooting
-      </button>
-    </div>
   </div>
-</div>
 
-<!-- FAQ Content -->
-<div class="bg-gray-50 dark:bg-gray-900 py-12">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8" x-data="{
-    activeCategory: 'all',
-    searchTerm: '',
-    faqs: {
-      'getting-started': [
-        {
-          id: 'what-is-tailsentry',
-          question: 'What is TailSentry?',
-          answer: `<p class="mb-4">TailSentry is a secure, web-based management dashboard for Tailscale networks. It provides an intuitive interface for monitoring devices, managing users, and configuring network settings while maintaining enterprise-grade security standards.</p>
-                  <div class="grid md:grid-cols-2 gap-4 mb-4">
-                    <div class="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-lg">
-                      <h4 class="font-semibold text-indigo-900 dark:text-indigo-300 mb-2">Key Features</h4>
-                      <ul class="text-sm text-indigo-800 dark:text-indigo-200 space-y-1">
-                        <li>• Device Management & Monitoring</li>
-                        <li>• User Administration with RBAC</li>
-                        <li>• Enterprise SSO Integration</li>
-                        <li>• Real-time Security Alerts</li>
-                      </ul>
+  <!-- Spacer div to prevent content jump when nav becomes fixed -->
+  <div x-data="stickyNav()" x-show="isSticky" class="nav-spacer bg-white dark:bg-gray-800 hidden" :class="{'!block': isSticky}"></div>
+  
+  <!-- FAQ Content -->
+  <div class="bg-gray-50 dark:bg-gray-900 py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div id="category-all" x-show="activeCategory === 'all'">
+        <!-- Loop through all FAQ categories when 'All Questions' is selected -->
+        <template x-for="(categoryFaqs, categoryName) in faqs" :key="categoryName">
+          <div :id="'category-' + categoryName" class="mb-12" :data-category="categoryName">
+            <div class="flex items-center mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md mr-4">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-show="categoryName === 'getting-started'">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-show="categoryName === 'features'">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-show="categoryName === 'security'">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-show="categoryName === 'troubleshooting'">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white capitalize" x-text="categoryName.replace('-', ' ')"></h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                  <template x-if="categoryName === 'getting-started'">Get started with TailSentry</template>
+                  <template x-if="categoryName === 'features'">Explore TailSentry capabilities</template>
+                  <template x-if="categoryName === 'security'">Security best practices and configuration</template>
+                  <template x-if="categoryName === 'troubleshooting'">Solutions to common issues</template>
+                </p>
+              </div>
+            </div>
+            
+            <!-- FAQ cards for this category -->
+            <div class="space-y-4">
+              <template x-for="faq in categoryFaqs.filter(f => isVisible(categoryName, f))" :key="faq.id">
+                <div :id="faq.id" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden faq-card"
+                     :class="{'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-gray-800': expandedFaq === faq.id}">
+                  <button @click="toggleFaq(faq.id)" 
+                      @keydown="handleKeyDown($event, faq.id)"
+                      class="w-full px-6 py-4 text-left faq-toggle" 
+                      :aria-expanded="expandedFaq === faq.id"
+                      :aria-controls="'content-' + faq.id"
+                      role="button"
+                    <div class="flex justify-between items-center">
+                      <h3 class="text-lg font-medium text-gray-900 dark:text-white" x-html="searchTerm ? highlightSearchTerm(faq.question) : faq.question"></h3>
+                      <svg class="w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform faq-icon" 
+                           :class="{'rotate': expandedFaq === faq.id}"
+                           fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
                     </div>
-                    <div class="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-lg">
-                      <h4 class="font-semibold text-purple-900 dark:text-purple-300 mb-2">Supported Platforms</h4>
-                      <ul class="text-sm text-purple-800 dark:text-purple-200 space-y-1">
-                        <li>• Linux (Ubuntu, Debian, CentOS)</li>
-                        <li>• Docker Containers</li>
-                        <li>• Windows Compatible</li>
-                        <li>• Cloud & On-Premise</li>
-                      </ul>
-                    </div>
-                  </div>`
-        },
-        {
-          id: 'system-requirements',
-          question: 'What are the system requirements?',
-          answer: `<p class="mb-4">TailSentry is designed to run efficiently on most modern systems. Here are the minimum and recommended requirements:</p>
-                  <div class="mb-4 overflow-x-auto">
-                    <table class="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                      <thead>
-                        <tr class="bg-gray-100 dark:bg-gray-700">
-                          <th class="py-2 px-4 border-b text-left">Component</th>
-                          <th class="py-2 px-4 border-b text-left">Minimum</th>
-                          <th class="py-2 px-4 border-b text-left">Recommended</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td class="py-2 px-4 border-b dark:border-gray-700">CPU</td>
-                          <td class="py-2 px-4 border-b dark:border-gray-700">2 cores</td>
-                          <td class="py-2 px-4 border-b dark:border-gray-700">4+ cores</td>
-                        </tr>
-                        <tr>
-                          <td class="py-2 px-4 border-b dark:border-gray-700">Memory</td>
-                          <td class="py-2 px-4 border-b dark:border-gray-700">2 GB RAM</td>
-                          <td class="py-2 px-4 border-b dark:border-gray-700">4+ GB RAM</td>
-                        </tr>
-                        <tr>
-                          <td class="py-2 px-4 border-b dark:border-gray-700">Disk</td>
-                          <td class="py-2 px-4 border-b dark:border-gray-700">10 GB</td>
-                          <td class="py-2 px-4 border-b dark:border-gray-700">20+ GB SSD</td>
-                        </tr>
-                        <tr>
-                          <td class="py-2 px-4 border-b dark:border-gray-700">OS</td>
-                          <td class="py-2 px-4 border-b dark:border-gray-700">Ubuntu 20.04, Debian 11, CentOS 8</td>
-                          <td class="py-2 px-4 border-b dark:border-gray-700">Latest LTS versions</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>`
-        },
-        {
-          id: 'installation',
-          question: 'How do I install TailSentry?',
-          answer: `<p class="mb-4">TailSentry supports multiple installation methods for different environments:</p>
-                  <div class="space-y-4">
-                    <div class="border-l-4 border-green-500 pl-4 bg-green-50 dark:bg-green-900/20 p-4 rounded-r-lg">
-                      <h4 class="font-semibold text-green-900 dark:text-green-300 mb-2 flex items-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Interactive Setup (Recommended)
-                      </h4>
-                      <p class="text-sm text-green-800 dark:text-green-200">
-                        Run the setup script for guided installation:
-                      </p>
-                      <pre class="mt-2 p-2 bg-gray-800 text-green-300 rounded text-xs overflow-x-auto">curl -sSL https://tailsentry.example.com/setup.sh | sudo bash</pre>
-                    </div>
-                    
-                    <div class="border-l-4 border-blue-500 pl-4 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-r-lg">
-                      <h4 class="font-semibold text-blue-900 dark:text-blue-300 mb-2 flex items-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
-                        </svg>
-                        Docker Installation
-                      </h4>
-                      <p class="text-sm text-blue-800 dark:text-blue-200">
-                        Deploy using Docker Compose:
-                      </p>
-                      <pre class="mt-2 p-2 bg-gray-800 text-blue-300 rounded text-xs overflow-x-auto">git clone https://github.com/example/tailsentry.git
-cd tailsentry
-docker-compose up -d</pre>
-                    </div>
-                  </div>`
-        }
-      ],
+                  </button>
+                    x-show="expandedFaq === faq.id" 
+                    x-transition:enter="transition ease-out duration-200"
+                   </div>
+                    x-transition:enter-start="opacity-0 transform scale-y-95"
+                    x-transition:enter-end="opacity-100 transform scale-y-100"
+                    x-transition:leave="transition ease-in duration-100"
+                    x-transition:leave-start="opacity-100 transform scale-y-100"
+                    x-transition:leave-end="opacity-0 transform scale-y-95"
+                    class="py-4 px-6 border-t border-gray-200 dark:border-gray-700"
+                    role="region">
+                    <div class="prose prose-indigo dark:prose-invert max-w-none" x-html="searchTerm ? highlightSearchTerm(faq.answer) : faq.answer"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Show category-specific FAQs when that category is selected -->
+      <template x-for="(categoryFaqs, categoryName) in faqs" :key="categoryName">
+        <div :id="'category-' + categoryName" x-show="activeCategory === categoryName" class="space-y-4" :data-category="categoryName">
+          <template x-for="faq in categoryFaqs.filter(f => isVisible(categoryName, f))" :key="faq.id">
+            <div :id="faq.id" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden faq-card"
+                 :class="{'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-gray-800': expandedFaq === faq.id}">
+              <button @click="toggleFaq(faq.id)" 
+                  @keydown="handleKeyDown($event, faq.id)"
+                  class="w-full px-6 py-4 text-left faq-toggle" 
+                  :aria-expanded="expandedFaq === faq.id"
+                  :aria-controls="'content-' + faq.id"
+                  role="button"
+                <div class="flex justify-between items-center">
+                  <h3 class="text-lg font-medium text-gray-900 dark:text-white" x-html="searchTerm ? highlightSearchTerm(faq.question) : faq.question"></h3>
+                  <svg class="w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform faq-icon" 
+                       :class="{'rotate': expandedFaq === faq.id}"
+                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </button>
+                x-show="expandedFaq === faq.id" 
+                x-transition:enter="transition ease-out duration-200"
+               </div>
+                x-transition:enter-start="opacity-0 transform scale-y-95"
+                x-transition:enter-end="opacity-100 transform scale-y-100"
+                x-transition:leave="transition ease-in duration-100"
+                x-transition:leave-start="opacity-100 transform scale-y-100"
+                x-transition:leave-end="opacity-0 transform scale-y-95"
+                class="py-4 px-6 border-t border-gray-200 dark:border-gray-700"
+                role="region">
+                <div class="prose prose-indigo dark:prose-invert max-w-none" x-html="searchTerm ? highlightSearchTerm(faq.answer) : faq.answer"></div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
       'features': [
         {
           id: 'device-management',
@@ -453,127 +498,10 @@ docker-compose up -d</pre>
                   </ol>`
         }
       ]
-    },
-    expandedFaq: null,
-    isVisible(category, faq) {
-      // For category filtering
-      const categoryMatch = this.activeCategory === 'all' || category === this.activeCategory;
-      
-      // For search filtering
-      const searchMatch = this.searchTerm === '' || 
-                         faq.question.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                         faq.answer.toLowerCase().includes(this.searchTerm.toLowerCase());
-      
-      return categoryMatch && searchMatch;
-    },
-    toggleFaq(faqId) {
-      this.expandedFaq = this.expandedFaq === faqId ? null : faqId;
     }
   }">
-    <!-- Getting Started Section -->
-    <div class="mb-12" x-show="activeCategory === 'all' || activeCategory === 'getting-started'">
-      <div class="flex items-center mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
-        <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md mr-4">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-          </svg>
-        </div>
-        <div>
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Getting Started</h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400">Installation, setup, and basic configuration</p>
-        </div>
-      </div>
 
-      <div class="space-y-4">
-        <template x-for="faq in faqs['getting-started']" :key="faq.id">
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all faq-card" 
-               x-show="isVisible('getting-started', faq)">
-            <button class="faq-toggle w-full text-left px-6 py-4 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800"
-                    @click="toggleFaq(faq.id)"
-                    :aria-expanded="expandedFaq === faq.id">
-              <div class="flex justify-between items-center">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white" x-text="faq.question"></h3>
-                <svg class="w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform faq-icon" 
-                     :class="{'rotate': expandedFaq === faq.id}"
-                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-            </button>
-            <div class="overflow-hidden transition-all faq-content"
-                 :class="{'max-h-0': expandedFaq !== faq.id, 'max-h-[2000px] py-4 px-6 border-t border-gray-200 dark:border-gray-700': expandedFaq === faq.id}">
-              <div class="prose prose-indigo dark:prose-invert max-w-none" x-html="faq.answer"></div>
-            </div>
-          </div>
-        </template>
-      </div>
-    </div>
 
-    <!-- Features Section -->
-    <div class="mb-12" x-show="activeCategory === 'all' || activeCategory === 'features'">
-      <div class="flex items-center mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
-        <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md mr-4">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-          </svg>
-        </div>
-        <div>
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Features</h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400">Core functionality and capabilities</p>
-        </div>
-      </div>
-
-      <div class="space-y-4">
-        <template x-for="faq in faqs['features']" :key="faq.id">
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all faq-card" 
-               x-show="isVisible('features', faq)">
-            <button class="faq-toggle w-full text-left px-6 py-4 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800"
-                    @click="toggleFaq(faq.id)"
-                    :aria-expanded="expandedFaq === faq.id">
-              <div class="flex justify-between items-center">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white" x-text="faq.question"></h3>
-                <svg class="w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform faq-icon" 
-                     :class="{'rotate': expandedFaq === faq.id}"
-                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-            </button>
-            <div class="overflow-hidden transition-all faq-content"
-                 :class="{'max-h-0': expandedFaq !== faq.id, 'max-h-[2000px] py-4 px-6 border-t border-gray-200 dark:border-gray-700': expandedFaq === faq.id}">
-              <div class="prose prose-indigo dark:prose-invert max-w-none" x-html="faq.answer"></div>
-            </div>
-          </div>
-        </template>
-      </div>
-    </div>
-
-    <!-- Security Section -->
-    <div class="mb-12" x-show="activeCategory === 'all' || activeCategory === 'security'">
-      <div class="flex items-center mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
-        <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md mr-4">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-          </svg>
-        </div>
-        <div>
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Security</h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400">Security best practices and configuration</p>
-        </div>
-      </div>
-
-      <div class="space-y-4">
-        <template x-for="faq in faqs['security']" :key="faq.id">
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all faq-card" 
-               x-show="isVisible('security', faq)">
-            <button class="faq-toggle w-full text-left px-6 py-4 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800"
-                    @click="toggleFaq(faq.id)"
-                    :aria-expanded="expandedFaq === faq.id">
-              <div class="flex justify-between items-center">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white" x-text="faq.question"></h3>
-                <svg class="w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform faq-icon" 
-                     :class="{'rotate': expandedFaq === faq.id}"
-                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
               </div>
@@ -649,6 +577,25 @@ docker-compose up -d</pre>
     </div>
   </div>
 </div>
+<!-- End of FAQ Categories and Content Wrapper -->
+
+<!-- Back to Top Button -->
+  x-show="showBackToTop"
+  x-transition:enter="transition ease-out duration-300"
+ </div>
+  x-transition:enter-start="opacity-0 transform translate-y-10"
+  x-transition:enter-end="opacity-100 transform translate-y-0"
+  x-transition:leave="transition ease-in duration-300"
+  x-transition:leave-start="opacity-100 transform translate-y-0"
+  x-transition:leave-end="opacity-0 transform translate-y-10"
+  @click="scrollToTop()"
+  class="fixed bottom-6 right-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-full p-3 shadow-lg cursor-pointer hover:from-indigo-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all z-50"
+  aria-label="Back to top"
+>
+  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+  </svg>
+</div>
 
 <!-- Support Section -->
 <div class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
@@ -671,14 +618,176 @@ docker-compose up -d</pre>
 
 {% block scripts %}
 <script>
-  // Initialize the Alpine components
-  document.addEventListener('alpine:init', () => {
-    // We're using the x-data directive in the HTML for our components
-  });
-
-  // Update search parameter in URL
-  document.addEventListener('DOMContentLoaded', () => {
-    // For potential URL parameter handling
-  });
+function faqData() {
+  return {
+    activeCategory: 'all',
+    searchTerm: '',
+    faqs: {
+      'getting-started': [
+        {
+          id: 'what-is-tailsentry',
+          question: 'What is TailSentry?',
+          answer: `<p class="mb-4">TailSentry is a secure, web-based management dashboard for Tailscale networks. It provides an intuitive interface for monitoring devices, managing users, and configuring network settings while maintaining enterprise-grade security standards.</p>
+                  <div class="grid md:grid-cols-2 gap-4 mb-4">
+                    <div class="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-lg">
+                      <h4 class="font-semibold text-indigo-900 dark:text-indigo-300 mb-2">Key Features</h4>
+                      <ul class="text-sm text-indigo-800 dark:text-indigo-200 space-y-1">
+                        <li>• Device Management & Monitoring</li>
+                        <li>• User Administration with RBAC</li>
+                        <li>• Enterprise SSO Integration</li>
+                        <li>• Real-time Security Alerts</li>
+                      </ul>
+                    </div>
+                    <div class="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-lg">
+                      <h4 class="font-semibold text-purple-900 dark:text-purple-300 mb-2">Supported Platforms</h4>
+                      <ul class="text-sm text-purple-800 dark:text-purple-200 space-y-1">
+                        <li>• Linux (Ubuntu, Debian, CentOS)</li>
+                        <li>• Docker Containers</li>
+                        <li>• Windows Compatible</li>
+                        <li>• Cloud & On-Premise</li>
+                      </ul>
+                    </div>
+                  </div>`
+        },
+      ],
+      'features': [
+        {
+          id: 'key-features',
+          question: 'What are the key features of TailSentry?',
+          answer: `<p class="mb-4">TailSentry offers a comprehensive set of features designed to simplify Tailscale network management:</p>
+                  <ul class="list-disc pl-5 space-y-2 mb-4">
+                    <li>Real-time device status monitoring and alerts</li>
+                    <li>User access control with role-based permissions</li>
+                    <li>Integration with SSO providers (Okta, Google, Microsoft)</li>
+                    <li>Network traffic analytics and visualization</li>
+                    <li>Automated security policy enforcement</li>
+                    <li>Custom notification rules and delivery methods</li>
+                  </ul>`
+        }
+      ],
+      'security': [
+        {
+          id: 'security-features',
+          question: 'How secure is TailSentry?',
+          answer: `<p class="mb-4">TailSentry is built with security as a fundamental design principle:</p>
+                  <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-4">
+                    <h4 class="font-semibold text-blue-900 dark:text-blue-300 mb-2">Security Features</h4>
+                    <ul class="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                      <li>• End-to-end encryption for all communications</li>
+                      <li>• Role-based access control (RBAC)</li>
+                      <li>• Regular security audits and updates</li>
+                      <li>• Multi-factor authentication support</li>
+                      <li>• Detailed audit logging and monitoring</li>
+                    </ul>
+                  </div>`
+        }
+      ],
+      'troubleshooting': [
+        {
+          id: 'common-issues',
+          question: 'How do I resolve common connection issues?',
+          answer: `<p class="mb-4">Here are some steps to troubleshoot common connection problems:</p>
+                  <ol class="list-decimal pl-5 space-y-2 mb-4">
+                    <li>Verify that the Tailscale service is running on all devices</li>
+                    <li>Check firewall settings to ensure required ports are open</li>
+                    <li>Confirm that your API keys have the correct permissions</li>
+                    <li>Restart the TailSentry service using the control panel</li>
+                    <li>Review the logs for specific error messages</li>
+                  </ol>
+                  <p class="text-sm bg-yellow-50 dark:bg-yellow-900/30 p-3 rounded-lg border-l-4 border-yellow-500">
+                    If problems persist, please contact our support team for assistance.
+                  </p>`
+        }
+      ],
+    },
+    expandedFaq: null,
+    isVisible(category, faq) {
+      // For category filtering
+      const categoryMatch = this.activeCategory === 'all' || category === this.activeCategory;
+      // For search filtering
+      const searchMatch = this.searchTerm === '' || 
+                         faq.question.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+                         faq.answer.toLowerCase().includes(this.searchTerm.toLowerCase());
+      return categoryMatch && searchMatch;
+    },
+    toggleFaq(faqId) {
+      this.expandedFaq = this.expandedFaq === faqId ? null : faqId;
+    }
+  };
+}
+// Initialize the Alpine components
+document.addEventListener('alpine:init', () => {
+  // We're using the x-data directive in the HTML for our components
+  Alpine.data('stickyNav', () => ({
+    isSticky: false,
+    navOffsetTop: 0,
+    heroHeight: 0,
+    init() {
+      // Get initial position of the navigation bar
+      this.$nextTick(() => {
+        const nav = document.getElementById('faq-categories-nav');
+        const hero = document.querySelector('.faq-hero');
+        if (nav && hero) {
+          this.navOffsetTop = nav.offsetTop;
+          this.heroHeight = hero.offsetHeight;
+          // Set the navigation height CSS variable for the spacer
+          document.documentElement.style.setProperty('--nav-height', `${nav.offsetHeight}px`);
+          // Initialize scroll position check
+          this.checkScroll();
+          // Add scroll event listener
+          window.addEventListener('scroll', () => this.checkScroll());
+          // Add resize event listener to recalculate dimensions
+          window.addEventListener('resize', () => {
+            if (nav && hero) {
+              this.navOffsetTop = nav.offsetTop;
+              this.heroHeight = hero.offsetHeight;
+              document.documentElement.style.setProperty('--nav-height', `${nav.offsetHeight}px`);
+              this.checkScroll();
+            }
+          });
+        }
+      });
+    },
+    checkScroll() {
+      // Set sticky state based on scroll position relative to hero section
+      this.isSticky = window.pageYOffset > this.heroHeight;
+    }
+  }));
+});
+// Handle URL hash navigation and DOM initialization
+document.addEventListener('DOMContentLoaded', () => {
+  // Handle URL hash for direct navigation to FAQ item
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#')) {
+    const faqId = hash.substring(1);
+    const faqElement = document.getElementById(faqId);
+    // If there's a valid hash in the URL, expand the corresponding FAQ
+    if (faqElement) {
+      // Find the FAQ component Alpine instance
+      const faqComponent = Alpine.$data(document.querySelector('[x-data*="faqs"]'));
+      if (faqComponent) {
+        // Set the appropriate category if needed
+        const categorySection = faqElement.closest('[data-category]');
+        if (categorySection) {
+          const category = categorySection.dataset.category;
+          if (category !== 'all') {
+            faqComponent.activeCategory = category;
+          }
+        }
+        // Expand the FAQ
+        setTimeout(() => {
+          faqComponent.toggleFaq(faqId);
+          // Scroll to the FAQ with offset for the sticky nav
+          setTimeout(() => {
+            const navHeight = document.querySelector('#faq-categories-nav').offsetHeight || 0;
+            const yOffset = -navHeight - 20;
+            const y = faqElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({top: y, behavior: 'smooth'});
+          }, 300);
+        }, 100);
+      }
+    }
+  }
+});
 </script>
 {% endblock %}

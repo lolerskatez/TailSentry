@@ -1,3 +1,9 @@
+# ⚠️ ARCHIVED - See FEATURES_LOG.md
+
+**This file contains historical implementation details.** For a consolidated overview of all features, see [FEATURES_LOG.md](FEATURES_LOG.md).
+
+---
+
 # 🎉 Enhanced TailSentry Dashboard - Completion Summary
 
 ## ✅ Completed Enhancements

@@ -7,6 +7,8 @@ Complete guide for configuring Single Sign-On (SSO) with enterprise identity pro
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
 - [Quick Setup](#quick-setup)
+- [Quick Reference](#quick-reference) - Provider configs at a glance
+- [Provider Compatibility](#provider-compatibility) - Full compatibility matrix
 - [Supported Providers](#supported-providers)
 - [Provider-Specific Guides](#provider-specific-guides)
 - [Advanced Configuration](#advanced-configuration)
@@ -62,6 +64,183 @@ If auto-discovery fails, manually enter:
 ### Step 6: Save and Test
 1. Click **"Add Provider"**
 2. Test login with the new provider
+
+## ⚡ Quick Reference
+
+### 📋 Provider Quick Setup
+
+#### Google Workspace
+```yaml
+Provider Name: Google Workspace
+Issuer URL: https://accounts.google.com
+Scopes: openid email profile
+Group Claim: groups (requires Google Admin SDK)
+```
+
+#### Microsoft Entra ID (Azure AD)
+```yaml
+Provider Name: Microsoft Entra ID
+Issuer URL: https://login.microsoftonline.com/{tenant-id}/v2.0
+Scopes: openid email profile
+Group Claim: groups
+```
+
+#### Authentik
+```yaml
+Provider Name: Authentik
+Issuer URL: https://auth.company.com/application/o/tailsentry/
+Scopes: openid email profile
+Group Claim: groups
+```
+
+#### Keycloak
+```yaml
+Provider Name: Keycloak
+Issuer URL: https://auth.company.com/realms/master
+Scopes: openid email profile
+Group Claim: realm_access.roles
+```
+
+#### Okta
+```yaml
+Provider Name: Okta
+Issuer URL: https://dev-123456.okta.com/oauth2/default
+Scopes: openid email profile groups
+Group Claim: groups
+```
+
+#### Auth0
+```yaml
+Provider Name: Auth0
+Issuer URL: https://your-domain.auth0.com
+Scopes: openid email profile
+Group Claim: https://company.com/roles
+```
+
+### 🔧 Common Role Mappings
+
+**Simple Mapping**:
+```json
+{
+  "admins": "admin",
+  "users": "user",
+  "guests": "readonly"
+}
+```
+
+**Department-Based**:
+```json
+{
+  "IT Department": "admin",
+  "Engineering": "user",
+  "Management": "user",
+  "Contractors": "readonly"
+}
+```
+
+**Group-Based (Keycloak/LDAP)**:
+```json
+{
+  "tailsentry-admin": "admin",
+  "tailsentry-user": "user",
+  "tailsentry-readonly": "readonly",
+  "domain-admins": "admin"
+}
+```
+
+### 🏃‍♂️ 5-Minute Setup Checklist
+
+- [ ] Enable SSO in TailSentry settings
+- [ ] Create OAuth app in your identity provider
+- [ ] Copy redirect URI from TailSentry to provider
+- [ ] Enter issuer URL and click "Discover"
+- [ ] Add client ID and secret
+- [ ] Configure role mappings (optional)
+- [ ] Test login with SSO provider
+- [ ] Verify user role assignment
+
+---
+
+## 🔐 Provider Compatibility
+
+### ✅ Tested & Verified Providers
+
+#### Cloud Providers
+| Provider | Status | Auto-Discovery | Role Mapping | Notes |
+|----------|--------|----------------|--------------|-------|
+| **Google Workspace** | ✅ Tested | ✅ Yes | ✅ Yes | Requires Admin SDK for groups |
+| **Microsoft Entra ID** | ✅ Tested | ✅ Yes | ✅ Yes | Azure AD tenant required |
+| **Okta** | ✅ Tested | ✅ Yes | ✅ Yes | Full OIDC compliance |
+| **Auth0** | ✅ Tested | ✅ Yes | ✅ Yes | Custom domain recommended |
+| **OneLogin** | 🟡 Compatible | ✅ Yes | ✅ Yes | Not tested, should work |
+
+#### Self-Hosted / Open Source
+| Provider | Status | Auto-Discovery | Role Mapping | Notes |
+|----------|--------|----------------|--------------|-------|
+| **Authentik** | ✅ Tested | ✅ Yes | ✅ Yes | Excellent OIDC support |
+| **Keycloak** | ✅ Tested | ✅ Yes | ✅ Yes | Full feature compatibility |
+| **FusionAuth** | 🟡 Compatible | ✅ Yes | ✅ Yes | OIDC compliant |
+| **Dex** | 🟡 Compatible | ✅ Yes | ❌ Limited | Simple OIDC proxy |
+| **Zitadel** | 🟡 Compatible | ✅ Yes | ✅ Yes | Modern OIDC provider |
+
+#### Enterprise
+| Provider | Status | Auto-Discovery | Role Mapping | Notes |
+|----------|--------|----------------|--------------|-------|
+| **ADFS** | 🟡 Compatible | ❌ Manual | ✅ Yes | Requires manual endpoints |
+| **Ping Identity** | 🟡 Compatible | ✅ Yes | ✅ Yes | Enterprise features |
+| **AWS Cognito** | 🟡 Compatible | ✅ Yes | ✅ Yes | User pools required |
+| **GitLab** | 🟡 Compatible | ✅ Yes | ❌ Limited | OAuth2 only |
+| **GitHub** | 🟡 Compatible | ❌ No | ❌ No | OAuth2, limited claims |
+
+### 🏆 Recommended Providers
+
+**For Small Teams (1-50 users)**:
+1. **Google Workspace** - Easy setup, reliable
+2. **Authentik** - Self-hosted, feature-rich
+3. **Auth0** - Managed service, good free tier
+
+**For Medium Teams (50-500 users)**:
+1. **Okta** - Enterprise features, excellent support
+2. **Microsoft Entra ID** - Deep Office 365 integration
+3. **Keycloak** - Self-hosted, highly customizable
+
+**For Large Enterprise (500+ users)**:
+1. **Microsoft Entra ID** - Enterprise-grade scale
+2. **Okta** - Advanced security features
+3. **Ping Identity** - Government/compliance focus
+
+### 🔍 Compatibility Checklist
+
+Before configuring a new provider, verify:
+
+- [ ] Supports OpenID Connect 1.0
+- [ ] Has `.well-known/openid-configuration` endpoint
+- [ ] Supports `authorization_code` flow
+- [ ] Returns `sub`, `email` claims
+- [ ] HTTPS-only endpoints
+- [ ] Valid SSL certificates
+
+**Optional Features**:
+- [ ] Group/role claims for RBAC
+- [ ] Custom claim namespaces
+- [ ] Token refresh support
+- [ ] JWKS for signature verification
+
+### 🚨 Known Limitations
+
+**Provider-Specific Issues**:
+- **ADFS**: No auto-discovery, manual endpoint configuration required
+- **GitHub**: Limited OIDC support, no group claims
+- **GitLab**: Groups in separate API call, not in tokens
+- **Dex**: Minimal claims, primarily a proxy
+
+**TailSentry Limitations**:
+- Single SSO provider active at a time
+- No SAML support (OIDC/OAuth2 only)
+- Group claims must be in JWT tokens (no API calls)
+- Role mappings are case-sensitive
+
+---
 
 ## 🏢 Supported Providers
 
