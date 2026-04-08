@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Request, Form, Depends, Response, status, HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse
-from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from auth_user import create_user, verify_user, get_user, list_users, delete_user, init_db, get_user_activity_log, append_user_activity
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
@@ -9,9 +8,9 @@ import aiosmtplib
 from email_validator import validate_email, EmailNotValidError
 import os
 import notifications_manager
+from templates_manager import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 # Initialize DB on startup
 init_db()
@@ -68,7 +67,7 @@ def check_role(user: dict, allowed_roles: list) -> bool:
 
 @router.get("/login")
 def login_form(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+    return templates.TemplateResponse("login.html", context={"request": request, "error": None})
 
 @router.post("/login")
 async def login(request: Request, response: Response, username: str = Form(...), password: str = Form(...), remember_me: str = Form(None)):

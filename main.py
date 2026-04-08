@@ -6,7 +6,6 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from starlette.middleware.sessions import SessionMiddleware
@@ -14,6 +13,7 @@ from dotenv import load_dotenv
 from middleware.security import SecurityHeadersMiddleware
 from helpers import start_scheduler, shutdown_scheduler
 from version import VERSION
+from templates_manager import templates
 
 # Set process title for proper identification by Tailscale
 try:
@@ -208,7 +208,6 @@ app.add_middleware(
 
 # Static & templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
 
 # Custom error handlers
 from fastapi import HTTPException
@@ -218,7 +217,7 @@ import uuid
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc: HTTPException):
     """Custom 404 error handler"""
-    return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
+    return templates.TemplateResponse("404.html", {"request": request}, 404)
 
 @app.exception_handler(403)
 async def forbidden_handler(request: Request, exc: HTTPException):
@@ -226,7 +225,7 @@ async def forbidden_handler(request: Request, exc: HTTPException):
     import traceback
     error_id = str(uuid.uuid4())[:8]
     logger.error(f"403 Forbidden {error_id}: {str(exc)} | Path: {request.url.path} | Method: {request.method} | User-Agent: {request.headers.get('user-agent')} | Remote: {request.client.host if request.client else 'unknown'}\nTraceback:\n{traceback.format_exc()}")
-    return templates.TemplateResponse("403.html", {"request": request, "error_id": error_id, "detail": str(exc)}, status_code=403)
+    return templates.TemplateResponse("403.html", {"request": request, "error_id": error_id, "detail": str(exc)}, 403)
 
 @app.exception_handler(500)
 async def internal_error_handler(request: Request, exc: Exception):
@@ -238,7 +237,7 @@ async def internal_error_handler(request: Request, exc: Exception):
         "request": request, 
         "error_id": error_id,
         "detail": str(exc)
-    }, status_code=500)
+    }, 500)
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -253,7 +252,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         "message": "The request contains invalid data. Please check your input and try again.",
         "error_id": error_id,
         "detail": str(exc)
-    }, status_code=400)
+    }, 400)
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
@@ -265,7 +264,7 @@ async def general_exception_handler(request: Request, exc: Exception):
         "status_code": 500,
         "title": "Unexpected Error",
         "message": "An unexpected error occurred. We've been notified and are working to fix it."
-    }, status_code=500)
+    }, 500)
 
 # Import all routers (including settings) in a single line
 

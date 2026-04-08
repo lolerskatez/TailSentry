@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
+from templates_manager import templates
  # from auth import login_required
 from services.tailscale_service import TailscaleClient
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 @router.get("/keys")
  # @login_required

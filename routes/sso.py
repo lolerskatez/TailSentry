@@ -2,21 +2,16 @@ import logging
 import json
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from starlette import status
 from services.sso_service import sso_manager
 import services.sso_service as sso_service
 from services.sso_auth import sso_auth
 from auth_user import create_or_update_sso_user
 from routes.user import get_current_user
+from templates_manager import templates
 
 logger = logging.getLogger("tailsentry.sso")
 router = APIRouter()
-
-# Templates
-import os
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 @router.get("/sso/login/{provider}")
 async def sso_login(provider: str, request: Request):

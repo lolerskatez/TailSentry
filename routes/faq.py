@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Request
-from fastapi.templating import Jinja2Templates
+from templates_manager import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 from routes.user import get_current_user
 

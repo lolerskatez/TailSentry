@@ -7,12 +7,11 @@ import json
 import logging
 from datetime import datetime
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Body
-from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from services.tailscale_service import TailscaleClient
+from templates_manager import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 logger = logging.getLogger("tailsentry.ws")
 
 # Settings export/import endpoints

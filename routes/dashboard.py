@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Request
-from fastapi.templating import Jinja2Templates
  # from auth import login_required
 from services.tailscale_service import TailscaleClient
+from templates_manager import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 from routes.user import get_current_user
 

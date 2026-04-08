@@ -5,15 +5,14 @@ import logging
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
-from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from services.backup_service import BackupService
 from services.audit_logger import AuditLogger, AuditEventType
 from services.mfa_service import MFAService
 from routes.user import get_current_user, check_role
+from templates_manager import templates
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-templates = Jinja2Templates(directory="templates")
 logger = logging.getLogger("tailsentry.admin")
 
 # Initialize services

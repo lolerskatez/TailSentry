@@ -2,11 +2,9 @@
 
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
-
-from fastapi.templating import Jinja2Templates
+from templates_manager import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 # Import get_current_user from user routes for session checking
 from routes.user import get_current_user

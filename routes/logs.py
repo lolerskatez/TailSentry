@@ -6,11 +6,10 @@ import asyncio
 import tempfile
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
+from templates_manager import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 logger = logging.getLogger("tailsentry.logs")
 
 # Helper: check admin session using user role
