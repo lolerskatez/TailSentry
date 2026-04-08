@@ -972,59 +972,9 @@ class TailSentryDiscordBot:
         except Exception as e:
             logger.error(f"Failed to stop Discord bot: {e}")
 
-# NEW DEVICE NOTIFICATION SERVICE
-class DeviceNotificationService:
-    """Service to monitor for new devices and send Discord notifications"""
-    
-    def __init__(self, discord_bot: TailSentryDiscordBot, check_interval: int = 300):
-        self.discord_bot = discord_bot
-        self.check_interval = check_interval  # Check every 5 minutes by default
-        self.known_devices = set()
-        self.running = False
-        logger.info(f"Device notification service initialized (check interval: {check_interval}s)")
-
-    async def start_monitoring(self):
-        """Start monitoring for new devices"""
-        if self.running:
-            logger.warning("Device monitoring already running")
-            return
-            
-        self.running = True
-        logger.info("Starting device notification monitoring...")
-        
-        # Initialize with current devices
-        await self._initialize_known_devices()
-        
-        # Start monitoring loop
-        while self.running:
-            try:
-                await self._check_for_new_devices()
-                await asyncio.sleep(self.check_interval)
-            except Exception as e:
-                logger.error(f"Error in device monitoring loop: {e}")
-                await asyncio.sleep(60)  # Wait 1 minute before retrying
-
-    async def _initialize_known_devices(self):
-        """Initialize the set of known devices"""
-        try:
-            devices = await self.discord_bot._get_tailscale_devices()
-            self.known_devices = {device.get('nodeId') for device in devices if device.get('nodeId')}
-            logger.info(f"Initialized with {len(self.known_devices)} known devices")
-        except Exception as e:
-            logger.error(f"Failed to initialize known devices: {e}")
-
-    async def _check_for_new_devices(self):
-        """Check for new devices and send notifications"""
-        try:
-            current_devices = await self.discord_bot._get_tailscale_devices()
-            current_device_ids = {device.get('nodeId') for device in current_devices if device.get('nodeId')}
-            
-            # Find new devices
-            new_device_ids = current_device_ids - self.known_devices
-            
-            if new_device_ids:
-                logger.info(f"Found {len(new_device_ids)} new devices")
-                
+# Device notifications are now handled by services.device_notifications module
+# Import consolidated DeviceNotificationService if needed:
+# from services.device_notifications import DeviceNotificationService
                 # Send notification for each new device
                 for device_id in new_device_ids:
                     device = next((d for d in current_devices if d.get('nodeId') == device_id), None)
