@@ -54,6 +54,7 @@ import os
 import sqlite3
 from passlib.context import CryptContext
 from typing import Optional
+from database import get_db_connection, init_database
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(PROJECT_ROOT, 'data', 'users.db')
@@ -68,30 +69,12 @@ if not os.path.exists(data_dir):
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_db():
-    # Ensure data directory exists before connecting
-    data_dir = os.path.dirname(DB_PATH)
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir, mode=0o755, exist_ok=True)
-        print(f"[DEBUG] Created data directory: {data_dir}")
-    
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """Get a database connection (now delegated to database.py)."""
+    return get_db_connection()
 
 def init_db():
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'user',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    """Initialize database (now delegated to database.py)."""
+    init_database()
 
 def create_user(username: str, password: str, role: str = 'user') -> bool:
     import logging
@@ -497,13 +480,16 @@ def add_sso_columns():
     conn.commit()
     conn.close()
 
-# Initialize DB and ensure admin user at module load
-init_db()
-add_email_column()
-add_discord_username_column()
-add_display_name_column()
-add_active_column()
-add_activity_log_column()
-add_notification_preferences_column()
-add_sso_columns()
-ensure_default_admin()
+# Note: Database initialization is now handled by main.py and database.py
+# The following calls ensure schema compatibility when auth_user is imported:
+try:
+    add_email_column()
+    add_discord_username_column()
+    add_display_name_column()
+    add_active_column()
+    add_activity_log_column()
+    add_notification_preferences_column()
+    add_sso_columns()
+    ensure_default_admin()
+except Exception as e:
+    print(f"[WARNING] Error during auth_user schema setup: {e}")

@@ -35,6 +35,10 @@ email-validator>=2.0.0
 # Discord Bot Integration
 discord.py>=2.3.2
 
+# Database and migrations
+sqlalchemy>=2.0.0
+alembic>=1.13.0
+
 # Process identification
 setproctitle>=1.3.0
 

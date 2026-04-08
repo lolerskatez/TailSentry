@@ -62,6 +62,14 @@ for name in ["apscheduler", "uvicorn", "fastapi"]:
 # Load environment variables
 load_dotenv()
 
+# Initialize database
+from database import init_database
+try:
+    init_database()
+    logger.info("Database initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize database: {e}", exc_info=True)
+
 # Lifespan event handler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
