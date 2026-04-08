@@ -975,17 +975,6 @@ class TailSentryDiscordBot:
 # Device notifications are now handled by services.device_notifications module
 # Import consolidated DeviceNotificationService if needed:
 # from services.device_notifications import DeviceNotificationService
-                # Send notification for each new device
-                for device_id in new_device_ids:
-                    device = next((d for d in current_devices if d.get('nodeId') == device_id), None)
-                    if device:
-                        await self._send_new_device_notification(device)
-                
-                # Update known devices
-                self.known_devices = current_device_ids
-                
-        except Exception as e:
-            logger.error(f"Error checking for new devices: {e}")
 
     async def _send_new_device_notification(self, device: Dict):
         """Send Discord notification for new device"""
@@ -1043,10 +1032,6 @@ class TailSentryDiscordBot:
             
         except Exception as e:
             logger.error(f"Failed to send new device notification: {e}")
-
-        """Stop device monitoring"""
-        self.running = False
-        logger.info("Device monitoring stopped")
 
 
 # Global bot instance

@@ -52,6 +52,10 @@ def add_active_column():
     conn.close()
 import os
 import sqlite3
+import bcrypt as _bcrypt_module
+if not hasattr(_bcrypt_module, '__about__'):
+    import types
+    _bcrypt_module.__about__ = types.SimpleNamespace(__version__=_bcrypt_module.__version__)
 from passlib.context import CryptContext
 from typing import Optional
 from database import get_db_connection, init_database
