@@ -120,15 +120,20 @@ async def lifespan(app: FastAPI):
     uptime = time.time() - app.state.start_time
     logger.info(f"TailSentry shutdown complete. Uptime: {uptime:.2f} seconds")
 
-# Initialize FastAPI
+# Initialize FastAPI with environment-aware API documentation
+# Enable docs in development mode only
+IS_DEVELOPMENT = os.getenv("DEVELOPMENT", "false").lower() == "true"
+IS_PRODUCTION = os.getenv("ENVIRONMENT", "production").lower() == "production"
+
 app = FastAPI(
     title="TailSentry",
-    description="Secure Tailscale Management Dashboard",
+    description="Secure Tailscale Management Dashboard for Tailscale Networks",
     version=VERSION,
     lifespan=lifespan,
-    # Comment these out to enable OpenAPI docs in development
-    docs_url=None if not os.getenv("DEVELOPMENT", "false").lower() == "true" else "/docs",
-    redoc_url=None if not os.getenv("DEVELOPMENT", "false").lower() == "true" else "/redoc",
+    openapi_url="/openapi.json" if IS_DEVELOPMENT else None,
+    docs_url="/docs" if IS_DEVELOPMENT else None,
+    redoc_url="/redoc" if IS_DEVELOPMENT else None,
+    swagger_ui_oauth2_redirect_url="/docs/oauth2-redirect" if IS_DEVELOPMENT else None,
 )
 
 
@@ -302,6 +307,10 @@ app.include_router(notifications.router)
 # Register FAQ router
 from routes import faq
 app.include_router(faq.router)
+
+# Register admin routes (backups, audit, MFA)
+from routes import admin
+app.include_router(admin.router)
 
 # Global context processor for all templates
 @app.middleware("http")

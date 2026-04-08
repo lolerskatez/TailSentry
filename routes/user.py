@@ -43,6 +43,29 @@ def get_current_user(request: Request):
             return dict(user_row)
     return None
 
+
+def check_role(user: dict, allowed_roles: list) -> bool:
+    """Check if user has one of the allowed roles.
+    
+    Args:
+        user: User dictionary from session
+        allowed_roles: List of allowed roles (admin, operator, viewer)
+        
+    Returns:
+        True if user has required role
+    """
+    if not user:
+        return False
+    
+    user_role = user.get("role", "viewer")
+    
+    # Admin can access everything
+    if user_role == "admin":
+        return True
+    
+    # Check specific role
+    return user_role in allowed_roles
+
 @router.get("/login")
 def login_form(request: Request):
     return templates.TemplateResponse("login.html", {"request": request, "error": None})

@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}Multi-Factor Authentication - TailSentry{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <h1 class="text-3xl font-bold mb-8">Multi-Factor Authentication (MFA)</h1>
+
+    <!-- Alert Messages -->
+    <div id="alertContainer"></div>
+
+    <!-- MFA Status Section -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <h2 class="text-xl font-bold mb-4">Your MFA Status</h2>
+        <div id="mfaStatusContainer">
+            <div class="text-center">
+                <span class="text-gray-600">Loading MFA status...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enable MFA Section (hidden when MFA is enabled) -->
+    <div id="enableMFASection" class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 hidden">
+        <h2 class="text-xl font-bold mb-4">Enable TOTP Authentication</h2>
+        <p class="text-gray-700 mb-4">
+            Enhance your account security by enabling time-based one-time password (TOTP) authentication.
+            You'll need an authenticator app like Google Authenticator, Authy, or Microsoft Authenticator.
+        </p>
+
+        <!-- Step 1: Generate Secret -->
+        <div id="step1Section" class="mb-6">
+            <h3 class="text-lg font-semibold mb-3">Step 1: Generate Secret</h3>
+            <button id="generateSecretBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                Generate Secret & QR Code
+            </button>
+        </div>
+
+        <!-- Step 2: Scan QR Code -->
+        <div id="step2Section" class="hidden mb-6">
+            <h3 class="text-lg font-semibold mb-3">Step 2: Scan QR Code</h3>
+            <p class="text-gray-600 mb-4">Scan this QR code with your authenticator app:</p>
+            <div id="qrCodeContainer" class="flex justify-center mb-4">
+                <!-- QR code image will be inserted here -->
+            </div>
+            <p class="text-sm text-gray-600 mb-4">Or enter this secret manually: <code id="secretCode" class="bg-gray-100 px-2 py-1 rounded"></code></p>
+            
+            <details class="mb-4">
+                <summary class="cursor-pointer text-blue-600 hover:underline">Show backup codes</summary>
+                <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded p-3">
+                    <p class="text-sm font-semibold mb-2">
+                        ⚠️ Save these backup codes in a safe place. Each can be used once if you lose access to your authenticator.
+                    </p>
+                    <ul id="backupCodesList" class="list-none space-y-1 font-mono text-sm">
+                        <!-- Backup codes will be inserted here -->
+                    </ul>
+                </div>
+            </details>
+
+            <button id="continueToVerifyBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                Continue to Verification
+            </button>
+        </div>
+
+        <!-- Step 3: Verify Code -->
+        <div id="step3Section" class="hidden mb-6">
+            <h3 class="text-lg font-semibold mb-3">Step 3: Verify Code</h3>
+            <p class="text-gray-600 mb-3">Enter the 6-digit code from your authenticator app:</p>
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="verifyCodeInput" placeholder="000000" maxlength="6"
+                    class="w-32 px-3 py-2 border rounded text-center text-2xl font-mono focus:outline-none focus:ring-2 focus:ring-green-500">
+                <button id="verifyCodeBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                    Verify & Enable MFA
+                </button>
+            </div>
+            <p class="text-sm text-gray-600">
+                Having trouble? <button class="text-blue-600 hover:underline" onclick="goBackToStep1()">Start over</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- Disable MFA Section (shown when MFA is enabled) -->
+    <div id="disableMFASection" class="bg-red-50 border border-red-200 rounded-lg p-6 hidden">
+        <h2 class="text-xl font-bold mb-4 text-red-600">Disable MFA</h2>
+        <p class="text-gray-700 mb-4">
+            ⚠️ Disabling MFA will reduce your account security. Are you sure?
+        </p>
+        <button id="disableMFABtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+            Disable MFA
+        </button>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="bg-gray-50 rounded-lg p-6 mt-8">
+        <h3 class="text-lg font-bold mb-4">Frequently Asked Questions</h3>
+        
+        <details class="mb-3 cursor-pointer">
+            <summary class="font-semibold">What is TOTP?</summary>
+            <p class="mt-2 text-gray-700 pl-4">
+                TOTP (Time-based One-Time Password) is a time-synchronized code that changes every 30 seconds.
+                Your authenticator app generates these codes based on a shared secret.
+            </p>
+        </details>
+
+        <details class="mb-3 cursor-pointer">
+            <summary class="font-semibold">What authenticator apps can I use?</summary>
+            <p class="mt-2 text-gray-700 pl-4">
+                Popular options include: Google Authenticator, Microsoft Authenticator, Authy, FreeOTP, or 1Password.
+                Any TOTP-compatible app will work.
+            </p>
+        </details>
+
+        <details class="mb-3 cursor-pointer">
+            <summary class="font-semibold">What are backup codes?</summary>
+            <p class="mt-2 text-gray-700 pl-4">
+                Backup codes are emergency one-time passwords. If you lose your authenticator or phone, you can use these codes to access your account.
+                Each one can only be used once, so store them safely.
+            </p>
+        </details>
+
+        <details class="cursor-pointer">
+            <summary class="font-semibold">What if I lose my authenticator?</summary>
+            <p class="mt-2 text-gray-700 pl-4">
+                Use one of your backup codes to log in. Then, disable MFA and set it up again with a new device.
+                Contact an administrator if you've lost both your authenticator and backup codes.
+            </p>
+        </details>
+    </div>
+</div>
+
+<!-- Confirm Disable Modal -->
+<div id="confirmDisableModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-96">
+        <h2 class="text-xl font-bold mb-4 text-red-600">Disable MFA</h2>
+        <p class="mb-4">This will disable multi-factor authentication for your account. You can enable it again later.</p>
+        <div class="flex gap-2">
+            <button id="confirmDisableBtn" class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+                Disable MFA
+            </button>
+            <button id="cancelDisableBtn" class="flex-1 bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = '/admin';
+    let currentSecret = null;
+    let currentBackupCodes = null;
+
+    // Load MFA status on page load
+    document.addEventListener('DOMContentLoaded', checkMFAStatus);
+
+    document.getElementById('generateSecretBtn').addEventListener('click', generateSecret);
+    document.getElementById('continueToVerifyBtn').addEventListener('click', goToStep3);
+    document.getElementById('verifyCodeBtn').addEventListener('click', verifyAndEnableMFA);
+    document.getElementById('disableMFABtn').addEventListener('click', () => {
+        document.getElementById('confirmDisableModal').classList.remove('hidden');
+    });
+    document.getElementById('cancelDisableBtn').addEventListener('click', () => {
+        document.getElementById('confirmDisableModal').classList.add('hidden');
+    });
+    document.getElementById('confirmDisableBtn').addEventListener('click', disableMFA);
+
+    async function checkMFAStatus() {
+        try {
+            const userId = getQueryParam('user_id') || 'me';
+            const response = await fetch(`${API_BASE}/user/${userId}/mfa/status`);
+            const data = await response.json();
+
+            const statusContainer = document.getElementById('mfaStatusContainer');
+            const enableSection = document.getElementById('enableMFASection');
+            const disableSection = document.getElementById('disableMFASection');
+
+            if (data.mfa_enabled) {
+                statusContainer.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">✅</span>
+                        <div>
+                            <p class="font-semibold text-green-700">MFA is Enabled</p>
+                            <p class="text-sm text-gray-600">Method: ${data.mfa_method}</p>
+                        </div>
+                    </div>
+                `;
+                enableSection.classList.add('hidden');
+                disableSection.classList.remove('hidden');
+            } else {
+                statusContainer.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">❌</span>
+                        <div>
+                            <p class="font-semibold text-red-700">MFA is Disabled</p>
+                            <p class="text-sm text-gray-600">Enable MFA to protect your account</p>
+                        </div>
+                    </div>
+                `;
+                enableSection.classList.remove('hidden');
+                disableSection.classList.add('hidden');
+            }
+        } catch (error) {
+            showAlert(`Error loading MFA status: ${error.message}`, 'error');
+        }
+    }
+
+    async function generateSecret() {
+        try {
+            const userId = getQueryParam('user_id') || 'me';
+            const response = await fetch(`${API_BASE}/user/${userId}/mfa/enable`, {
+                method: 'POST'
+            });
+
+            if (!response.ok) {
+                showAlert('Failed to generate MFA secret', 'error');
+                return;
+            }
+
+            const data = await response.json();
+            currentSecret = data.secret;
+            currentBackupCodes = data.backup_codes;
+
+            // Display QR code
+            document.getElementById('qrCodeContainer').innerHTML = `
+                <img src="${data.qr_code}" alt="QR Code" style="max-width: 300px; border: 2px solid #ddd; padding: 10px;">
+            `;
+
+            // Display secret code
+            document.getElementById('secretCode').textContent = data.secret;
+
+            // Display backup codes
+            const codesList = document.getElementById('backupCodesList');
+            codesList.innerHTML = data.backup_codes.map(code => 
+                `<li>📌 ${code}</li>`
+            ).join('');
+
+            // Show step 2
+            document.getElementById('step1Section').classList.add('hidden');
+            document.getElementById('step2Section').classList.remove('hidden');
+
+            showAlert('Secret generated! Scan the QR code with your authenticator app.', 'success');
+        } catch (error) {
+            showAlert(`Error: ${error.message}`, 'error');
+        }
+    }
+
+    function goToStep3() {
+        document.getElementById('step2Section').classList.add('hidden');
+        document.getElementById('step3Section').classList.remove('hidden');
+        document.getElementById('verifyCodeInput').focus();
+    }
+
+    async function verifyAndEnableMFA() {
+        const token = document.getElementById('verifyCodeInput').value;
+
+        if (token.length !== 6 || isNaN(token)) {
+            showAlert('Please enter a valid 6-digit code', 'error');
+            return;
+        }
+
+        try {
+            const userId = getQueryParam('user_id') || 'me';
+            const response = await fetch(`${API_BASE}/user/${userId}/mfa/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    token: token,
+                    secret: currentSecret,
+                    backup_codes: currentBackupCodes
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showAlert('MFA enabled successfully! Your account is now more secure.', 'success');
+                setTimeout(() => checkMFAStatus(), 1500);
+            } else {
+                showAlert(`Verification failed: ${data.error}`, 'error');
+                document.getElementById('verifyCodeInput').value = '';
+            }
+        } catch (error) {
+            showAlert(`Error: ${error.message}`, 'error');
+        }
+    }
+
+    async function disableMFA() {
+        document.getElementById('confirmDisableModal').classList.add('hidden');
+
+        try {
+            const userId = getQueryParam('user_id') || 'me';
+            const response = await fetch(`${API_BASE}/user/${userId}/mfa/disable`, {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showAlert('MFA has been disabled', 'success');
+                checkMFAStatus();
+            } else {
+                showAlert('Failed to disable MFA', 'error');
+            }
+        } catch (error) {
+            showAlert(`Error: ${error.message}`, 'error');
+        }
+    }
+
+    function goBackToStep1() {
+        document.getElementById('step1Section').classList.remove('hidden');
+        document.getElementById('step2Section').classList.add('hidden');
+        document.getElementById('step3Section').classList.add('hidden');
+    }
+
+    function getQueryParam(name) {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(name);
+    }
+
+    function showAlert(message, type) {
+        const container = document.getElementById('alertContainer');
+        const alert = document.createElement('div');
+        alert.className = `p-4 mb-4 rounded ${
+            type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' :
+            type === 'error' ? 'bg-red-100 text-red-800 border border-red-300' :
+            'bg-blue-100 text-blue-800 border border-blue-300'
+        }`;
+        alert.textContent = message;
+        container.appendChild(alert);
+        
+        setTimeout(() => alert.remove(), 5000);
+    }
+</script>
+{% endblock %}

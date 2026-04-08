@@ -250,10 +250,51 @@ async def get_logs(request: Request):
 # WebSocket for real-time updates
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for real-time status updates with keepalive support."""
     await websocket.accept()
     active_connections.append(websocket)
+    keepalive_task = None
+    
+    async def send_keepalive():
+        """Send periodic keepalive ping messages."""
+        try:
+            while True:
+                await asyncio.sleep(30)  # Send keepalive every 30 seconds
+                try:
+                    keepalive_msg = {"type": "ping"}
+                    await websocket.send_text(json.dumps(keepalive_msg))
+                except Exception as e:
+                    logger.debug(f"Failed to send WebSocket keepalive: {e}")
+                    break
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.debug(f"Keepalive task error: {e}")
+    
     try:
+        # Start keepalive task
+        keepalive_task = asyncio.create_task(send_keepalive())
+        
         while True:
+            # Receive messages with timeout
+            try:
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=300)  # 5 min timeout
+                message = json.loads(data)
+                
+                # Handle ping/pong for keepalive
+                if message.get("type") == "ping":
+                    await websocket.send_text(json.dumps({"type": "pong"}))
+                    continue
+                    
+            except asyncio.TimeoutError:
+                # Connection idle, send status update or close
+                logger.debug("WebSocket connection idle, closing")
+                break
+            except json.JSONDecodeError:
+                logger.debug("Invalid JSON received on WebSocket")
+                continue
+            
+            # Send regular status updates
             status_data = {
                 "type": "status_update",
                 "timestamp": int(time.time()),
@@ -262,6 +303,7 @@ async def websocket_endpoint(websocket: WebSocket):
             }
             await websocket.send_text(json.dumps(status_data))
             await asyncio.sleep(5)
+            
     except WebSocketDisconnect:
         logger.debug("WebSocket client disconnected")
     except Exception as e:
@@ -269,6 +311,12 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         if websocket in active_connections:
             active_connections.remove(websocket)
+        if keepalive_task:
+            keepalive_task.cancel()
+            try:
+                await keepalive_task
+            except asyncio.CancelledError:
+                pass
 
 # API endpoints for status data
 @router.get("/status")
